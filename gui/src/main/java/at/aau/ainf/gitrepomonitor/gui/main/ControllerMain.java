@@ -42,7 +42,7 @@ public class ControllerMain implements Initializable {
     }
 
     private void openScanWindow() throws IOException {
-        Parent root = FXMLLoader.load(getClass().getResource("../reposcan/scan.fxml"), localStrings);
+        Parent root = FXMLLoader.load(getClass().getResource("/at/aau/ainf/gitrepomonitor/gui/reposcan/scan.fxml"), localStrings);
 
         Stage stage = new Stage();
         stage.initModality(Modality.APPLICATION_MODAL);
