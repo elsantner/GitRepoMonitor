@@ -2,8 +2,6 @@ package at.aau.ainf.gitrepomonitor.gui.reposcan;
 
 import at.aau.ainf.gitrepomonitor.files.FileManager;
 import at.aau.ainf.gitrepomonitor.files.RepositoryInformation;
-import javafx.beans.property.ListProperty;
-import javafx.beans.property.SimpleListProperty;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
@@ -49,13 +47,21 @@ public class ControllerScan implements Initializable, PropertyChangeListener {
     @FXML
     private Button btnRemoveFromWatchlist;
 
-    private ListProperty<RepositoryInformation> listProperty = new SimpleListProperty<>();
     private RepoSearchTask searchTask;
     private FileManager fileManager;
 
     @Override
     public void initialize(URL url, ResourceBundle resourceBundle) {
         localStrings = resourceBundle;
+
+        fileManager = FileManager.getInstance();
+        fileManager.addWatchlistListener(this);
+        fileManager.addFoundReposListener(this);
+
+        setupUI();
+    }
+
+    private void setupUI() {
         btnStartScan.managedProperty().bind(btnStartScan.visibleProperty());
         btnCancelScan.managedProperty().bind(btnCancelScan.visibleProperty());
         lblDone.managedProperty().bind(lblDone.visibleProperty());
@@ -64,21 +70,19 @@ public class ControllerScan implements Initializable, PropertyChangeListener {
 
         // use bindings to disable button if either list is not focused or no item is selected in list
         btnAddToWatchlist.disableProperty().bind(listFoundRepos.getSelectionModel().selectedItemProperty().isNull());
-        btnRemoveFromWatchlist.disableProperty().bind(listWatchlist.focusedProperty().not()
-                .or(listWatchlist.getSelectionModel().selectedItemProperty().isNull()));
+        btnRemoveFromWatchlist.disableProperty().bind(listWatchlist.getSelectionModel().selectedItemProperty().isNull());
 
         listFoundRepos.setPlaceholder(new Label("No Repos"));
         listWatchlist.setPlaceholder(new Label("No Repos"));
-
-        fileManager = FileManager.getInstance();
-        fileManager.addWatchlistListener(this);
         setWatchlistDisplay(fileManager.getWatchlist());
+        setFoundReposDisplay(fileManager.getFoundRepos());
     }
 
     @FXML
     public void btnSelectDirClicked(ActionEvent actionEvent) {
         DirectoryChooser directoryChooser = new DirectoryChooser();
         directoryChooser.setTitle(localStrings.getString("scanpc.selectdir.title"));
+        directoryChooser.setInitialDirectory(rootDir);
         File selectedDirectory = directoryChooser.showDialog(lblStatus.getScene().getWindow());
         if (selectedDirectory != null) {
             rootDir = selectedDirectory;
@@ -108,8 +112,6 @@ public class ControllerScan implements Initializable, PropertyChangeListener {
             setScanRunningMode(false);
             lblStatus.textProperty().unbind();
         });
-        listProperty.set(searchTask.getFoundRepos());
-        listFoundRepos.itemsProperty().bind(listProperty);
         new Thread(searchTask).start();
     }
 
@@ -141,18 +143,31 @@ public class ControllerScan implements Initializable, PropertyChangeListener {
 
     @FXML
     public void btnRemoveFromWatchlistClicked(ActionEvent actionEvent) {
-
+        try {
+            List<RepositoryInformation> selectedItems = List.copyOf(listWatchlist.getSelectionModel().getSelectedItems());
+            fileManager.removeFromWatchlist(selectedItems);
+        } catch (IOException e) {
+            e.printStackTrace();
+            lblStatus.setText(e.getClass().getCanonicalName() + ": " + e.getMessage());
+        }
     }
 
     @Override
     public void propertyChange(PropertyChangeEvent e) {
         if (e.getPropertyName().equals("watchlist")) {
             setWatchlistDisplay((List<RepositoryInformation>)e.getNewValue());
+        } else if (e.getPropertyName().equals("foundRepos")) {
+            setFoundReposDisplay((List<RepositoryInformation>)e.getNewValue());
         }
     }
 
     private void setWatchlistDisplay(List<RepositoryInformation> repoInfo) {
         listWatchlist.getItems().clear();
         listWatchlist.getItems().addAll(repoInfo);
+    }
+
+    private void setFoundReposDisplay(List<RepositoryInformation> repoInfo) {
+        listFoundRepos.getItems().clear();
+        listFoundRepos.getItems().addAll(repoInfo);
     }
 }

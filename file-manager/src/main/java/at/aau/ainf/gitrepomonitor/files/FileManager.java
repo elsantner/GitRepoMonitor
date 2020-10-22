@@ -15,9 +15,10 @@ public class FileManager {
     private static FileManager instance;
 
     private XmlMapper mapper;
-    private File fileWatchlist;
+    private File fileRepoLists;
     private List<PropertyChangeListener> listenersWatchlist;
-    private List<RepositoryInformation> watchlist;
+    private List<PropertyChangeListener> listenersFoundRepos;
+    private RepoListWrapper repoListWrapper;
 
     public static synchronized FileManager getInstance() {
         if (instance == null) {
@@ -28,18 +29,19 @@ public class FileManager {
 
     private FileManager() {
         this.mapper = XmlMapper.xmlBuilder().build();
-        this.fileWatchlist = new File(System.getenv("APPDATA") + "/GitRepoMonitor/watchlist.xml");
+        this.fileRepoLists = new File(System.getenv("APPDATA") + "/GitRepoMonitor/repolists.xml");
         this.listenersWatchlist = new ArrayList<>();
-        this.watchlist = new ArrayList<>();
+        this.listenersFoundRepos = new ArrayList<>();
     }
 
     public synchronized void init() throws IOException {
         try {
-            watchlist = mapper.readValue(fileWatchlist, new TypeReference<List<RepositoryInformation>>(){});
+            repoListWrapper = mapper.readValue(fileRepoLists, new TypeReference<RepoListWrapper>(){});
         } catch (IOException e) {
-            fileWatchlist.getParentFile().mkdirs();
-            fileWatchlist.createNewFile();
-            watchlist = new ArrayList<>();
+            fileRepoLists.getParentFile().mkdirs();
+            fileRepoLists.createNewFile();
+            repoListWrapper = new RepoListWrapper();
+            persistRepoLists();
             e.printStackTrace();
         }
     }
@@ -48,30 +50,72 @@ public class FileManager {
         listenersWatchlist.add(l);
     }
 
+    public synchronized void addFoundReposListener(PropertyChangeListener l) {
+        listenersFoundRepos.add(l);
+    }
+
+    public synchronized void addToFoundRepos(RepositoryInformation repo) throws IOException {
+        if (!repoListWrapper.getWatchlist().contains(repo)) {
+            repoListWrapper.getFoundRepos().add(repo);
+            persistRepoLists();
+            notifyFoundReposChanged();
+        }
+    }
+
     public synchronized void addToWatchlist(List<RepositoryInformation> repos) throws IOException {
-        watchlist.addAll(repos);
-        persistWatchlist();
+        repoListWrapper.getWatchlist().addAll(repos);
+        repoListWrapper.getFoundRepos().removeAll(repos);
+        persistRepoLists();
         notifyWatchlistChanged();
+        notifyFoundReposChanged();
     }
 
     public synchronized void addToWatchlist(RepositoryInformation repo) throws IOException {
-        watchlist.add(repo);
-        persistWatchlist();
+        repoListWrapper.getWatchlist().add(repo);
+        repoListWrapper.getFoundRepos().remove(repo);
+        persistRepoLists();
         notifyWatchlistChanged();
+        notifyFoundReposChanged();
     }
 
-    private synchronized void persistWatchlist() throws IOException {
-        mapper.writeValue(fileWatchlist, watchlist);
-        Logger.getAnonymousLogger().info("Wrote watchlist to " + fileWatchlist.getAbsolutePath());
+    public synchronized void removeFromWatchlist(List<RepositoryInformation> repos) throws IOException {
+        repoListWrapper.getWatchlist().removeAll(repos);
+        repoListWrapper.getFoundRepos().addAll(repos);
+        persistRepoLists();
+        notifyWatchlistChanged();
+        notifyFoundReposChanged();
+    }
+
+    public synchronized void removeFromWatchlist(RepositoryInformation repo) throws IOException {
+        repoListWrapper.getWatchlist().remove(repo);
+        repoListWrapper.getFoundRepos().add(repo);
+        persistRepoLists();
+        notifyWatchlistChanged();
+        notifyFoundReposChanged();
+    }
+
+    private synchronized void persistRepoLists() throws IOException {
+        mapper.writeValue(fileRepoLists, repoListWrapper);
+        Logger.getAnonymousLogger().info("Wrote repolists to " + fileRepoLists.getAbsolutePath());
     }
 
     private void notifyWatchlistChanged() {
         // TODO: Change maybe? (Not very clean with oldValue = null)
         listenersWatchlist.stream().forEach(propertyChangeListener ->
-                propertyChangeListener.propertyChange(new PropertyChangeEvent(this, "watchlist", null, watchlist)));
+                propertyChangeListener.propertyChange(new PropertyChangeEvent(this, "watchlist", null, getWatchlist())));
+    }
+
+    private void notifyFoundReposChanged() {
+        // TODO: Change maybe? (Not very clean with oldValue = null)
+        listenersFoundRepos.stream().forEach(propertyChangeListener ->
+                propertyChangeListener.propertyChange(new PropertyChangeEvent(this, "foundRepos", null, getFoundRepos())));
     }
 
     public List<RepositoryInformation> getWatchlist() {
-        return List.copyOf(watchlist);
+        return List.copyOf(repoListWrapper.getWatchlist());
+    }
+
+    public List<RepositoryInformation> getFoundRepos() {
+        return List.copyOf(repoListWrapper.getFoundRepos());
     }
 }

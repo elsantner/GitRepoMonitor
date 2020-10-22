@@ -1,30 +1,24 @@
 package at.aau.ainf.gitrepomonitor.gui.reposcan;
 
-import at.aau.ainf.gitrepomonitor.files.RepoScanner;
+import at.aau.ainf.gitrepomonitor.files.FileManager;
 import at.aau.ainf.gitrepomonitor.files.RepoScanCallback;
+import at.aau.ainf.gitrepomonitor.files.RepoScanner;
 import at.aau.ainf.gitrepomonitor.files.RepositoryInformation;
 import javafx.application.Platform;
-import javafx.collections.FXCollections;
-import javafx.collections.ObservableList;
 import javafx.concurrent.Task;
 
 import java.io.File;
-import java.util.ArrayList;
+import java.io.IOException;
 
 public class RepoSearchTask extends Task<Integer> {
     private File rootDir;
     private int scannedDirCount = 0;
-    private ObservableList<RepositoryInformation> foundRepos;
+    private int foundRepoCount = 0;
     private RepoScanner repoScanner;
 
     public RepoSearchTask(File rootDir) {
         this.rootDir = rootDir;
         this.repoScanner = new RepoScanner(rootDir);
-        this.foundRepos = FXCollections.observableList(new ArrayList<>());
-    }
-
-    public ObservableList<RepositoryInformation> getFoundRepos() {
-        return foundRepos;
     }
 
     @Override
@@ -32,12 +26,20 @@ public class RepoSearchTask extends Task<Integer> {
         this.repoScanner.scanForRepos(new RepoScanCallback() {
             @Override
             public void repoFound(File dir) {
-                Platform.runLater(() -> foundRepos.add(new RepositoryInformation(dir.getPath())));
+                Platform.runLater(() -> {
+                    try {
+                        FileManager.getInstance().addToFoundRepos(new RepositoryInformation(dir.getPath()));
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                        updateMessage("Error persisting repo list");
+                    }
+                    foundRepoCount++;
+                });
             }
 
             @Override
             public void dirScanned() {
-                updateMessage("Directories scanned: " + (++scannedDirCount) + " | Repos found: " + foundRepos.size());
+                updateMessage("Directories scanned: " + (++scannedDirCount) + " | Repos found: " + foundRepoCount);
             }
         });
         return scannedDirCount;

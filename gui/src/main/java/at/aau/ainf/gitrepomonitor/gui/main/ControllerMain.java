@@ -10,6 +10,7 @@ import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
+import javafx.scene.control.Label;
 import javafx.scene.control.ListView;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
@@ -44,6 +45,11 @@ public class ControllerMain implements Initializable, PropertyChangeListener {
            showError("Cannot access file storage");
         }
         fileManager.addWatchlistListener(this);
+        setupUI();
+    }
+
+    private void setupUI() {
+        watchlist.setPlaceholder(new Label("No Repos"));
         setWatchlistDisplay(fileManager.getWatchlist());
     }
 
@@ -72,7 +78,7 @@ public class ControllerMain implements Initializable, PropertyChangeListener {
         Stage stage = new Stage();
         stage.initModality(Modality.APPLICATION_MODAL);
         stage.initStyle(StageStyle.DECORATED);
-        stage.setTitle("ABC");
+        stage.setTitle("Scan PC");
         stage.setScene(new Scene(root));
         stage.show();
     }
