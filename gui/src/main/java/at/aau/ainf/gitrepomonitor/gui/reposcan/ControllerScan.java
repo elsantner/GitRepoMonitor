@@ -72,6 +72,7 @@ public class ControllerScan implements Initializable, PropertyChangeListener {
 
         fileManager = FileManager.getInstance();
         fileManager.addWatchlistListener(this);
+        setWatchlistDisplay(fileManager.getWatchlist());
     }
 
     @FXML
@@ -136,8 +137,6 @@ public class ControllerScan implements Initializable, PropertyChangeListener {
             e.printStackTrace();
             lblStatus.setText(e.getClass().getCanonicalName() + ": " + e.getMessage());
         }
-        /*listWatchlist.getItems().addAll(selectedItems);
-        listFoundRepos.getItems().removeAll(selectedItems);*/
     }
 
     @FXML
@@ -148,8 +147,12 @@ public class ControllerScan implements Initializable, PropertyChangeListener {
     @Override
     public void propertyChange(PropertyChangeEvent e) {
         if (e.getPropertyName().equals("watchlist")) {
-            listWatchlist.getItems().clear();
-            listWatchlist.getItems().addAll((List<RepositoryInformation>)e.getNewValue());
+            setWatchlistDisplay((List<RepositoryInformation>)e.getNewValue());
         }
+    }
+
+    private void setWatchlistDisplay(List<RepositoryInformation> repoInfo) {
+        listWatchlist.getItems().clear();
+        listWatchlist.getItems().addAll(repoInfo);
     }
 }

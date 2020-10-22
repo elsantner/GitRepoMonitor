@@ -49,6 +49,6 @@ public class RepositoryInformation {
 
     @Override
     public String toString() {
-        return (name == null || name.isBlank()) ? path : path;
+        return (name == null || name.isBlank()) ? path : name;
     }
 }

@@ -1,5 +1,6 @@
 package at.aau.ainf.gitrepomonitor.files;
 
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.dataformat.xml.XmlMapper;
 
 import java.beans.PropertyChangeEvent;
@@ -30,19 +31,14 @@ public class FileManager {
         this.fileWatchlist = new File(System.getenv("APPDATA") + "/GitRepoMonitor/watchlist.xml");
         this.listenersWatchlist = new ArrayList<>();
         this.watchlist = new ArrayList<>();
-        init();
     }
 
-    public synchronized void init() {
+    public synchronized void init() throws IOException {
         try {
-            watchlist = mapper.readValue(fileWatchlist, watchlist.getClass());
+            watchlist = mapper.readValue(fileWatchlist, new TypeReference<List<RepositoryInformation>>(){});
         } catch (IOException e) {
-            try {
-                fileWatchlist.getParentFile().mkdirs();
-                fileWatchlist.createNewFile();
-            } catch (IOException ioException) {
-                ioException.printStackTrace();
-            }
+            fileWatchlist.getParentFile().mkdirs();
+            fileWatchlist.createNewFile();
             watchlist = new ArrayList<>();
             e.printStackTrace();
         }
@@ -75,7 +71,7 @@ public class FileManager {
                 propertyChangeListener.propertyChange(new PropertyChangeEvent(this, "watchlist", null, watchlist)));
     }
 
-    public synchronized void getWatchlist() {
-
+    public List<RepositoryInformation> getWatchlist() {
+        return List.copyOf(watchlist);
     }
 }
