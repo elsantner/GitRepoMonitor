@@ -2,6 +2,8 @@ package at.aau.ainf.gitrepomonitor.gui.main;
 
 import at.aau.ainf.gitrepomonitor.files.FileManager;
 import at.aau.ainf.gitrepomonitor.files.RepositoryInformation;
+import at.aau.ainf.gitrepomonitor.gui.RepositoryInformationCellFactory;
+import at.aau.ainf.gitrepomonitor.gui.ResourceStore;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
@@ -20,14 +22,13 @@ import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
 import java.io.IOException;
 import java.net.URL;
-import java.util.List;
+import java.util.Collection;
 import java.util.ResourceBundle;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
 public class ControllerMain implements Initializable, PropertyChangeListener {
 
-    private ResourceBundle localStrings;
     @FXML
     private Button btnScan;
     @FXML
@@ -36,7 +37,6 @@ public class ControllerMain implements Initializable, PropertyChangeListener {
 
     @Override
     public void initialize(URL url, ResourceBundle resourceBundle) {
-        localStrings = resourceBundle;
         fileManager = FileManager.getInstance();
         try {
             fileManager.init();
@@ -49,6 +49,7 @@ public class ControllerMain implements Initializable, PropertyChangeListener {
     }
 
     private void setupUI() {
+        watchlist.setCellFactory(new RepositoryInformationCellFactory());
         watchlist.setPlaceholder(new Label("No Repos"));
         setWatchlistDisplay(fileManager.getWatchlist());
     }
@@ -73,7 +74,8 @@ public class ControllerMain implements Initializable, PropertyChangeListener {
     }
 
     private void openScanWindow() throws IOException {
-        Parent root = FXMLLoader.load(getClass().getResource("/at/aau/ainf/gitrepomonitor/gui/reposcan/scan.fxml"), localStrings);
+        Parent root = FXMLLoader.load(getClass().getResource("/at/aau/ainf/gitrepomonitor/gui/reposcan/scan.fxml"),
+                ResourceStore.getResourceBundle());
 
         Stage stage = new Stage();
         stage.initModality(Modality.APPLICATION_MODAL);
@@ -86,11 +88,11 @@ public class ControllerMain implements Initializable, PropertyChangeListener {
     @Override
     public void propertyChange(PropertyChangeEvent e) {
         if (e.getPropertyName().equals("watchlist")) {
-            setWatchlistDisplay((List<RepositoryInformation>)e.getNewValue());
+            setWatchlistDisplay((Collection<RepositoryInformation>)e.getNewValue());
         }
     }
 
-    private void setWatchlistDisplay(List<RepositoryInformation> repoInfo) {
+    private void setWatchlistDisplay(Collection<RepositoryInformation> repoInfo) {
         watchlist.getItems().clear();
         watchlist.getItems().addAll(repoInfo);
     }

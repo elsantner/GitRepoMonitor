@@ -8,7 +8,6 @@ import javafx.application.Platform;
 import javafx.concurrent.Task;
 
 import java.io.File;
-import java.io.IOException;
 
 public class RepoSearchTask extends Task<Integer> {
     private File rootDir;
@@ -27,12 +26,7 @@ public class RepoSearchTask extends Task<Integer> {
             @Override
             public void repoFound(File dir) {
                 Platform.runLater(() -> {
-                    try {
-                        FileManager.getInstance().addToFoundRepos(new RepositoryInformation(dir.getPath()));
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                        updateMessage("Error persisting repo list");
-                    }
+                    FileManager.getInstance().addToFoundRepos(new RepositoryInformation(dir.getPath()));
                     foundRepoCount++;
                 });
             }
