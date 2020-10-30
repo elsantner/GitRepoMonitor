@@ -6,15 +6,15 @@ import at.aau.ainf.gitrepomonitor.gui.editrepo.ControllerEditRepo;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
-import javafx.scene.control.ContextMenu;
-import javafx.scene.control.ListCell;
-import javafx.scene.control.ListView;
+import javafx.scene.control.*;
 import javafx.scene.control.MenuItem;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
 import javafx.stage.StageStyle;
 import javafx.util.Callback;
 
+import java.awt.*;
+import java.io.File;
 import java.io.IOException;
 
 public class RepositoryInformationCellFactory implements Callback<ListView<RepositoryInformation>, ListCell<RepositoryInformation>> {
@@ -44,11 +44,24 @@ public class RepositoryInformationCellFactory implements Callback<ListView<Repos
                 e.printStackTrace();
             }
         });
+
         MenuItem deleteItem = new MenuItem();
         deleteItem.setText("Remove");
         deleteItem.setOnAction(event -> FileManager.getInstance().deleteRepo(cell.getItem()));
-        contextMenu.getItems().addAll(editItem, deleteItem);
 
+        MenuItem showInExplorerItem = new MenuItem();
+        showInExplorerItem.setText("Show in explorer");
+        showInExplorerItem.setOnAction(event -> {
+            try {
+                Desktop.getDesktop().open(new File(cell.getItem().getPath()));
+            } catch (Exception e) {
+                showError("Could not open directory");
+            }
+        });
+
+        contextMenu.getItems().addAll(editItem, deleteItem, showInExplorerItem);
+
+        // ctx menu only on non-empty list entries
         cell.emptyProperty().addListener((obs, wasEmpty, isNowEmpty) -> {
             if (isNowEmpty) {
                 cell.setContextMenu(null);
@@ -57,6 +70,14 @@ public class RepositoryInformationCellFactory implements Callback<ListView<Repos
             }
         });
         return cell;
+    }
+
+    private void showError(String msg) {
+        Alert a = new Alert(Alert.AlertType.ERROR);
+        a.setTitle("Error");
+        a.setHeaderText("An error occurred");
+        a.setContentText(msg);
+        a.showAndWait();
     }
 
     private void openEditWindow(RepositoryInformation repo) throws IOException {
