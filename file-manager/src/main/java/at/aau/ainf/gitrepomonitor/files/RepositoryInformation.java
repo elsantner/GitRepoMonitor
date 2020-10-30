@@ -1,10 +1,12 @@
 package at.aau.ainf.gitrepomonitor.files;
 
+import java.util.Date;
 import java.util.Objects;
 
-public class RepositoryInformation {
+public class RepositoryInformation implements Comparable<RepositoryInformation> {
     private String path;
     private String name;
+    private Date dateAdded;
 
     public RepositoryInformation() {
     }
@@ -16,6 +18,11 @@ public class RepositoryInformation {
     public RepositoryInformation(String path, String name) {
         this.path = path;
         this.name = name;
+    }
+
+    public RepositoryInformation(String path, String name, Date dateAdded) {
+        this(path, name);
+        this.dateAdded = dateAdded;
     }
 
     public String getPath() {
@@ -34,6 +41,14 @@ public class RepositoryInformation {
         this.name = name;
     }
 
+    public Date getDateAdded() {
+        return dateAdded;
+    }
+
+    public void setDateAdded(Date dateAdded) {
+        this.dateAdded = dateAdded;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
@@ -50,5 +65,20 @@ public class RepositoryInformation {
     @Override
     public String toString() {
         return (name == null || name.isBlank()) ? path : name;
+    }
+
+    @Override
+    public int compareTo(RepositoryInformation o) {
+        if (this.equals(o)) return 0;
+        int retVal = 0;
+        if (this.getName() != null && o.getName() != null) {
+            retVal = this.getName().compareTo(o.getName());
+        } else if (this.getName() != null || o.getName() != null) {
+            retVal = this.getName() == null ? 1 : -1;
+        }
+        if (retVal == 0) {
+            retVal = o.getPath().compareTo(this.getName());
+        }
+        return retVal;
     }
 }

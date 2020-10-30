@@ -4,6 +4,7 @@ import at.aau.ainf.gitrepomonitor.files.FileManager;
 import at.aau.ainf.gitrepomonitor.files.RepositoryInformation;
 import at.aau.ainf.gitrepomonitor.gui.RepositoryInformationCellFactory;
 import at.aau.ainf.gitrepomonitor.gui.ResourceStore;
+import javafx.collections.ListChangeListener;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
@@ -15,6 +16,7 @@ import java.beans.PropertyChangeListener;
 import java.io.File;
 import java.net.URL;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.ResourceBundle;
 
@@ -152,13 +154,22 @@ public class ControllerScan implements Initializable, PropertyChangeListener {
         }
     }
 
-    private void setWatchlistDisplay(Collection<RepositoryInformation> repoInfo) {
+    private synchronized void setWatchlistDisplay(Collection<RepositoryInformation> repoInfo) {
         listWatchlist.getItems().clear();
         listWatchlist.getItems().addAll(repoInfo);
+        Collections.sort(listWatchlist.getItems());
     }
 
-    private void setFoundReposDisplay(Collection<RepositoryInformation> repoInfo) {
+    private synchronized void setFoundReposDisplay(Collection<RepositoryInformation> repoInfo) {
         listFoundRepos.getItems().clear();
         listFoundRepos.getItems().addAll(repoInfo);
+        listFoundRepos.getItems().sort((o1, o2) -> {
+            if (o1.equals(o2)) return 0;
+            int retVal = o2.getDateAdded().compareTo(o1.getDateAdded());
+            if (retVal == 0) {
+                retVal = o1.compareTo(o2);
+            }
+            return retVal;
+        });
     }
 }

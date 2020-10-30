@@ -23,6 +23,7 @@ import java.beans.PropertyChangeListener;
 import java.io.IOException;
 import java.net.URL;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.ResourceBundle;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -95,5 +96,6 @@ public class ControllerMain implements Initializable, PropertyChangeListener {
     private void setWatchlistDisplay(Collection<RepositoryInformation> repoInfo) {
         watchlist.getItems().clear();
         watchlist.getItems().addAll(repoInfo);
+        Collections.sort(watchlist.getItems());
     }
 }

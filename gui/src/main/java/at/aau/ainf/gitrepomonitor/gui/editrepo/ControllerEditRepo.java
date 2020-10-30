@@ -25,6 +25,7 @@ public class ControllerEditRepo implements Initializable {
 
     private FileManager fileManager;
     private String originalPath;
+    private RepositoryInformation repo;
 
     @Override
     public void initialize(URL location, ResourceBundle resources) {
@@ -60,6 +61,7 @@ public class ControllerEditRepo implements Initializable {
     }
 
     public void setRepo(RepositoryInformation repo) {
+        this.repo = repo;
         this.originalPath = repo.getPath();
         this.txtName.setText(repo.getName());
         this.txtPath.setText(repo.getPath());
@@ -78,11 +80,12 @@ public class ControllerEditRepo implements Initializable {
             if (!validateRepositoryPath(txtPath.getText())) {
                 throw new IllegalArgumentException("Path must be a valid GIT repository");
             }
-            fileManager.editRepo(originalPath, new RepositoryInformation(txtPath.getText(), txtName.getText()));
+            fileManager.editRepo(originalPath, new RepositoryInformation(txtPath.getText(), txtName.getText(), repo.getDateAdded()));
             Stage stage = (Stage) txtName.getScene().getWindow();
             stage.close();
         } catch (Exception ex) {
             showError(ex.getMessage());
+            ex.printStackTrace();
         }
     }
 

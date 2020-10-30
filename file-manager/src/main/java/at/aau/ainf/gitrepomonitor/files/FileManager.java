@@ -6,6 +6,8 @@ import com.fasterxml.jackson.dataformat.xml.XmlMapper;
 import java.beans.PropertyChangeListener;
 import java.io.File;
 import java.io.IOException;
+import java.util.Calendar;
+import java.util.Date;
 import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.logging.Logger;
@@ -61,6 +63,7 @@ public class FileManager {
 
     public synchronized void addToFoundRepos(RepositoryInformation repo) {
         if (!repoListWrapper.getWatchlist().contains(repo)) {
+            repo.setDateAdded(Calendar.getInstance().getTime());
             repoListWrapper.addToList(FOUND, repo);
             persistRepoLists();
         }
