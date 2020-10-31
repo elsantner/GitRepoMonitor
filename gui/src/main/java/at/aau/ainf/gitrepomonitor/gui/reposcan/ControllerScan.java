@@ -4,7 +4,6 @@ import at.aau.ainf.gitrepomonitor.files.FileManager;
 import at.aau.ainf.gitrepomonitor.files.RepositoryInformation;
 import at.aau.ainf.gitrepomonitor.gui.RepositoryInformationCellFactory;
 import at.aau.ainf.gitrepomonitor.gui.ResourceStore;
-import javafx.collections.ListChangeListener;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
@@ -74,9 +73,9 @@ public class ControllerScan implements Initializable, PropertyChangeListener {
         btnRemoveFromWatchlist.disableProperty().bind(listWatchlist.getSelectionModel().selectedItemProperty().isNull());
 
         listFoundRepos.setCellFactory(new RepositoryInformationCellFactory());
-        listFoundRepos.setPlaceholder(new Label("No Repos"));
+        listFoundRepos.setPlaceholder(new Label(ResourceStore.getResourceBundle().getString("list.noentries")));
         listWatchlist.setCellFactory(new RepositoryInformationCellFactory());
-        listWatchlist.setPlaceholder(new Label("No Repos"));
+        listWatchlist.setPlaceholder(new Label(ResourceStore.getResourceBundle().getString("list.noentries")));
         setWatchlistDisplay(fileManager.getWatchlist());
         setFoundReposDisplay(fileManager.getFoundRepos());
     }
@@ -97,8 +96,8 @@ public class ControllerScan implements Initializable, PropertyChangeListener {
     @FXML
     public void linkScanWholePcClicked(ActionEvent actionEvent) {
         rootDir = null;     // means scan whole pc
-        lblPath.setText("<Whole PC>");
-        ttPath.setText("<Whole PC>");
+        lblPath.setText(ResourceStore.getResourceBundle().getString("scanpc.wholepc"));
+        ttPath.setText(ResourceStore.getResourceBundle().getString("scanpc.wholepc"));
         linkWholePC.setVisited(false);
     }
 

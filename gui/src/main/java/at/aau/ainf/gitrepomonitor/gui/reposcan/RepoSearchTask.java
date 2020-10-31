@@ -4,6 +4,7 @@ import at.aau.ainf.gitrepomonitor.files.FileManager;
 import at.aau.ainf.gitrepomonitor.files.RepoScanCallback;
 import at.aau.ainf.gitrepomonitor.files.RepoScanner;
 import at.aau.ainf.gitrepomonitor.files.RepositoryInformation;
+import at.aau.ainf.gitrepomonitor.gui.ResourceStore;
 import javafx.application.Platform;
 import javafx.concurrent.Task;
 
@@ -33,7 +34,8 @@ public class RepoSearchTask extends Task<Integer> {
 
             @Override
             public void dirScanned() {
-                updateMessage("Directories scanned: " + (++scannedDirCount) + " | Repos found: " + foundRepoCount);
+                updateMessage(String.format(ResourceStore.getResourceBundle().getString("scanpc.scan_status"),
+                        (++scannedDirCount), foundRepoCount));
             }
         });
         return scannedDirCount;

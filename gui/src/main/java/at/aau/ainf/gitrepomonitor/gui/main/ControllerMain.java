@@ -43,7 +43,7 @@ public class ControllerMain implements Initializable, PropertyChangeListener {
             fileManager.init();
         } catch (IOException e) {
            Logger.getLogger(getClass().getName()).log(Level.SEVERE, "error occurred during file manager init", e);
-           showError("Cannot access file storage");
+           showError(ResourceStore.getResourceBundle().getString("errormsg.file_access_denied"));
         }
         fileManager.addWatchlistListener(this);
         setupUI();
@@ -51,14 +51,14 @@ public class ControllerMain implements Initializable, PropertyChangeListener {
 
     private void setupUI() {
         watchlist.setCellFactory(new RepositoryInformationCellFactory());
-        watchlist.setPlaceholder(new Label("No Repos"));
+        watchlist.setPlaceholder(new Label(ResourceStore.getResourceBundle().getString("list.noentries")));
         setWatchlistDisplay(fileManager.getWatchlist());
     }
 
     private void showError(String msg) {
         Alert a = new Alert(Alert.AlertType.ERROR);
-        a.setTitle("Error");
-        a.setHeaderText("An error occurred");
+        a.setTitle(ResourceStore.getResourceBundle().getString("errordialog.title"));
+        a.setHeaderText(ResourceStore.getResourceBundle().getString("errordialog.header"));
         a.setContentText(msg);
         a.showAndWait();
     }
@@ -81,7 +81,7 @@ public class ControllerMain implements Initializable, PropertyChangeListener {
         Stage stage = new Stage();
         stage.initModality(Modality.APPLICATION_MODAL);
         stage.initStyle(StageStyle.DECORATED);
-        stage.setTitle("Scan PC");
+        stage.setTitle(ResourceStore.getResourceBundle().getString("scanpc"));
         stage.setScene(new Scene(root));
         stage.show();
     }

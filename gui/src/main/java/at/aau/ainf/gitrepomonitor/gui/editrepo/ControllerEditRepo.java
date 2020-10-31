@@ -2,6 +2,7 @@ package at.aau.ainf.gitrepomonitor.gui.editrepo;
 
 import at.aau.ainf.gitrepomonitor.files.FileManager;
 import at.aau.ainf.gitrepomonitor.files.RepositoryInformation;
+import at.aau.ainf.gitrepomonitor.gui.ResourceStore;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
@@ -78,7 +79,7 @@ public class ControllerEditRepo implements Initializable {
     public void onBtnSaveClick(ActionEvent actionEvent) {
         try {
             if (!validateRepositoryPath(txtPath.getText())) {
-                throw new IllegalArgumentException("Path must be a valid GIT repository");
+                throw new IllegalArgumentException(ResourceStore.getResourceBundle().getString("errormsg.invalid_repo_path"));
             }
             fileManager.editRepo(originalPath, new RepositoryInformation(txtPath.getText(), txtName.getText(), repo.getDateAdded()));
             Stage stage = (Stage) txtName.getScene().getWindow();
@@ -111,7 +112,7 @@ public class ControllerEditRepo implements Initializable {
 
     public void onBtnChoosePathClick(ActionEvent actionEvent) {
         DirectoryChooser directoryChooser = new DirectoryChooser();
-        directoryChooser.setTitle(localStrings.getString("scanpc.selectdir.title"));
+        directoryChooser.setTitle(localStrings.getString("edit_repo.selectdir.title"));
         directoryChooser.setInitialDirectory(getDeepestExistingDirectory(txtPath.getText()));
         File selectedDirectory = directoryChooser.showDialog(txtName.getScene().getWindow());
         if (selectedDirectory != null) {

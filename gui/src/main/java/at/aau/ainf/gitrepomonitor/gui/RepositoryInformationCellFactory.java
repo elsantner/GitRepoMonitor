@@ -36,7 +36,7 @@ public class RepositoryInformationCellFactory implements Callback<ListView<Repos
 
         ContextMenu contextMenu = new ContextMenu();
         MenuItem editItem = new MenuItem();
-        editItem.setText("Edit");
+        editItem.setText(ResourceStore.getResourceBundle().getString("ctxmenu.edit"));
         editItem.setOnAction(event -> {
             try {
                 openEditWindow(cell.getItem());
@@ -46,16 +46,16 @@ public class RepositoryInformationCellFactory implements Callback<ListView<Repos
         });
 
         MenuItem deleteItem = new MenuItem();
-        deleteItem.setText("Remove");
+        deleteItem.setText(ResourceStore.getResourceBundle().getString("ctxmenu.remove"));
         deleteItem.setOnAction(event -> FileManager.getInstance().deleteRepo(cell.getItem()));
 
         MenuItem showInExplorerItem = new MenuItem();
-        showInExplorerItem.setText("Show in explorer");
+        showInExplorerItem.setText(ResourceStore.getResourceBundle().getString("ctxmenu.show_in_explorer"));
         showInExplorerItem.setOnAction(event -> {
             try {
                 Desktop.getDesktop().open(new File(cell.getItem().getPath()));
             } catch (Exception e) {
-                showError("Could not open directory");
+                showError(ResourceStore.getResourceBundle().getString("errormsg.open_in_explorer_failed"));
             }
         });
 
@@ -89,7 +89,7 @@ public class RepositoryInformationCellFactory implements Callback<ListView<Repos
         Stage stage = new Stage();
         stage.initModality(Modality.APPLICATION_MODAL);
         stage.initStyle(StageStyle.DECORATED);
-        stage.setTitle("Edit Repository Information");
+        stage.setTitle(ResourceStore.getResourceBundle().getString("edit_repo"));
         stage.setScene(new Scene(root));
         stage.sizeToScene();
         stage.show();
