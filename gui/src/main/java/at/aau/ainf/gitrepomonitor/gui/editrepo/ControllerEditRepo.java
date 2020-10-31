@@ -2,12 +2,11 @@ package at.aau.ainf.gitrepomonitor.gui.editrepo;
 
 import at.aau.ainf.gitrepomonitor.files.FileManager;
 import at.aau.ainf.gitrepomonitor.files.RepositoryInformation;
+import at.aau.ainf.gitrepomonitor.gui.ErrorDisplay;
 import at.aau.ainf.gitrepomonitor.gui.ResourceStore;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
-import javafx.scene.control.Alert;
-import javafx.scene.control.Button;
 import javafx.scene.control.TextField;
 import javafx.stage.DirectoryChooser;
 import javafx.stage.Stage;
@@ -16,7 +15,7 @@ import java.io.File;
 import java.net.URL;
 import java.util.ResourceBundle;
 
-public class ControllerEditRepo implements Initializable {
+public class ControllerEditRepo implements Initializable, ErrorDisplay {
 
     private ResourceBundle localStrings;
     @FXML
@@ -88,14 +87,6 @@ public class ControllerEditRepo implements Initializable {
             showError(ex.getMessage());
             ex.printStackTrace();
         }
-    }
-
-    private void showError(String msg) {
-        Alert a = new Alert(Alert.AlertType.ERROR);
-        a.setTitle("Error");
-        a.setHeaderText("An error occurred");
-        a.setContentText(msg);
-        a.showAndWait();
     }
 
     private File getDeepestExistingDirectory(String path) {

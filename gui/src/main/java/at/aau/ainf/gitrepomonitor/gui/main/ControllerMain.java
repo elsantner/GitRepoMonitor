@@ -2,6 +2,7 @@ package at.aau.ainf.gitrepomonitor.gui.main;
 
 import at.aau.ainf.gitrepomonitor.files.FileManager;
 import at.aau.ainf.gitrepomonitor.files.RepositoryInformation;
+import at.aau.ainf.gitrepomonitor.gui.ErrorDisplay;
 import at.aau.ainf.gitrepomonitor.gui.RepositoryInformationCellFactory;
 import at.aau.ainf.gitrepomonitor.gui.ResourceStore;
 import javafx.event.ActionEvent;
@@ -10,7 +11,6 @@ import javafx.fxml.FXMLLoader;
 import javafx.fxml.Initializable;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
-import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.ListView;
@@ -28,7 +28,7 @@ import java.util.ResourceBundle;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-public class ControllerMain implements Initializable, PropertyChangeListener {
+public class ControllerMain implements Initializable, ErrorDisplay, PropertyChangeListener {
 
     @FXML
     private Button btnScan;
@@ -53,14 +53,6 @@ public class ControllerMain implements Initializable, PropertyChangeListener {
         watchlist.setCellFactory(new RepositoryInformationCellFactory());
         watchlist.setPlaceholder(new Label(ResourceStore.getResourceBundle().getString("list.noentries")));
         setWatchlistDisplay(fileManager.getWatchlist());
-    }
-
-    private void showError(String msg) {
-        Alert a = new Alert(Alert.AlertType.ERROR);
-        a.setTitle(ResourceStore.getResourceBundle().getString("errordialog.title"));
-        a.setHeaderText(ResourceStore.getResourceBundle().getString("errordialog.header"));
-        a.setContentText(msg);
-        a.showAndWait();
     }
 
     @FXML

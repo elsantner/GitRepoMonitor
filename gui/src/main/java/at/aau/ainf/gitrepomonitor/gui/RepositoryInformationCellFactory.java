@@ -17,7 +17,8 @@ import java.awt.*;
 import java.io.File;
 import java.io.IOException;
 
-public class RepositoryInformationCellFactory implements Callback<ListView<RepositoryInformation>, ListCell<RepositoryInformation>> {
+public class RepositoryInformationCellFactory
+        implements ErrorDisplay, Callback<ListView<RepositoryInformation>, ListCell<RepositoryInformation>> {
 
     @Override
     public ListCell<RepositoryInformation> call(ListView<RepositoryInformation> param) {
@@ -70,14 +71,6 @@ public class RepositoryInformationCellFactory implements Callback<ListView<Repos
             }
         });
         return cell;
-    }
-
-    private void showError(String msg) {
-        Alert a = new Alert(Alert.AlertType.ERROR);
-        a.setTitle("Error");
-        a.setHeaderText("An error occurred");
-        a.setContentText(msg);
-        a.showAndWait();
     }
 
     private void openEditWindow(RepositoryInformation repo) throws IOException {
