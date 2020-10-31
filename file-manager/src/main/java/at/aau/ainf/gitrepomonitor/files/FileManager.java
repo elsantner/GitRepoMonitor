@@ -43,6 +43,7 @@ public class FileManager {
             persistRepoLists();
             e.printStackTrace();
         }
+        repoListWrapper.checkRepoPathValidity();
         repoListInitialized = true;
     }
 
@@ -107,7 +108,7 @@ public class FileManager {
         if (!originalPath.equals(updatedInfo.getPath()) && repoListWrapper.exists(updatedInfo)) {
             throw new IllegalArgumentException("Repo at updated path already exists");
         }
-        repoListWrapper.removeFromList(repoList, updatedInfo);
+        repoListWrapper.removeFromList(repoList, new RepositoryInformation(originalPath));
         repoListWrapper.addToList(repoList, updatedInfo);
         persistRepoLists();
     }

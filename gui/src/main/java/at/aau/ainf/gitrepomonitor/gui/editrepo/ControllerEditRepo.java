@@ -1,6 +1,7 @@
 package at.aau.ainf.gitrepomonitor.gui.editrepo;
 
 import at.aau.ainf.gitrepomonitor.files.FileManager;
+import at.aau.ainf.gitrepomonitor.files.GitRepoHelper;
 import at.aau.ainf.gitrepomonitor.files.RepositoryInformation;
 import at.aau.ainf.gitrepomonitor.gui.ErrorDisplay;
 import at.aau.ainf.gitrepomonitor.gui.ResourceStore;
@@ -44,19 +45,10 @@ public class ControllerEditRepo implements Initializable, ErrorDisplay {
     }
 
     private void validateTextFieldPath() {
-        if (validateRepositoryPath(txtPath.getText())) {
+        if (GitRepoHelper.validateRepositoryPath(txtPath.getText())) {
             txtPath.getStyleClass().remove("error-input");
         } else {
             txtPath.getStyleClass().add("error-input");
-        }
-    }
-
-    private boolean validateRepositoryPath(String path) {
-        try {
-            File dir = new File(path, ".git");
-            return dir.exists() && dir.isDirectory();
-        } catch (Exception ex) {
-            return false;
         }
     }
 
@@ -65,6 +57,7 @@ public class ControllerEditRepo implements Initializable, ErrorDisplay {
         this.originalPath = repo.getPath();
         this.txtName.setText(repo.getName());
         this.txtPath.setText(repo.getPath());
+        validateTextFieldPath();
     }
 
     @FXML
@@ -77,10 +70,14 @@ public class ControllerEditRepo implements Initializable, ErrorDisplay {
     @FXML
     public void onBtnSaveClick(ActionEvent actionEvent) {
         try {
-            if (!validateRepositoryPath(txtPath.getText())) {
+            if (!GitRepoHelper.validateRepositoryPath(txtPath.getText())) {
                 throw new IllegalArgumentException(ResourceStore.getResourceBundle().getString("errormsg.invalid_repo_path"));
             }
-            fileManager.editRepo(originalPath, new RepositoryInformation(txtPath.getText(), txtName.getText(), repo.getDateAdded()));
+            RepositoryInformation editedRepo = (RepositoryInformation) repo.clone();
+            editedRepo.setPath(txtPath.getText());
+            editedRepo.setName(txtName.getText());
+            fileManager.editRepo(originalPath, editedRepo);
+
             Stage stage = (Stage) txtName.getScene().getWindow();
             stage.close();
         } catch (Exception ex) {

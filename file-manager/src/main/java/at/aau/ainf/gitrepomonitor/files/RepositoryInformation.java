@@ -1,12 +1,15 @@
 package at.aau.ainf.gitrepomonitor.files;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+
 import java.util.Date;
 import java.util.Objects;
 
-public class RepositoryInformation implements Comparable<RepositoryInformation> {
+public class RepositoryInformation implements Comparable<RepositoryInformation>, Cloneable {
     private String path;
     private String name;
     private Date dateAdded;
+    private boolean pathValid;
 
     public RepositoryInformation() {
     }
@@ -23,6 +26,21 @@ public class RepositoryInformation implements Comparable<RepositoryInformation> 
     public RepositoryInformation(String path, String name, Date dateAdded) {
         this(path, name);
         this.dateAdded = dateAdded;
+    }
+
+    private RepositoryInformation(String path, String name, Date dateAdded, boolean pathValid) {
+        this(path, name, dateAdded);
+        this.pathValid = pathValid;
+    }
+
+    @JsonIgnore
+    public boolean isPathValid() {
+        return pathValid;
+    }
+
+    @JsonIgnore
+    public void setPathValid(boolean pathValid) {
+        this.pathValid = pathValid;
     }
 
     public String getPath() {
@@ -80,5 +98,10 @@ public class RepositoryInformation implements Comparable<RepositoryInformation> 
             retVal = o.getPath().compareTo(this.getName());
         }
         return retVal;
+    }
+
+    @Override
+    public Object clone() throws CloneNotSupportedException {
+        return super.clone();
     }
 }

@@ -3,6 +3,8 @@ package at.aau.ainf.gitrepomonitor.files;
 import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
 import java.util.*;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 public class RepoListWrapper {
     private Set<RepositoryInformation> watchlist;
@@ -72,6 +74,7 @@ public class RepoListWrapper {
     }
 
     public void addToList(RepoList list, Collection<RepositoryInformation> repos) {
+        checkRepoPathValidity(repos);
         switch (list) {
             case WATCH:
                 watchlist.addAll(repos);
@@ -105,6 +108,21 @@ public class RepoListWrapper {
 
     public boolean removeFromList(RepoList list, RepositoryInformation repo) {
         return removeFromList(list, Collections.singletonList(repo));
+    }
+
+    /**
+     * Sets pathValid property of all repos
+     */
+    public void checkRepoPathValidity() {
+        for (RepositoryInformation repo : Stream.concat(watchlist.stream(), foundRepos.stream()).collect(Collectors.toList())) {
+            repo.setPathValid(GitRepoHelper.validateRepositoryPath(repo.getPath()));
+        }
+    }
+
+    private void checkRepoPathValidity(Collection<RepositoryInformation> reposToCheck) {
+        for (RepositoryInformation repo : reposToCheck) {
+            repo.setPathValid(GitRepoHelper.validateRepositoryPath(repo.getPath()));
+        }
     }
 
     public enum RepoList {
