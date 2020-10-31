@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.image.Image?>
+<?import javafx.scene.image.ImageView?>
+<?import javafx.scene.layout.HBox?>
+
+<HBox fx:id="container" xmlns="http://javafx.com/javafx/8.0.171" xmlns:fx="http://javafx.com/fxml/1">
+   <children>
+      <ImageView fx:id="iconAttention" fitHeight="18.0" fitWidth="88.0" pickOnBounds="true" preserveRatio="true">
+         <image>
+            <Image url="@icons/icon_attention.png" />
+         </image>
+      </ImageView>
+      <Label fx:id="lblName" text="Label">
+         <HBox.margin>
+            <Insets />
+         </HBox.margin>
+      </Label>
+   </children>
+</HBox>
