@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.*?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+
+<AnchorPane prefHeight="144.0" prefWidth="600.0" stylesheets="@edit_repo.css" xmlns="http://javafx.com/javafx/11.0.1" xmlns:fx="http://javafx.com/fxml/1" fx:controller="at.aau.ainf.gitrepomonitor.gui.editrepo.ControllerEditRepo">
+   <children>
+      <Label layoutX="14.0" layoutY="18.0" text="%edit_repo.name" AnchorPane.leftAnchor="10.0" AnchorPane.topAnchor="18.0" />
+      <TextField fx:id="txtName" layoutX="212.0" layoutY="14.0" maxWidth="1.7976931348623157E308" prefHeight="25.0" prefWidth="374.0" AnchorPane.rightAnchor="10.0" AnchorPane.topAnchor="14.0" />
+      <Label layoutX="14.0" layoutY="50.0" text="%edit_repo.path" AnchorPane.leftAnchor="10.0" AnchorPane.topAnchor="50.0" />
+      <TextField fx:id="txtPath" layoutX="212.0" layoutY="46.0" prefHeight="25.0" prefWidth="343.0" AnchorPane.rightAnchor="41.0" AnchorPane.topAnchor="46.0" />
+      <HBox alignment="CENTER_RIGHT" layoutX="12.0" layoutY="102.0" prefHeight="33.0" prefWidth="574.0" AnchorPane.bottomAnchor="9.0" AnchorPane.leftAnchor="10.0" AnchorPane.rightAnchor="10.0">
+         <children>
+            <Button fx:id="btnCancel" cancelButton="true" mnemonicParsing="false" onAction="#onBtnCancelClick" text="%btn.cancel" />
+            <Button fx:id="btnSave" defaultButton="true" mnemonicParsing="false" onAction="#onBtnSaveClick" style="-jfx-button-type: RAISED;" text="%btn.save">
+               <HBox.margin>
+                  <Insets left="20.0" />
+               </HBox.margin>
+            </Button>
+         </children>
+         <opaqueInsets>
+            <Insets />
+         </opaqueInsets>
+      </HBox>
+      <Button fx:id="btnChoosePath" layoutX="563.0" layoutY="46.0" mnemonicParsing="false" onAction="#onBtnChoosePathClick" prefHeight="25.0" prefWidth="27.0" text="..." AnchorPane.leftAnchor="563.0" AnchorPane.rightAnchor="10.0" AnchorPane.topAnchor="46.0" />
+   </children>
+</AnchorPane>

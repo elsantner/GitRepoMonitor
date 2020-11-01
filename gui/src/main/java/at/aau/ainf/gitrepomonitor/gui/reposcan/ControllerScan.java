@@ -2,6 +2,8 @@ package at.aau.ainf.gitrepomonitor.gui.reposcan;
 
 import at.aau.ainf.gitrepomonitor.files.FileManager;
 import at.aau.ainf.gitrepomonitor.files.RepositoryInformation;
+import at.aau.ainf.gitrepomonitor.gui.RepositoryInformationCellFactory;
+import at.aau.ainf.gitrepomonitor.gui.ResourceStore;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
@@ -11,14 +13,14 @@ import javafx.stage.DirectoryChooser;
 import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
 import java.io.File;
-import java.io.IOException;
 import java.net.URL;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.ResourceBundle;
 
 public class ControllerScan implements Initializable, PropertyChangeListener {
 
-    private ResourceBundle localStrings;
     private File rootDir;
     @FXML
     private Label lblStatus;
@@ -52,8 +54,6 @@ public class ControllerScan implements Initializable, PropertyChangeListener {
 
     @Override
     public void initialize(URL url, ResourceBundle resourceBundle) {
-        localStrings = resourceBundle;
-
         fileManager = FileManager.getInstance();
         fileManager.addWatchlistListener(this);
         fileManager.addFoundReposListener(this);
@@ -72,8 +72,10 @@ public class ControllerScan implements Initializable, PropertyChangeListener {
         btnAddToWatchlist.disableProperty().bind(listFoundRepos.getSelectionModel().selectedItemProperty().isNull());
         btnRemoveFromWatchlist.disableProperty().bind(listWatchlist.getSelectionModel().selectedItemProperty().isNull());
 
-        listFoundRepos.setPlaceholder(new Label("No Repos"));
-        listWatchlist.setPlaceholder(new Label("No Repos"));
+        listFoundRepos.setCellFactory(new RepositoryInformationCellFactory());
+        listFoundRepos.setPlaceholder(new Label(ResourceStore.getResourceBundle().getString("list.noentries")));
+        listWatchlist.setCellFactory(new RepositoryInformationCellFactory());
+        listWatchlist.setPlaceholder(new Label(ResourceStore.getResourceBundle().getString("list.noentries")));
         setWatchlistDisplay(fileManager.getWatchlist());
         setFoundReposDisplay(fileManager.getFoundRepos());
     }
@@ -81,7 +83,7 @@ public class ControllerScan implements Initializable, PropertyChangeListener {
     @FXML
     public void btnSelectDirClicked(ActionEvent actionEvent) {
         DirectoryChooser directoryChooser = new DirectoryChooser();
-        directoryChooser.setTitle(localStrings.getString("scanpc.selectdir.title"));
+        directoryChooser.setTitle(ResourceStore.getResourceBundle().getString("scanpc.selectdir.title"));
         directoryChooser.setInitialDirectory(rootDir);
         File selectedDirectory = directoryChooser.showDialog(lblStatus.getScene().getWindow());
         if (selectedDirectory != null) {
@@ -94,8 +96,8 @@ public class ControllerScan implements Initializable, PropertyChangeListener {
     @FXML
     public void linkScanWholePcClicked(ActionEvent actionEvent) {
         rootDir = null;     // means scan whole pc
-        lblPath.setText("<Whole PC>");
-        ttPath.setText("<Whole PC>");
+        lblPath.setText(ResourceStore.getResourceBundle().getString("scanpc.wholepc"));
+        ttPath.setText(ResourceStore.getResourceBundle().getString("scanpc.wholepc"));
         linkWholePC.setVisited(false);
     }
 
@@ -132,42 +134,41 @@ public class ControllerScan implements Initializable, PropertyChangeListener {
 
     @FXML
     public void btnAddToWatchlistClicked(ActionEvent actionEvent) {
-        try {
-            List<RepositoryInformation> selectedItems = List.copyOf(listFoundRepos.getSelectionModel().getSelectedItems());
-            fileManager.addToWatchlist(selectedItems);
-        } catch (IOException e) {
-            e.printStackTrace();
-            lblStatus.setText(e.getClass().getCanonicalName() + ": " + e.getMessage());
-        }
+        List<RepositoryInformation> selectedItems = List.copyOf(listFoundRepos.getSelectionModel().getSelectedItems());
+        fileManager.addToWatchlist(selectedItems);
     }
 
     @FXML
     public void btnRemoveFromWatchlistClicked(ActionEvent actionEvent) {
-        try {
-            List<RepositoryInformation> selectedItems = List.copyOf(listWatchlist.getSelectionModel().getSelectedItems());
-            fileManager.removeFromWatchlist(selectedItems);
-        } catch (IOException e) {
-            e.printStackTrace();
-            lblStatus.setText(e.getClass().getCanonicalName() + ": " + e.getMessage());
-        }
+        List<RepositoryInformation> selectedItems = List.copyOf(listWatchlist.getSelectionModel().getSelectedItems());
+        fileManager.removeFromWatchlist(selectedItems);
     }
 
     @Override
     public void propertyChange(PropertyChangeEvent e) {
         if (e.getPropertyName().equals("watchlist")) {
-            setWatchlistDisplay((List<RepositoryInformation>)e.getNewValue());
+            setWatchlistDisplay((Collection<RepositoryInformation>)e.getNewValue());
         } else if (e.getPropertyName().equals("foundRepos")) {
-            setFoundReposDisplay((List<RepositoryInformation>)e.getNewValue());
+            setFoundReposDisplay((Collection<RepositoryInformation>)e.getNewValue());
         }
     }
 
-    private void setWatchlistDisplay(List<RepositoryInformation> repoInfo) {
+    private synchronized void setWatchlistDisplay(Collection<RepositoryInformation> repoInfo) {
         listWatchlist.getItems().clear();
         listWatchlist.getItems().addAll(repoInfo);
+        Collections.sort(listWatchlist.getItems());
     }
 
-    private void setFoundReposDisplay(List<RepositoryInformation> repoInfo) {
+    private synchronized void setFoundReposDisplay(Collection<RepositoryInformation> repoInfo) {
         listFoundRepos.getItems().clear();
         listFoundRepos.getItems().addAll(repoInfo);
+        listFoundRepos.getItems().sort((o1, o2) -> {
+            if (o1.equals(o2)) return 0;
+            int retVal = o2.getDateAdded().compareTo(o1.getDateAdded());
+            if (retVal == 0) {
+                retVal = o1.compareTo(o2);
+            }
+            return retVal;
+        });
     }
 }

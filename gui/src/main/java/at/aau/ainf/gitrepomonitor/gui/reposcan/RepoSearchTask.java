@@ -4,11 +4,11 @@ import at.aau.ainf.gitrepomonitor.files.FileManager;
 import at.aau.ainf.gitrepomonitor.files.RepoScanCallback;
 import at.aau.ainf.gitrepomonitor.files.RepoScanner;
 import at.aau.ainf.gitrepomonitor.files.RepositoryInformation;
+import at.aau.ainf.gitrepomonitor.gui.ResourceStore;
 import javafx.application.Platform;
 import javafx.concurrent.Task;
 
 import java.io.File;
-import java.io.IOException;
 
 public class RepoSearchTask extends Task<Integer> {
     private File rootDir;
@@ -27,19 +27,15 @@ public class RepoSearchTask extends Task<Integer> {
             @Override
             public void repoFound(File dir) {
                 Platform.runLater(() -> {
-                    try {
-                        FileManager.getInstance().addToFoundRepos(new RepositoryInformation(dir.getPath()));
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                        updateMessage("Error persisting repo list");
-                    }
+                    FileManager.getInstance().addToFoundRepos(new RepositoryInformation(dir.getPath()));
                     foundRepoCount++;
                 });
             }
 
             @Override
             public void dirScanned() {
-                updateMessage("Directories scanned: " + (++scannedDirCount) + " | Repos found: " + foundRepoCount);
+                updateMessage(String.format(ResourceStore.getResourceBundle().getString("scanpc.scan_status"),
+                        (++scannedDirCount), foundRepoCount));
             }
         });
         return scannedDirCount;
