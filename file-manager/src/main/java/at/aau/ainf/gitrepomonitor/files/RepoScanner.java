@@ -12,7 +12,7 @@ public class RepoScanner {
 
     public RepoScanner(File rootDir) {
         this.rootDir = rootDir;
-        this.isStopped = false;
+        this.isStopped = true;
     }
 
     public File getRootDir() {
@@ -32,6 +32,7 @@ public class RepoScanner {
     }
 
     public List<File> scanForRepos(RepoScanCallback cb) {
+        isStopped = false;
         List<File> repos = new ArrayList<>();
         if (rootDir != null) {
             scanForReposRecursive(rootDir, repos, cb);
@@ -41,6 +42,7 @@ public class RepoScanner {
                 scanForReposRecursive(driveRoot, repos, cb);
             }
         }
+        isStopped = true;
         return repos;
     }
 

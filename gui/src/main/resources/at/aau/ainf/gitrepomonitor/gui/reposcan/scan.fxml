@@ -33,7 +33,7 @@
       <Button fx:id="btnStartScan" mnemonicParsing="false" onAction="#btnStartScanClicked" text="%btn.start_scan" />
       <Button fx:id="btnCancelScan" mnemonicParsing="false" onAction="#btnCancelScanClicked" text="%btn.stop_scan" />
       <ProgressIndicator fx:id="progressSpinner" visible="false" />
-      <Label fx:id="lblDone" prefHeight="38.0" text="Done!" visible="false">
+      <Label fx:id="lblDone" prefHeight="38.0" visible="false">
          <HBox.margin>
             <Insets left="10.0" />
          </HBox.margin>

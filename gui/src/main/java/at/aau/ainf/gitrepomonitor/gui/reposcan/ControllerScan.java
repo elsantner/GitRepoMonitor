@@ -4,6 +4,8 @@ import at.aau.ainf.gitrepomonitor.files.FileManager;
 import at.aau.ainf.gitrepomonitor.files.RepositoryInformation;
 import at.aau.ainf.gitrepomonitor.gui.RepositoryInformationCellFactory;
 import at.aau.ainf.gitrepomonitor.gui.ResourceStore;
+import javafx.beans.property.ReadOnlyBooleanProperty;
+import javafx.beans.property.SimpleBooleanProperty;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
@@ -49,8 +51,19 @@ public class ControllerScan implements Initializable, PropertyChangeListener {
     @FXML
     private Button btnRemoveFromWatchlist;
 
-    private RepoSearchTask searchTask;
+    private static final SimpleBooleanProperty scanRunningProperty = new SimpleBooleanProperty(null, "scanRunning", false);
+    private static RepoSearchTask searchTask;
     private FileManager fileManager;
+
+    public static ReadOnlyBooleanProperty scanRunningProperty() {
+        return scanRunningProperty;
+    }
+
+    public static void stopScanningProcess() {
+        if (searchTask != null) {
+            searchTask.cancel(true);
+        }
+    }
 
     @Override
     public void initialize(URL url, ResourceBundle resourceBundle) {
@@ -59,6 +72,7 @@ public class ControllerScan implements Initializable, PropertyChangeListener {
         fileManager.addFoundReposListener(this);
 
         setupUI();
+        setupSearchTask();
     }
 
     private void setupUI() {
@@ -78,6 +92,13 @@ public class ControllerScan implements Initializable, PropertyChangeListener {
         listWatchlist.setPlaceholder(new Label(ResourceStore.getResourceBundle().getString("list.noentries")));
         setWatchlistDisplay(fileManager.getWatchlist());
         setFoundReposDisplay(fileManager.getFoundRepos());
+
+        lblDone.visibleProperty().bind(scanRunningProperty().not());
+    }
+
+    public void cleanup() {
+        fileManager.removeFoundReposListener(this);
+        fileManager.removeWatchlistListener(this);
     }
 
     @FXML
@@ -103,18 +124,42 @@ public class ControllerScan implements Initializable, PropertyChangeListener {
 
     @FXML
     public void btnStartScanClicked(ActionEvent actionEvent) {
-        setScanRunningMode(true);
         searchTask = new RepoSearchTask(rootDir);
-        lblStatus.textProperty().bind(searchTask.messageProperty());
-        searchTask.setOnFailed(workerStateEvent -> {
-            setScanRunningMode(false);
-            lblStatus.textProperty().unbind();
-        });
-        searchTask.setOnSucceeded(workerStateEvent -> {
-            setScanRunningMode(false);
-            lblStatus.textProperty().unbind();
-        });
+        setupSearchTask();
+        setScanRunningMode(true);
+        scanRunningProperty.set(true);
         new Thread(searchTask).start();
+    }
+
+    /**
+     * Setup all necessary listeners and binding related to the search task in this GUI.
+     * Only has an effect if searchTask != null
+     */
+    private void setupSearchTask() {
+        if (searchTask != null) {
+            setScanRunningMode(!searchTask.isStopped());
+            lblStatus.textProperty().bind(searchTask.messageProperty());
+            searchTask.setOnFailed(workerStateEvent -> {
+                scanFinished();
+                lblDone.setText(ResourceStore.getResourceBundle().getString("scanpc.status.failed"));
+            });
+            searchTask.setOnSucceeded(workerStateEvent -> {
+                scanFinished();
+                lblDone.setText(ResourceStore.getResourceBundle().getString("scanpc.status.done"));
+            });
+            searchTask.setOnCancelled(workerStateEvent -> {
+                scanFinished();
+                lblDone.setText(ResourceStore.getResourceBundle().getString("scanpc.status.cancelled"));
+            });
+        }
+        else {
+            setScanRunningMode(false);
+        }
+    }
+
+    private void scanFinished() {
+        setScanRunningMode(false);
+        scanRunningProperty.set(false);
     }
 
     private void setScanRunningMode(boolean scanRunning) {
@@ -123,13 +168,11 @@ public class ControllerScan implements Initializable, PropertyChangeListener {
         btnSelectDir.setDisable(scanRunning);
         linkWholePC.setDisable(scanRunning);
         progressSpinner.setVisible(scanRunning);
-        lblDone.setVisible(!scanRunning);
     }
 
     @FXML
     public void btnCancelScanClicked(ActionEvent actionEvent) {
-        setScanRunningMode(false);
-        searchTask.cancel();
+        searchTask.cancel(true);
     }
 
     @FXML
