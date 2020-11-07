@@ -5,18 +5,20 @@ import at.aau.ainf.gitrepomonitor.files.RepositoryInformation;
 import at.aau.ainf.gitrepomonitor.gui.ErrorDisplay;
 import at.aau.ainf.gitrepomonitor.gui.RepositoryInformationCellFactory;
 import at.aau.ainf.gitrepomonitor.gui.ResourceStore;
+import at.aau.ainf.gitrepomonitor.gui.reposcan.ControllerScan;
+import at.aau.ainf.gitrepomonitor.gui.reposcan.RepoSearchTask;
 import javafx.event.ActionEvent;
+import javafx.event.EventHandler;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.fxml.Initializable;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
-import javafx.scene.control.Button;
-import javafx.scene.control.Label;
-import javafx.scene.control.ListView;
+import javafx.scene.control.*;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
 import javafx.stage.StageStyle;
+import javafx.stage.WindowEvent;
 
 import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
@@ -31,7 +33,7 @@ import java.util.logging.Logger;
 public class ControllerMain implements Initializable, ErrorDisplay, PropertyChangeListener {
 
     @FXML
-    private Button btnScan;
+    private ProgressIndicator indicatorScanRunning;
     @FXML
     private ListView<RepositoryInformation> watchlist;
     private FileManager fileManager;
@@ -52,7 +54,9 @@ public class ControllerMain implements Initializable, ErrorDisplay, PropertyChan
     private void setupUI() {
         watchlist.setCellFactory(new RepositoryInformationCellFactory());
         watchlist.setPlaceholder(new Label(ResourceStore.getResourceBundle().getString("list.noentries")));
+        watchlist.getSelectionModel().setSelectionMode(SelectionMode.MULTIPLE);
         setWatchlistDisplay(fileManager.getWatchlist());
+        indicatorScanRunning.visibleProperty().bind(ControllerScan.scanRunningProperty());
     }
 
     @FXML
@@ -67,14 +71,17 @@ public class ControllerMain implements Initializable, ErrorDisplay, PropertyChan
     }
 
     private void openScanWindow() throws IOException {
-        Parent root = FXMLLoader.load(getClass().getResource("/at/aau/ainf/gitrepomonitor/gui/reposcan/scan.fxml"),
+        FXMLLoader loader = new FXMLLoader(getClass().getResource("/at/aau/ainf/gitrepomonitor/gui/reposcan/scan.fxml"),
                 ResourceStore.getResourceBundle());
+        Parent root = loader.load();
+        ControllerScan controller = loader.getController();
 
         Stage stage = new Stage();
         stage.initModality(Modality.APPLICATION_MODAL);
         stage.initStyle(StageStyle.DECORATED);
         stage.setTitle(ResourceStore.getResourceBundle().getString("scanpc"));
         stage.setScene(new Scene(root));
+        stage.setOnHidden(event -> controller.cleanup());
         stage.show();
     }
 

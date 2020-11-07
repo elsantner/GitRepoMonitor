@@ -1,6 +1,7 @@
 package at.aau.ainf.gitrepomonitor.files;
 
 import java.io.File;
+import java.io.FileFilter;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -11,7 +12,7 @@ public class RepoScanner {
 
     public RepoScanner(File rootDir) {
         this.rootDir = rootDir;
-        this.isStopped = false;
+        this.isStopped = true;
     }
 
     public File getRootDir() {
@@ -31,6 +32,7 @@ public class RepoScanner {
     }
 
     public List<File> scanForRepos(RepoScanCallback cb) {
+        isStopped = false;
         List<File> repos = new ArrayList<>();
         if (rootDir != null) {
             scanForReposRecursive(rootDir, repos, cb);
@@ -40,19 +42,20 @@ public class RepoScanner {
                 scanForReposRecursive(driveRoot, repos, cb);
             }
         }
+        isStopped = true;
         return repos;
     }
 
-    // TODO: make faster!
     private void scanForReposRecursive(File rootDir, List<File> repos, RepoScanCallback cb) {
-        if (!isStopped && rootDir.isDirectory()) {
+        if (!isStopped) {
             if (rootDir.getName().equals(".git")) {
                 repos.add(rootDir.getParentFile());     // add repo folder to list
                 cb.repoFound(rootDir.getParentFile());
             } else {
                 cb.dirScanned();
-                if (rootDir.listFiles() != null) {
-                    for (File childDir : rootDir.listFiles())
+                File[] childDirs = rootDir.listFiles(File::isDirectory);
+                if (childDirs != null) {
+                    for (File childDir : childDirs)
                         scanForReposRecursive(childDir, repos, cb);
                 }
             }

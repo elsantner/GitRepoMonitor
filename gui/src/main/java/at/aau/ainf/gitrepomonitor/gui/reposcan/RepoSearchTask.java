@@ -41,6 +41,10 @@ public class RepoSearchTask extends Task<Integer> {
         return scannedDirCount;
     }
 
+    public boolean isStopped() {
+        return repoScanner.isStopped();
+    }
+
     @Override
     protected void succeeded() {
         super.succeeded();

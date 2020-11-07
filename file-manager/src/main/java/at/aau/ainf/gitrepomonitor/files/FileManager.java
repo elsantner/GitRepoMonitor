@@ -62,6 +62,14 @@ public class FileManager {
         getRepoListWrapper().addFoundReposListener(l);
     }
 
+    public synchronized boolean removeWatchlistListener(PropertyChangeListener l) {
+        return getRepoListWrapper().removeWatchlistListener(l);
+    }
+
+    public synchronized boolean removeFoundReposListener(PropertyChangeListener l) {
+        return getRepoListWrapper().removeFoundReposListener(l);
+    }
+
     public synchronized void addToFoundRepos(RepositoryInformation repo) {
         if (!repoListWrapper.getWatchlist().contains(repo)) {
             repo.setDateAdded(Calendar.getInstance().getTime());

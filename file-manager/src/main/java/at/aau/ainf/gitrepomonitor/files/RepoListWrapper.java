@@ -19,9 +19,13 @@ public class RepoListWrapper {
         this.listenersFoundRepos = new ArrayList<>();
     }
 
-    public synchronized void addWatchlistListener(PropertyChangeListener l) { listenersWatchlist.add(l); }
+    public void addWatchlistListener(PropertyChangeListener l) { listenersWatchlist.add(l); }
 
-    public synchronized void addFoundReposListener(PropertyChangeListener l) { listenersFoundRepos.add(l); }
+    public void addFoundReposListener(PropertyChangeListener l) { listenersFoundRepos.add(l); }
+
+    public boolean removeWatchlistListener(PropertyChangeListener l) { return listenersWatchlist.remove(l); }
+
+    public boolean removeFoundReposListener(PropertyChangeListener l) { return listenersFoundRepos.remove(l); }
 
     private void notifyWatchlistChanged() {
         listenersWatchlist.forEach(propertyChangeListener ->
