@@ -14,10 +14,7 @@ import javafx.fxml.FXMLLoader;
 import javafx.fxml.Initializable;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
-import javafx.scene.control.Button;
-import javafx.scene.control.Label;
-import javafx.scene.control.ListView;
-import javafx.scene.control.ProgressIndicator;
+import javafx.scene.control.*;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
 import javafx.stage.StageStyle;
@@ -57,6 +54,7 @@ public class ControllerMain implements Initializable, ErrorDisplay, PropertyChan
     private void setupUI() {
         watchlist.setCellFactory(new RepositoryInformationCellFactory());
         watchlist.setPlaceholder(new Label(ResourceStore.getResourceBundle().getString("list.noentries")));
+        watchlist.getSelectionModel().setSelectionMode(SelectionMode.MULTIPLE);
         setWatchlistDisplay(fileManager.getWatchlist());
         indicatorScanRunning.visibleProperty().bind(ControllerScan.scanRunningProperty());
     }

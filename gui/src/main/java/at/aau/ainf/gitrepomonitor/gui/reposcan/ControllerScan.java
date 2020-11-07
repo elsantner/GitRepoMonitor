@@ -88,8 +88,10 @@ public class ControllerScan implements Initializable, PropertyChangeListener {
 
         listFoundRepos.setCellFactory(new RepositoryInformationCellFactory());
         listFoundRepos.setPlaceholder(new Label(ResourceStore.getResourceBundle().getString("list.noentries")));
+        listFoundRepos.getSelectionModel().setSelectionMode(SelectionMode.MULTIPLE);
         listWatchlist.setCellFactory(new RepositoryInformationCellFactory());
         listWatchlist.setPlaceholder(new Label(ResourceStore.getResourceBundle().getString("list.noentries")));
+        listWatchlist.getSelectionModel().setSelectionMode(SelectionMode.MULTIPLE);
         setWatchlistDisplay(fileManager.getWatchlist());
         setFoundReposDisplay(fileManager.getFoundRepos());
 
@@ -209,7 +211,7 @@ public class ControllerScan implements Initializable, PropertyChangeListener {
             if (o1.equals(o2)) return 0;
             int retVal = o2.getDateAdded().compareTo(o1.getDateAdded());
             if (retVal == 0) {
-                retVal = o1.compareTo(o2);
+                retVal = o2.compareTo(o1);
             }
             return retVal;
         });

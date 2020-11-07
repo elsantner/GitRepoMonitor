@@ -85,17 +85,22 @@ public class RepositoryInformation implements Comparable<RepositoryInformation>,
         return (name == null || name.isBlank()) ? path : name;
     }
 
+    /**
+     * Sort by name first (no/empty names come last), then by path.
+     * @param o Other item this item is compared to.
+     * @return see standard compareTo() return value
+     */
     @Override
     public int compareTo(RepositoryInformation o) {
         if (this.equals(o)) return 0;
         int retVal = 0;
-        if (this.getName() != null && o.getName() != null) {
+        if (this.getName() != null && !this.getName().isBlank() && o.getName() != null && !o.getName().isEmpty()) {
             retVal = this.getName().compareTo(o.getName());
         } else if (this.getName() != null || o.getName() != null) {
-            retVal = this.getName() == null ? 1 : -1;
+            retVal = ( this.getName() == null || this.getName().isBlank() ) ? 1 : -1;
         }
         if (retVal == 0) {
-            retVal = o.getPath().compareTo(this.getName());
+            retVal = o.getPath().compareTo(this.getPath());
         }
         return retVal;
     }
