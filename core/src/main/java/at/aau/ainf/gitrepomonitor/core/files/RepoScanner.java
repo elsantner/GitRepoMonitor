@@ -1,7 +1,6 @@
-package at.aau.ainf.gitrepomonitor.files;
+package at.aau.ainf.gitrepomonitor.core.files;
 
 import java.io.File;
-import java.io.FileFilter;
 import java.util.ArrayList;
 import java.util.List;
 

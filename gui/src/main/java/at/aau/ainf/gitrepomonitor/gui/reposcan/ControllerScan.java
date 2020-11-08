@@ -1,7 +1,7 @@
 package at.aau.ainf.gitrepomonitor.gui.reposcan;
 
-import at.aau.ainf.gitrepomonitor.files.FileManager;
-import at.aau.ainf.gitrepomonitor.files.RepositoryInformation;
+import at.aau.ainf.gitrepomonitor.core.files.FileManager;
+import at.aau.ainf.gitrepomonitor.core.files.RepositoryInformation;
 import at.aau.ainf.gitrepomonitor.gui.RepositoryInformationCellFactory;
 import at.aau.ainf.gitrepomonitor.gui.ResourceStore;
 import javafx.beans.property.ReadOnlyBooleanProperty;

@@ -1,4 +1,4 @@
-package at.aau.ainf.gitrepomonitor.files;
+package at.aau.ainf.gitrepomonitor.core.files;
 
 import java.io.File;
 

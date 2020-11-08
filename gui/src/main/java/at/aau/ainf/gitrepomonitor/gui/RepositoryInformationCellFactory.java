@@ -1,10 +1,9 @@
 package at.aau.ainf.gitrepomonitor.gui;
 
-import at.aau.ainf.gitrepomonitor.files.FileManager;
-import at.aau.ainf.gitrepomonitor.files.RepositoryInformation;
-import at.aau.ainf.gitrepomonitor.git.GitManager;
+import at.aau.ainf.gitrepomonitor.core.files.FileManager;
+import at.aau.ainf.gitrepomonitor.core.files.RepositoryInformation;
+import at.aau.ainf.gitrepomonitor.core.git.GitManager;
 import at.aau.ainf.gitrepomonitor.gui.editrepo.ControllerEditRepo;
-import at.aau.ainf.gitrepomonitor.gui.main.ControllerMain;
 import javafx.application.Platform;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;

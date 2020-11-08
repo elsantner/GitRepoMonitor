@@ -1,8 +1,8 @@
 package at.aau.ainf.gitrepomonitor.gui.editrepo;
 
-import at.aau.ainf.gitrepomonitor.files.FileManager;
-import at.aau.ainf.gitrepomonitor.files.GitRepoHelper;
-import at.aau.ainf.gitrepomonitor.files.RepositoryInformation;
+import at.aau.ainf.gitrepomonitor.core.files.FileManager;
+import at.aau.ainf.gitrepomonitor.core.files.GitRepoHelper;
+import at.aau.ainf.gitrepomonitor.core.files.RepositoryInformation;
 import at.aau.ainf.gitrepomonitor.gui.ErrorDisplay;
 import at.aau.ainf.gitrepomonitor.gui.ResourceStore;
 import javafx.event.ActionEvent;

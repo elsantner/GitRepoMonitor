@@ -1,4 +1,4 @@
-package at.aau.ainf.gitrepomonitor.files;
+package at.aau.ainf.gitrepomonitor.core.files;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.dataformat.xml.XmlMapper;
@@ -7,11 +7,10 @@ import java.beans.PropertyChangeListener;
 import java.io.File;
 import java.io.IOException;
 import java.util.Calendar;
-import java.util.Date;
 import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.logging.Logger;
-import static at.aau.ainf.gitrepomonitor.files.RepoListWrapper.RepoList.*;
+import static at.aau.ainf.gitrepomonitor.core.files.RepoListWrapper.RepoList.*;
 
 public class FileManager {
     private static FileManager instance;

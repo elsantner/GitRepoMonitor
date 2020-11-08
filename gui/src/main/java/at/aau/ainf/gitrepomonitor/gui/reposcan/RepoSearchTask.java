@@ -1,9 +1,9 @@
 package at.aau.ainf.gitrepomonitor.gui.reposcan;
 
-import at.aau.ainf.gitrepomonitor.files.FileManager;
-import at.aau.ainf.gitrepomonitor.files.RepoScanCallback;
-import at.aau.ainf.gitrepomonitor.files.RepoScanner;
-import at.aau.ainf.gitrepomonitor.files.RepositoryInformation;
+import at.aau.ainf.gitrepomonitor.core.files.FileManager;
+import at.aau.ainf.gitrepomonitor.core.files.RepoScanCallback;
+import at.aau.ainf.gitrepomonitor.core.files.RepoScanner;
+import at.aau.ainf.gitrepomonitor.core.files.RepositoryInformation;
 import at.aau.ainf.gitrepomonitor.gui.ResourceStore;
 import javafx.application.Platform;
 import javafx.concurrent.Task;

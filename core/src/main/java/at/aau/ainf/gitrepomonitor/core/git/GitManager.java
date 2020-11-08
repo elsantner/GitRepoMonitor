@@ -1,17 +1,18 @@
-package at.aau.ainf.gitrepomonitor.git;
+package at.aau.ainf.gitrepomonitor.core.git;
 
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.api.PullResult;
 import org.eclipse.jgit.api.errors.GitAPIException;
+import org.eclipse.jgit.lib.Constants;
+import org.eclipse.jgit.lib.Ref;
 import org.eclipse.jgit.lib.Repository;
-import org.eclipse.jgit.lib.TextProgressMonitor;
 import org.eclipse.jgit.storage.file.FileRepositoryBuilder;
 import org.eclipse.jgit.transport.CredentialsProvider;
 import org.eclipse.jgit.transport.UsernamePasswordCredentialsProvider;
 
 import java.io.File;
 import java.io.IOException;
-import java.io.PrintWriter;
+import java.util.Collection;
 
 public class GitManager {
     private static GitManager instance;
@@ -32,10 +33,15 @@ public class GitManager {
                 .build();
         Git git = new Git(existingRepo);
 
+        System.out.println(existingRepo.resolve(Constants.HEAD).toObjectId());
+        Collection<Ref> refs = git.lsRemote()
+                .setHeads(true)
+                .setRemote("origin")
+                .call();
+
         PullResult pullResult = git.pull()
                 .setCredentialsProvider(cp)
                 .setRemote("origin")
-                .setProgressMonitor(new TextProgressMonitor(new PrintWriter(System.out)))
                 .call();
         return pullResult.isSuccessful();
     }
@@ -68,5 +74,4 @@ public class GitManager {
         t.setDaemon(true);
         t.start();
     }
-
 }
