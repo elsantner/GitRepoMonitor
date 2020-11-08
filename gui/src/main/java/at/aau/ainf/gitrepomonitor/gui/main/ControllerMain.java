@@ -5,8 +5,10 @@ import at.aau.ainf.gitrepomonitor.files.RepositoryInformation;
 import at.aau.ainf.gitrepomonitor.gui.ErrorDisplay;
 import at.aau.ainf.gitrepomonitor.gui.RepositoryInformationCellFactory;
 import at.aau.ainf.gitrepomonitor.gui.ResourceStore;
+import at.aau.ainf.gitrepomonitor.gui.StatusDisplay;
 import at.aau.ainf.gitrepomonitor.gui.reposcan.ControllerScan;
 import at.aau.ainf.gitrepomonitor.gui.reposcan.RepoSearchTask;
+import javafx.application.Platform;
 import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
 import javafx.fxml.FXML;
@@ -30,10 +32,12 @@ import java.util.ResourceBundle;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-public class ControllerMain implements Initializable, ErrorDisplay, PropertyChangeListener {
+public class ControllerMain implements Initializable, ErrorDisplay, StatusDisplay, PropertyChangeListener {
 
     @FXML
     private ProgressIndicator indicatorScanRunning;
+    @FXML
+    private Label lblStatus;
     @FXML
     private ListView<RepositoryInformation> watchlist;
     private FileManager fileManager;
@@ -52,7 +56,7 @@ public class ControllerMain implements Initializable, ErrorDisplay, PropertyChan
     }
 
     private void setupUI() {
-        watchlist.setCellFactory(new RepositoryInformationCellFactory());
+        watchlist.setCellFactory(new RepositoryInformationCellFactory(this));
         watchlist.setPlaceholder(new Label(ResourceStore.getResourceBundle().getString("list.noentries")));
         watchlist.getSelectionModel().setSelectionMode(SelectionMode.MULTIPLE);
         setWatchlistDisplay(fileManager.getWatchlist());
@@ -83,6 +87,8 @@ public class ControllerMain implements Initializable, ErrorDisplay, PropertyChan
         stage.setScene(new Scene(root));
         stage.setOnHidden(event -> controller.cleanup());
         stage.show();
+        stage.setMinWidth(stage.getWidth());
+        stage.setMinHeight(stage.getHeight());
     }
 
     @Override
@@ -96,5 +102,10 @@ public class ControllerMain implements Initializable, ErrorDisplay, PropertyChan
         watchlist.getItems().clear();
         watchlist.getItems().addAll(repoInfo);
         Collections.sort(watchlist.getItems());
+    }
+
+    @Override
+    public void displayStatus(String status) {
+        Platform.runLater(() -> lblStatus.setText(status));
     }
 }

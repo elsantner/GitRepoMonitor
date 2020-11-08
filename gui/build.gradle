@@ -36,6 +36,7 @@ repositories {
 
 dependencies {
     compile project(':file-manager')
+    compile project(':git-client')
     testCompile group: 'junit', name: 'junit', version: '4.12'
 }
 

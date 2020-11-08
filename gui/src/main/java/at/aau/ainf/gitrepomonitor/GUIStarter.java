@@ -36,6 +36,8 @@ public class GUIStarter extends Application {
         primaryStage.setScene(new Scene(root, 800, 500));
         primaryStage.setOnCloseRequest(confirmCloseEventHandler);
         primaryStage.show();
+        primaryStage.setMinWidth(primaryStage.getWidth());
+        primaryStage.setMinHeight(primaryStage.getHeight());
     }
 
     private final EventHandler<WindowEvent> confirmCloseEventHandler = event -> {

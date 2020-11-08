@@ -42,7 +42,7 @@
    <HBox alignment="CENTER" layoutX="10.0" layoutY="93.0" AnchorPane.bottomAnchor="30.0" AnchorPane.leftAnchor="10.0" AnchorPane.rightAnchor="10.0" AnchorPane.topAnchor="88.0">
       <VBox alignment="TOP_CENTER" HBox.hgrow="ALWAYS">
          <Label text="Found Repos" textAlignment="CENTER" />
-         <ListView fx:id="listFoundRepos" VBox.vgrow="ALWAYS" />
+         <ListView fx:id="listFoundRepos" prefWidth="250.0" VBox.vgrow="ALWAYS" />
       </VBox>
       <VBox alignment="CENTER">
          <HBox.margin>
@@ -60,7 +60,7 @@
       </VBox>
       <VBox alignment="TOP_CENTER" HBox.hgrow="ALWAYS">
          <Label text="Watchlist" textAlignment="CENTER" />
-         <ListView fx:id="listWatchlist" VBox.vgrow="ALWAYS" />
+         <ListView fx:id="listWatchlist" prefWidth="250.0" VBox.vgrow="ALWAYS" />
       </VBox>
    </HBox>
 </AnchorPane>
