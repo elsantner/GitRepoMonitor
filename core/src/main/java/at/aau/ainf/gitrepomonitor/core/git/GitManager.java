@@ -5,6 +5,8 @@ import at.aau.ainf.gitrepomonitor.core.files.RepositoryInformation;
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.api.PullResult;
 import org.eclipse.jgit.api.errors.GitAPIException;
+import org.eclipse.jgit.api.errors.TransportException;
+import org.eclipse.jgit.errors.NoRemoteRepositoryException;
 import org.eclipse.jgit.lib.Constants;
 import org.eclipse.jgit.lib.Ref;
 import org.eclipse.jgit.lib.Repository;
@@ -107,18 +109,27 @@ public class GitManager {
     }
 
     private void updateRepoStatus(String path) throws IOException, GitAPIException {
-        Git git = getRepoGit(path);
-        Map<String, Ref> refs = git.lsRemote()
-                .setHeads(true)
-                .setRemote("origin")
-                .callAsMap();
-        // TODO: add support for multiple branches
-        Ref remoteHead = refs.get("refs/heads/main");
-        Ref localHead = git.getRepository().findRef("HEAD");
-
         RepositoryInformation repoInfo = fileManager.getRepo(path);
-        // repo is up to date if it has no remote or if update index is not negative
-        repoInfo.setUpToDate(remoteHead == null || remoteHead.getObjectId().equals(localHead.getObjectId()));
+        try {
+            Git git = getRepoGit(path);
+            Map<String, Ref> refs = git.lsRemote()
+                    .setHeads(true)
+                    .setRemote("origin")
+                    .callAsMap();
+            // TODO: add support for multiple branches
+            Ref remoteHead = refs.get("refs/heads/main");
+            Ref localHead = git.getRepository().findRef("HEAD");
+
+            // repo is up to date if it has no remote or if update index is not negative
+            repoInfo.setUpToDate(remoteHead == null || remoteHead.getObjectId().equals(localHead.getObjectId()));
+        }
+        catch (TransportException ex) {
+            if (ex.getCause() != null && ex.getCause() instanceof NoRemoteRepositoryException) {
+                repoInfo.setHasRemote(false);
+            } else {
+                repoInfo.setRemoteAccessible(false);
+            }
+        }
         fileManager.editRepo(repoInfo.getPath(), repoInfo);
     }
 }

@@ -11,6 +11,8 @@ public class RepositoryInformation implements Comparable<RepositoryInformation>,
     private Date dateAdded;
     private boolean pathValid;
     private boolean isUpToDate = true;
+    private boolean hasRemote = true;
+    private boolean isRemoteAccessible = true;
 
     public RepositoryInformation() {
     }
@@ -32,6 +34,25 @@ public class RepositoryInformation implements Comparable<RepositoryInformation>,
     private RepositoryInformation(String path, String name, Date dateAdded, boolean pathValid) {
         this(path, name, dateAdded);
         this.pathValid = pathValid;
+    }
+    @JsonIgnore
+    public boolean hasRemote() {
+        return hasRemote;
+    }
+
+    @JsonIgnore
+    public void setHasRemote(boolean hasRemote) {
+        this.hasRemote = hasRemote;
+    }
+
+    @JsonIgnore
+    public boolean isRemoteAccessible() {
+        return isRemoteAccessible;
+    }
+
+    @JsonIgnore
+    public void setRemoteAccessible(boolean remoteAccessible) {
+        isRemoteAccessible = remoteAccessible;
     }
 
     @JsonIgnore

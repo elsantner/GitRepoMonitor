@@ -60,6 +60,12 @@ public class RepositoryInformationListViewCell extends ListCell<RepositoryInform
         } else if (!item.isUpToDate()) {
             iconAttention.setImage(getImage("icon_pull.png"));
             lblIcon.setTooltip(new Tooltip("Update available"));
+        } else if (!item.hasRemote()) {
+            iconAttention.setImage(getImage("icon_attention.png"));
+            lblIcon.setTooltip(new Tooltip("Repository has no remote"));
+        } else if (!item.isRemoteAccessible()) {
+            iconAttention.setImage(getImage("icon_attention.png"));
+            lblIcon.setTooltip(new Tooltip("No authentication information provided"));
         } else {
             iconAttention.setVisible(false);
             lblIcon.setTooltip(null);
