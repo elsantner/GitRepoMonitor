@@ -32,6 +32,10 @@ public class FileManager {
         this.fileRepoLists = new File(System.getenv("APPDATA") + "/GitRepoMonitor/repolists.xml");
     }
 
+    public boolean isInitialized() {
+        return repoListInitialized;
+    }
+
     public synchronized void init() throws IOException {
         try {
             repoListWrapper = mapper.readValue(fileRepoLists, new TypeReference<RepoListWrapper>(){});
@@ -99,6 +103,10 @@ public class FileManager {
         repoListWrapper.removeFromList(WATCH, repo);
         repoListWrapper.addToList(FOUND, repo);
         persistRepoLists();
+    }
+
+    public RepositoryInformation getRepo(String path) {
+        return (RepositoryInformation) repoListWrapper.getRepo(path).clone();
     }
 
     /**

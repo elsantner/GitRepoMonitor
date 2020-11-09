@@ -3,7 +3,7 @@ package at.aau.ainf.gitrepomonitor.gui.main;
 import at.aau.ainf.gitrepomonitor.core.files.FileManager;
 import at.aau.ainf.gitrepomonitor.core.files.RepositoryInformation;
 import at.aau.ainf.gitrepomonitor.gui.ErrorDisplay;
-import at.aau.ainf.gitrepomonitor.gui.RepositoryInformationCellFactory;
+import at.aau.ainf.gitrepomonitor.gui.repolist.RepositoryInformationCellFactory;
 import at.aau.ainf.gitrepomonitor.gui.ResourceStore;
 import at.aau.ainf.gitrepomonitor.gui.StatusDisplay;
 import at.aau.ainf.gitrepomonitor.gui.reposcan.ControllerScan;
@@ -90,9 +90,11 @@ public class ControllerMain implements Initializable, ErrorDisplay, StatusDispla
 
     @Override
     public void propertyChange(PropertyChangeEvent e) {
-        if (e.getPropertyName().equals("watchlist")) {
-            setWatchlistDisplay((Collection<RepositoryInformation>)e.getNewValue());
-        }
+        Platform.runLater(() -> {
+            if (e.getPropertyName().equals("watchlist")) {
+                setWatchlistDisplay((Collection<RepositoryInformation>)e.getNewValue());
+            }
+        });
     }
 
     private void setWatchlistDisplay(Collection<RepositoryInformation> repoInfo) {

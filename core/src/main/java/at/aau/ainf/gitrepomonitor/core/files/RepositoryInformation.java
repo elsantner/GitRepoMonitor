@@ -10,6 +10,7 @@ public class RepositoryInformation implements Comparable<RepositoryInformation>,
     private String name;
     private Date dateAdded;
     private boolean pathValid;
+    private boolean isUpToDate = true;
 
     public RepositoryInformation() {
     }
@@ -31,6 +32,16 @@ public class RepositoryInformation implements Comparable<RepositoryInformation>,
     private RepositoryInformation(String path, String name, Date dateAdded, boolean pathValid) {
         this(path, name, dateAdded);
         this.pathValid = pathValid;
+    }
+
+    @JsonIgnore
+    public boolean isUpToDate() {
+        return isUpToDate;
+    }
+
+    @JsonIgnore
+    public void setUpToDate(boolean upToDate) {
+        isUpToDate = upToDate;
     }
 
     @JsonIgnore
@@ -106,7 +117,11 @@ public class RepositoryInformation implements Comparable<RepositoryInformation>,
     }
 
     @Override
-    public Object clone() throws CloneNotSupportedException {
-        return super.clone();
+    public Object clone() {
+        try {
+            return super.clone();
+        } catch (CloneNotSupportedException e) {
+            return null;
+        }
     }
 }

@@ -1,23 +1,23 @@
-package at.aau.ainf.gitrepomonitor.gui;
+package at.aau.ainf.gitrepomonitor.gui.repolist;
 
 import at.aau.ainf.gitrepomonitor.core.files.FileManager;
 import at.aau.ainf.gitrepomonitor.core.files.RepositoryInformation;
 import at.aau.ainf.gitrepomonitor.core.git.GitManager;
+import at.aau.ainf.gitrepomonitor.gui.ErrorDisplay;
+import at.aau.ainf.gitrepomonitor.gui.LoginDialog;
+import at.aau.ainf.gitrepomonitor.gui.ResourceStore;
+import at.aau.ainf.gitrepomonitor.gui.StatusDisplay;
 import at.aau.ainf.gitrepomonitor.gui.editrepo.ControllerEditRepo;
 import javafx.application.Platform;
-import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
-import javafx.scene.control.*;
-import javafx.scene.control.Label;
+import javafx.scene.control.ContextMenu;
+import javafx.scene.control.ListCell;
 import javafx.scene.control.MenuItem;
-import javafx.scene.image.ImageView;
-import javafx.scene.layout.HBox;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
 import javafx.stage.StageStyle;
-import javafx.util.Callback;
 import javafx.util.Pair;
 import org.eclipse.jgit.api.errors.TransportException;
 
@@ -26,44 +26,29 @@ import java.io.File;
 import java.io.IOException;
 import java.util.Optional;
 
-public class RepositoryInformationCellFactory
-        implements ErrorDisplay, Callback<ListView<RepositoryInformation>, ListCell<RepositoryInformation>> {
+public class RepositoryInformationContextMenu extends ContextMenu implements ErrorDisplay {
 
-    private StatusDisplay statusDisplay;
     private GitManager gitManager;
+    private ListCell<RepositoryInformation> cell;
+    private StatusDisplay statusDisplay;
 
-    public RepositoryInformationCellFactory() {
+    public RepositoryInformationContextMenu(ListCell<RepositoryInformation> cell, StatusDisplay statusDisplay) {
         this.gitManager = GitManager.getInstance();
-    }
-
-    public RepositoryInformationCellFactory(StatusDisplay statusDisplay) {
-        this();
+        this.cell = cell;
         this.statusDisplay = statusDisplay;
+        setupMenuItems();
     }
 
-    @Override
-    public ListCell<RepositoryInformation> call(ListView<RepositoryInformation> listView) {
-        ListCell<RepositoryInformation> cell = new RepositoryInformationListViewCell();
-
-        // ctx menu only on non-empty list entries
-        cell.emptyProperty().addListener((obs, wasEmpty, isNowEmpty) -> {
-            if (isNowEmpty) {
-                cell.setContextMenu(null);
-            } else {
-                cell.setContextMenu(getContextMenu(cell));
-            }
+    private void setupMenuItems() {
+        MenuItem checkStatusItem = new MenuItem();
+        checkStatusItem.setText("Check Status");
+        checkStatusItem.setOnAction(event -> {
+            gitManager.updateRepoStatusAsync(cell.getItem().getPath(), (success, ex) -> {
+                if (!success) {
+                    setStatus(ex.getMessage());
+                }
+            });
         });
-        cell.prefWidthProperty().bind(listView.prefWidthProperty());
-        return cell;
-    }
-
-    /**
-     * Returns a setup & configured ContextMenu for the given cell
-     * @param cell The cell for which the context menu is created
-     * @return setup ContextMenu
-     */
-    private ContextMenu getContextMenu(ListCell<RepositoryInformation> cell) {
-        ContextMenu contextMenu = new ContextMenu();
 
         MenuItem pullItem = new MenuItem();
         pullItem.setText("Pull");
@@ -71,7 +56,7 @@ public class RepositoryInformationCellFactory
             // TODO: use stored credentials when implemented
             gitManager.pullRepoAsync(cell.getItem().getPath(), (success, ex) -> {
                 if (success) {
-                    setStatusPullSuccess();
+                    setStatus("Pull successful");
                 } else {
                     if (ex instanceof TransportException) {
                         Platform.runLater(() -> {
@@ -82,7 +67,7 @@ public class RepositoryInformationCellFactory
                                     pairBooleanPair.getKey().getKey(),
                                     pairBooleanPair.getKey().getValue(), (success1, ex1) -> {
                                         if (success1) {
-                                            setStatusPullSuccess();
+                                            setStatus("Pull successful");
                                         } else {
                                             showError(ex1.getMessage());
                                         }
@@ -119,13 +104,12 @@ public class RepositoryInformationCellFactory
             }
         });
 
-        contextMenu.getItems().addAll(pullItem, editItem, deleteItem, showInExplorerItem);
-        return contextMenu;
+        this.getItems().addAll(checkStatusItem, pullItem, editItem, deleteItem, showInExplorerItem);
     }
 
-    private void setStatusPullSuccess() {
+    private void setStatus(String status) {
         if (statusDisplay != null) {
-            statusDisplay.displayStatus("Pull successful");
+            statusDisplay.displayStatus(status);
         }
     }
 
@@ -144,44 +128,5 @@ public class RepositoryInformationCellFactory
         stage.show();
         stage.setMinWidth(stage.getWidth());
         stage.setMinHeight(stage.getHeight());
-    }
-
-    private static class RepositoryInformationListViewCell extends ListCell<RepositoryInformation> {
-        @FXML
-        private Label lblName;
-        @FXML
-        private HBox container;
-        @FXML
-        private ImageView iconAttention;
-
-        private FXMLLoader loader;
-
-        @Override
-        protected void updateItem(RepositoryInformation item, boolean empty) {
-            super.updateItem(item, empty);
-
-            // clear entry if no/empty item (required for clean refresh of listview)
-            if (empty || item == null) {
-                setText(null);
-                setGraphic(null);
-            } else {
-                // load fxml if not loaded already
-                if (loader == null) {
-                    loader = new FXMLLoader(getClass().getResource("/at/aau/ainf/gitrepomonitor/gui/repo_list_item.fxml"));
-                    loader.setController(this);
-
-                    try {
-                        loader.load();
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                    }
-                }
-
-                // fill display elements with data
-                lblName.setText(item.toString());
-                iconAttention.setVisible(!item.isPathValid());
-                setGraphic(container);
-            }
-        }
     }
 }

@@ -19,9 +19,13 @@
       </HBox>
       <HBox alignment="TOP_RIGHT" HBox.hgrow="ALWAYS">
          <children>
-            <ImageView fx:id="iconAttention" fitHeight="18.0" fitWidth="88.0" pickOnBounds="true" preserveRatio="true">
-               <Image url="@icons/icon_attention.png" />
-            </ImageView>
+            <Label fx:id="lblIcon">
+               <graphic>
+                  <ImageView fx:id="iconAttention" fitHeight="18.0" fitWidth="88.0" pickOnBounds="true" preserveRatio="true">
+                     <Image url="@icons/icon_attention.png" />
+                  </ImageView>
+               </graphic>
+            </Label>
          </children>
       </HBox>
    </children>

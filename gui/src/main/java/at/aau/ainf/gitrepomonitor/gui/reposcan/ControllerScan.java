@@ -2,8 +2,9 @@ package at.aau.ainf.gitrepomonitor.gui.reposcan;
 
 import at.aau.ainf.gitrepomonitor.core.files.FileManager;
 import at.aau.ainf.gitrepomonitor.core.files.RepositoryInformation;
-import at.aau.ainf.gitrepomonitor.gui.RepositoryInformationCellFactory;
+import at.aau.ainf.gitrepomonitor.gui.repolist.RepositoryInformationCellFactory;
 import at.aau.ainf.gitrepomonitor.gui.ResourceStore;
+import javafx.application.Platform;
 import javafx.beans.property.ReadOnlyBooleanProperty;
 import javafx.beans.property.SimpleBooleanProperty;
 import javafx.event.ActionEvent;
@@ -191,11 +192,13 @@ public class ControllerScan implements Initializable, PropertyChangeListener {
 
     @Override
     public void propertyChange(PropertyChangeEvent e) {
-        if (e.getPropertyName().equals("watchlist")) {
-            setWatchlistDisplay((Collection<RepositoryInformation>)e.getNewValue());
-        } else if (e.getPropertyName().equals("foundRepos")) {
-            setFoundReposDisplay((Collection<RepositoryInformation>)e.getNewValue());
-        }
+        Platform.runLater(() -> {
+            if (e.getPropertyName().equals("watchlist")) {
+                setWatchlistDisplay((Collection<RepositoryInformation>)e.getNewValue());
+            } else if (e.getPropertyName().equals("foundRepos")) {
+                setFoundReposDisplay((Collection<RepositoryInformation>)e.getNewValue());
+            }
+        });
     }
 
     private synchronized void setWatchlistDisplay(Collection<RepositoryInformation> repoInfo) {
