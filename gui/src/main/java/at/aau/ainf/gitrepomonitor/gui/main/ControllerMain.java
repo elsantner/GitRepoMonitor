@@ -2,6 +2,7 @@ package at.aau.ainf.gitrepomonitor.gui.main;
 
 import at.aau.ainf.gitrepomonitor.core.files.FileManager;
 import at.aau.ainf.gitrepomonitor.core.files.RepositoryInformation;
+import at.aau.ainf.gitrepomonitor.core.git.GitManager;
 import at.aau.ainf.gitrepomonitor.gui.ErrorDisplay;
 import at.aau.ainf.gitrepomonitor.gui.repolist.RepositoryInformationCellFactory;
 import at.aau.ainf.gitrepomonitor.gui.ResourceStore;
@@ -36,8 +37,11 @@ public class ControllerMain implements Initializable, ErrorDisplay, StatusDispla
     @FXML
     private Label lblStatus;
     @FXML
+    private Button btnCheckStatus;
+    @FXML
     private ListView<RepositoryInformation> watchlist;
     private FileManager fileManager;
+    private GitManager gitManager;
 
     @Override
     public void initialize(URL url, ResourceBundle resourceBundle) {
@@ -49,6 +53,7 @@ public class ControllerMain implements Initializable, ErrorDisplay, StatusDispla
            showError(ResourceStore.getResourceBundle().getString("errormsg.file_access_denied"));
         }
         fileManager.addWatchlistListener(this);
+        gitManager = GitManager.getInstance();
         setupUI();
     }
 
@@ -58,6 +63,7 @@ public class ControllerMain implements Initializable, ErrorDisplay, StatusDispla
         watchlist.getSelectionModel().setSelectionMode(SelectionMode.MULTIPLE);
         setWatchlistDisplay(fileManager.getWatchlist());
         indicatorScanRunning.visibleProperty().bind(ControllerScan.scanRunningProperty());
+        indicatorScanRunning.managedProperty().bind(indicatorScanRunning.visibleProperty());
     }
 
     @FXML
@@ -86,6 +92,16 @@ public class ControllerMain implements Initializable, ErrorDisplay, StatusDispla
         stage.show();
         stage.setMinWidth(stage.getWidth());
         stage.setMinHeight(stage.getHeight());
+    }
+
+    @FXML
+    public void btnCheckStatusClicked(ActionEvent actionEvent) {
+        displayStatus("Updating status of watchlist...");
+        btnCheckStatus.setDisable(true);
+        gitManager.updateWatchlistStatusAsync((success, reposChecked, ex) -> {
+            displayStatus("Updated status of " + reposChecked + " repositories");
+            btnCheckStatus.setDisable(false);
+        });
     }
 
     @Override

@@ -13,13 +13,11 @@ import org.eclipse.jgit.lib.Repository;
 import org.eclipse.jgit.storage.file.FileRepositoryBuilder;
 import org.eclipse.jgit.transport.CredentialsProvider;
 import org.eclipse.jgit.transport.UsernamePasswordCredentialsProvider;
+import org.eclipse.jgit.util.MutableInteger;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 
 public class GitManager {
     private static GitManager instance;
@@ -60,13 +58,15 @@ public class GitManager {
     private boolean pullRepo(String path, CredentialsProvider cp) throws IOException, GitAPIException {
         Git git = getRepoGit(path);
 
-        updateRepoStatus(path);
-
         PullResult pullResult = git.pull()
                 .setCredentialsProvider(cp)
                 .setRemote("origin")
                 .call();
-        return pullResult.isSuccessful();
+        if (pullResult.isSuccessful()) {
+            updateRepoStatus(path);
+        }
+
+        return !pullResult.getFetchResult().getTrackingRefUpdates().isEmpty();
     }
 
     public void pullRepoAsync(String path, PullCallback cb) {
@@ -80,28 +80,38 @@ public class GitManager {
     private void pullRepoAsync(String path, CredentialsProvider cp, PullCallback cb) {
         Thread t = new Thread(() -> {
             try {
-                pullRepo(path, cp);
-                cb.finished(true, null);
+                boolean wasUpdated = pullRepo(path, cp);
+                cb.finished(true, wasUpdated, null);
             } catch (Exception e) {
-                cb.finished(false, e);
+                cb.finished(false, false, e);
             }
         });
         t.setDaemon(true);
         t.start();
     }
 
-    public void updateWatchlistStatus() {
-
+    public void updateWatchlistStatusAsync(UpdateStatusCallback cb) {
+        List<RepositoryInformation> watchlist = fileManager.getWatchlist();
+        MutableInteger checksFinished = new MutableInteger();
+        checksFinished.value = 0;
+        for (RepositoryInformation repo : watchlist) {
+            updateRepoStatusAsync(repo.getPath(), (success, reposChecked, ex) -> {
+                checksFinished.value++;
+                if (checksFinished.value == watchlist.size()) {
+                    cb.finished(true, checksFinished.value, ex);
+                }
+            });
+        }
     }
 
     public void updateRepoStatusAsync(String path, UpdateStatusCallback cb) {
         Thread t = new Thread(() -> {
             try {
                 updateRepoStatus(path);
-                cb.finished(true, null);
+                cb.finished(true, 1, null);
             } catch (Exception e) {
                 e.printStackTrace();
-                cb.finished(false, e);
+                cb.finished(false, 1, e);
             }
         });
         t.setDaemon(true);

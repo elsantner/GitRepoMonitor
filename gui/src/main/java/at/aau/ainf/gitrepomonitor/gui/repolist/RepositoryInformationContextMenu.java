@@ -43,9 +43,12 @@ public class RepositoryInformationContextMenu extends ContextMenu implements Err
         MenuItem checkStatusItem = new MenuItem();
         checkStatusItem.setText("Check Status");
         checkStatusItem.setOnAction(event -> {
-            gitManager.updateRepoStatusAsync(cell.getItem().getPath(), (success, ex) -> {
+            setStatus("Updating status of repository...");
+            gitManager.updateRepoStatusAsync(cell.getItem().getPath(), (success, reposChecked, ex) -> {
                 if (!success) {
                     setStatus(ex.getMessage());
+                } else {
+                    setStatus("Updated status of " + reposChecked + " repositories");
                 }
             });
         });
@@ -54,9 +57,11 @@ public class RepositoryInformationContextMenu extends ContextMenu implements Err
         pullItem.setText("Pull");
         pullItem.setOnAction(event -> {
             // TODO: use stored credentials when implemented
-            gitManager.pullRepoAsync(cell.getItem().getPath(), (success, ex) -> {
-                if (success) {
+            gitManager.pullRepoAsync(cell.getItem().getPath(), (success, wasUpdated, ex) -> {
+                if (success && wasUpdated) {
                     setStatus("Pull successful");
+                } else if(success) {
+                    setStatus("No changes to pull");
                 } else {
                     if (ex instanceof TransportException) {
                         Platform.runLater(() -> {
@@ -65,7 +70,7 @@ public class RepositoryInformationContextMenu extends ContextMenu implements Err
 
                             credentials.ifPresent(pairBooleanPair -> gitManager.pullRepoAsync(cell.getItem().getPath(),
                                     pairBooleanPair.getKey().getKey(),
-                                    pairBooleanPair.getKey().getValue(), (success1, ex1) -> {
+                                    pairBooleanPair.getKey().getValue(), (success1, wasUpdated1, ex1) -> {
                                         if (success1) {
                                             setStatus("Pull successful");
                                         } else {
