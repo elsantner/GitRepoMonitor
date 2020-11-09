@@ -109,6 +109,10 @@ public class RepositoryInformationContextMenu extends ContextMenu implements Err
             }
         });
 
+        if (!cell.getItem().isPathValid()) {
+            pullItem.setDisable(true);
+        }
+
         this.getItems().addAll(checkStatusItem, pullItem, editItem, deleteItem, showInExplorerItem);
     }
 

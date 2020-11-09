@@ -122,6 +122,7 @@ public class GitManager {
         RepositoryInformation repoInfo = fileManager.getRepo(path);
         try {
             Git git = getRepoGit(path);
+            // query remote heads
             Map<String, Ref> refs = git.lsRemote()
                     .setHeads(true)
                     .setRemote("origin")
@@ -132,13 +133,16 @@ public class GitManager {
 
             // repo is up to date if it has no remote or if update index is not negative
             repoInfo.setUpToDate(remoteHead == null || remoteHead.getObjectId().equals(localHead.getObjectId()));
+            repoInfo.setHasRemote(true);
+            repoInfo.setRemoteAccessible(true);
         }
         catch (TransportException ex) {
             if (ex.getCause() != null && ex.getCause() instanceof NoRemoteRepositoryException) {
                 repoInfo.setHasRemote(false);
             } else {
-                repoInfo.setRemoteAccessible(false);
+                repoInfo.setHasRemote(true);
             }
+            repoInfo.setRemoteAccessible(false);
         }
         fileManager.editRepo(repoInfo.getPath(), repoInfo);
     }

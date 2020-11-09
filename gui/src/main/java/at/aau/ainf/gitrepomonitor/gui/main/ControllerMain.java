@@ -54,6 +54,8 @@ public class ControllerMain implements Initializable, ErrorDisplay, StatusDispla
         }
         fileManager.addWatchlistListener(this);
         gitManager = GitManager.getInstance();
+        // check repo status
+        gitManager.updateWatchlistStatusAsync((success, reposChecked, ex) -> {});
         setupUI();
     }
 
