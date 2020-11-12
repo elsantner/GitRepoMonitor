@@ -19,6 +19,9 @@ import org.eclipse.jgit.util.MutableInteger;
 import java.io.File;
 import java.io.IOException;
 import java.util.*;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.ThreadPoolExecutor;
 
 public class GitManager {
     private static GitManager instance;
@@ -32,10 +35,16 @@ public class GitManager {
 
     private final HashMap<String, Git> repoCache;
     private FileManager fileManager;
+    private ThreadPoolExecutor executor;
 
     private GitManager() {
         this.repoCache = new HashMap<>();
         this.fileManager = FileManager.getInstance();
+        this.executor = (ThreadPoolExecutor) Executors.newFixedThreadPool(10, r -> {
+            Thread t = Executors.defaultThreadFactory().newThread(r);
+            t.setDaemon(true);
+            return t;
+        });
     }
 
     /**
@@ -79,7 +88,7 @@ public class GitManager {
     }
 
     private void pullRepoAsync(String path, CredentialsProvider cp, PullCallback cb) {
-        Thread t = new Thread(() -> {
+        executor.submit(() -> {
             PullCallback.Status status = null;
             try {
                 status = pullRepo(path, cp);
@@ -88,8 +97,6 @@ public class GitManager {
                 cb.finished(false, status, e);
             }
         });
-        t.setDaemon(true);
-        t.start();
     }
 
     public void updateWatchlistStatusAsync(UpdateStatusCallback cb) {
@@ -111,7 +118,7 @@ public class GitManager {
     }
 
     public void updateRepoStatusAsync(String path, UpdateStatusCallback cb) {
-        Thread t = new Thread(() -> {
+        executor.submit(() -> {
             try {
                 updateRepoStatus(path);
                 cb.finished(true, 1, null);
@@ -120,8 +127,6 @@ public class GitManager {
                 cb.finished(false, 1, e);
             }
         });
-        t.setDaemon(true);
-        t.start();
     }
 
     private void fetchRepo(String path) throws IOException, GitAPIException {
@@ -167,7 +172,7 @@ public class GitManager {
             int commitTimeRemote = getCommit(git.getRepository(), remoteHead.getObjectId()).getCommitTime();
             int commitTimeLocal = getCommit(git.getRepository(), localHead.getObjectId()).getCommitTime();
             boolean equalHeads = remoteHead.getObjectId().equals(localHead.getObjectId());
-            
+
             repoInfo.setPullAvailable(!equalHeads && commitTimeRemote >= commitTimeLocal);
             repoInfo.setPushAvailable(!equalHeads && commitTimeRemote <= commitTimeLocal);
             repoInfo.setHasRemote(true);
