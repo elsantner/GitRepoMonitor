@@ -58,9 +58,12 @@ public class RepositoryInformationListViewCell extends ListCell<RepositoryInform
         if (!item.isPathValid()) {
             iconAttention.setImage(getImage("icon_attention.png"));
             lblIcon.setTooltip(new Tooltip(ResourceStore.getString("status.repo.invalid_path")));
-        } else if (!item.isUpToDate()) {
+        } else if (item.isPullAvailable()) {
             iconAttention.setImage(getImage("icon_pull.png"));
-            lblIcon.setTooltip(new Tooltip(ResourceStore.getString("status.repo.update_available")));
+            lblIcon.setTooltip(new Tooltip(ResourceStore.getString("status.repo.pull_available")));
+        } else if (item.isPushAvailable()) {
+            iconAttention.setImage(getImage("icon_push.png"));
+            lblIcon.setTooltip(new Tooltip(ResourceStore.getString("status.repo.push_available")));
         } else if (!item.hasRemote()) {
             iconAttention.setImage(getImage("icon_attention.png"));
             lblIcon.setTooltip(new Tooltip(ResourceStore.getString("status.repo.no_remote")));

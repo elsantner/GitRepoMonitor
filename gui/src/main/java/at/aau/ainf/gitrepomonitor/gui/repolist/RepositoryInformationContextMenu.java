@@ -3,6 +3,7 @@ package at.aau.ainf.gitrepomonitor.gui.repolist;
 import at.aau.ainf.gitrepomonitor.core.files.FileManager;
 import at.aau.ainf.gitrepomonitor.core.files.RepositoryInformation;
 import at.aau.ainf.gitrepomonitor.core.git.GitManager;
+import at.aau.ainf.gitrepomonitor.core.git.PullCallback;
 import at.aau.ainf.gitrepomonitor.gui.ErrorDisplay;
 import at.aau.ainf.gitrepomonitor.gui.LoginDialog;
 import at.aau.ainf.gitrepomonitor.gui.ResourceStore;
@@ -57,11 +58,13 @@ public class RepositoryInformationContextMenu extends ContextMenu implements Err
         pullItem.setText(ResourceStore.getString("ctxmenu.pull"));
         pullItem.setOnAction(event -> {
             // TODO: use stored credentials when implemented
-            gitManager.pullRepoAsync(cell.getItem().getPath(), (success, wasUpdated, ex) -> {
-                if (success && wasUpdated) {
+            gitManager.pullRepoAsync(cell.getItem().getPath(), (success, status, ex) -> {
+                if (success && status != PullCallback.Status.ALREADY_UP_TO_DATE) {
                     setStatus(ResourceStore.getString("status.pull_successful"));
-                } else if(success) {
+                } else if(status == PullCallback.Status.ALREADY_UP_TO_DATE) {
                     setStatus(ResourceStore.getString("status.pull_no_changes"));
+                } else if(status == PullCallback.Status.CONFLICTING) {
+                    setStatus(ResourceStore.getString("status.pull_conflict"));
                 } else {
                     if (ex instanceof TransportException) {
                         Platform.runLater(() -> {

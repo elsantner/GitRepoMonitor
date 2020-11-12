@@ -5,11 +5,12 @@ import at.aau.ainf.gitrepomonitor.core.files.RepositoryInformation;
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.api.PullResult;
 import org.eclipse.jgit.api.errors.GitAPIException;
+import org.eclipse.jgit.api.errors.InvalidRemoteException;
 import org.eclipse.jgit.api.errors.TransportException;
 import org.eclipse.jgit.errors.NoRemoteRepositoryException;
-import org.eclipse.jgit.lib.Constants;
-import org.eclipse.jgit.lib.Ref;
-import org.eclipse.jgit.lib.Repository;
+import org.eclipse.jgit.lib.*;
+import org.eclipse.jgit.revwalk.RevCommit;
+import org.eclipse.jgit.revwalk.RevWalk;
 import org.eclipse.jgit.storage.file.FileRepositoryBuilder;
 import org.eclipse.jgit.transport.CredentialsProvider;
 import org.eclipse.jgit.transport.UsernamePasswordCredentialsProvider;
@@ -55,7 +56,7 @@ public class GitManager {
         return repoGit;
     }
 
-    private boolean pullRepo(String path, CredentialsProvider cp) throws IOException, GitAPIException {
+    private PullCallback.Status pullRepo(String path, CredentialsProvider cp) throws IOException, GitAPIException {
         Git git = getRepoGit(path);
 
         PullResult pullResult = git.pull()
@@ -66,7 +67,7 @@ public class GitManager {
             updateRepoStatus(path);
         }
 
-        return !pullResult.getFetchResult().getTrackingRefUpdates().isEmpty();
+        return PullCallback.Status.values()[pullResult.getMergeResult().getMergeStatus().ordinal()];
     }
 
     public void pullRepoAsync(String path, PullCallback cb) {
@@ -79,11 +80,12 @@ public class GitManager {
 
     private void pullRepoAsync(String path, CredentialsProvider cp, PullCallback cb) {
         Thread t = new Thread(() -> {
+            PullCallback.Status status = null;
             try {
-                boolean wasUpdated = pullRepo(path, cp);
-                cb.finished(true, wasUpdated, null);
+                status = pullRepo(path, cp);
+                cb.finished(true, status, null);
             } catch (Exception e) {
-                cb.finished(false, false, e);
+                cb.finished(false, status, e);
             }
         });
         t.setDaemon(true);
@@ -122,9 +124,22 @@ public class GitManager {
         t.start();
     }
 
+    private void fetchRepo(String path) throws IOException, GitAPIException {
+        Git git = getRepoGit(path);
+        git.fetch().setRemote("origin").call();
+    }
+
+    /**
+     * Sets pullAvailable, pushAvailable, hasRemote and remoteAccessible of the Repo at the provided path.
+     * @param path Path the repo is located at
+     * @throws IOException If repo path is invalid
+     * @throws GitAPIException If error during pull occurred
+     */
     private void updateRepoStatus(String path) throws IOException, GitAPIException {
         RepositoryInformation repoInfo = fileManager.getRepo(path);
         try {
+            // update refs
+            fetchRepo(path);
             Git git = getRepoGit(path);
             // query remote heads
             Map<String, Ref> refs = git.lsRemote()
@@ -135,15 +150,45 @@ public class GitManager {
             Ref remoteHead = refs.get("refs/heads/main");
             Ref localHead = git.getRepository().findRef("HEAD");
 
-            // repo is up to date if it has no remote or if update index is not negative
-            repoInfo.setUpToDate(remoteHead == null || remoteHead.getObjectId().equals(localHead.getObjectId()));
+
+            // maybe usable for merging...
+            /*ObjectReader reader = git.getRepository().newObjectReader();
+            CanonicalTreeParser oldTreeIter = new CanonicalTreeParser();
+            oldTreeIter.reset( reader, getCommit(git.getRepository(), localHead.getObjectId()).getTree() );
+            CanonicalTreeParser newTreeIter = new CanonicalTreeParser();
+            newTreeIter.reset( reader, getCommit(git.getRepository(), remoteHead.getObjectId()).getTree() );
+
+            List<DiffEntry> diff = git.diff()
+                    .setOldTree(oldTreeIter)
+                    .setNewTree(newTreeIter)
+                    .call();
+            */
+
+            int commitTimeRemote = getCommit(git.getRepository(), remoteHead.getObjectId()).getCommitTime();
+            int commitTimeLocal = getCommit(git.getRepository(), localHead.getObjectId()).getCommitTime();
+            boolean equalHeads = remoteHead.getObjectId().equals(localHead.getObjectId());
+            
+            repoInfo.setPullAvailable(!equalHeads && commitTimeRemote >= commitTimeLocal);
+            repoInfo.setPushAvailable(!equalHeads && commitTimeRemote <= commitTimeLocal);
             repoInfo.setHasRemote(true);
             repoInfo.setRemoteAccessible(true);
+        }
+        catch (NoRemoteRepositoryException | InvalidRemoteException ex) {
+            repoInfo.setHasRemote(false);
+            repoInfo.setRemoteAccessible(false);
         }
         catch (TransportException ex) {
             repoInfo.setHasRemote(ex.getCause() == null || !(ex.getCause() instanceof NoRemoteRepositoryException));
             repoInfo.setRemoteAccessible(false);
         }
         fileManager.editRepo(repoInfo.getPath(), repoInfo);
+    }
+
+    private RevCommit getCommit(Repository repo, ObjectId objectId) throws IOException {
+        RevCommit commit;
+        try (RevWalk revWalk = new RevWalk(repo)) {
+            commit = revWalk.parseCommit(objectId);
+        }
+        return commit;
     }
 }

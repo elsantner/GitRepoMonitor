@@ -7,7 +7,9 @@ import java.util.Date;
 import java.util.Objects;
 
 @JsonAutoDetect(fieldVisibility = JsonAutoDetect.Visibility.ANY,
-        getterVisibility = JsonAutoDetect.Visibility.NONE, setterVisibility = JsonAutoDetect.Visibility.NONE)
+        getterVisibility = JsonAutoDetect.Visibility.NONE,
+        setterVisibility = JsonAutoDetect.Visibility.NONE,
+        creatorVisibility = JsonAutoDetect.Visibility.NONE)
 public class RepositoryInformation implements Comparable<RepositoryInformation>, Cloneable {
     private String path;
     private String name;
@@ -15,7 +17,9 @@ public class RepositoryInformation implements Comparable<RepositoryInformation>,
     @JsonIgnore
     private boolean pathValid;
     @JsonIgnore
-    private boolean isUpToDate = true;
+    private boolean isPullAvailable = false;
+    @JsonIgnore
+    private boolean isPushAvailable = false;
     @JsonIgnore
     private boolean hasRemote = true;
     @JsonIgnore
@@ -45,42 +49,51 @@ public class RepositoryInformation implements Comparable<RepositoryInformation>,
         this.pathValid = pathValid;
     }
 
+    @JsonIgnore
     public boolean hasRemote() {
         return hasRemote;
     }
-
+    @JsonIgnore
     public void setHasRemote(boolean hasRemote) {
         this.hasRemote = hasRemote;
     }
-
+    @JsonIgnore
     public boolean isRemoteAccessible() {
         return isRemoteAccessible;
     }
-
+    @JsonIgnore
     public void setRemoteAccessible(boolean remoteAccessible) {
         isRemoteAccessible = remoteAccessible;
     }
-
-    public boolean isUpToDate() {
-        return isUpToDate;
+    @JsonIgnore
+    public boolean isPullAvailable() {
+        return isPullAvailable;
     }
-
-    public void setUpToDate(boolean upToDate) {
-        isUpToDate = upToDate;
+    @JsonIgnore
+    public void setPullAvailable(boolean upToDate) {
+        isPullAvailable = upToDate;
     }
-
+    @JsonIgnore
+    public boolean isPushAvailable() {
+        return isPushAvailable;
+    }
+    @JsonIgnore
+    public void setPushAvailable(boolean pushAvailable) {
+        isPushAvailable = pushAvailable;
+    }
+    @JsonIgnore
     public boolean isPathValid() {
         return pathValid;
     }
-
+    @JsonIgnore
     public void setPathValid(boolean pathValid) {
         this.pathValid = pathValid;
     }
-
+    @JsonIgnore
     public boolean isPersistentValueChanged() {
         return persistentValueChanged;
     }
-
+    @JsonIgnore
     public void setPersistentValueChanged(boolean persistentValueChanged) {
         this.persistentValueChanged = persistentValueChanged;
     }
