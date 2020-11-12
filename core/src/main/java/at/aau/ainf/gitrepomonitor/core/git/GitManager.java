@@ -103,6 +103,9 @@ public class GitManager {
                 }
             });
         }
+        if (watchlist.isEmpty()) {
+            cb.finished(false, 0, null);
+        }
     }
 
     public void updateRepoStatusAsync(String path, UpdateStatusCallback cb) {

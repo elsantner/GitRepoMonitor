@@ -1,18 +1,27 @@
 package at.aau.ainf.gitrepomonitor.core.files;
 
+import com.fasterxml.jackson.annotation.JsonAutoDetect;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 
 import java.util.Date;
 import java.util.Objects;
 
+@JsonAutoDetect(fieldVisibility = JsonAutoDetect.Visibility.ANY,
+        getterVisibility = JsonAutoDetect.Visibility.NONE, setterVisibility = JsonAutoDetect.Visibility.NONE)
 public class RepositoryInformation implements Comparable<RepositoryInformation>, Cloneable {
     private String path;
     private String name;
     private Date dateAdded;
+    @JsonIgnore
     private boolean pathValid;
+    @JsonIgnore
     private boolean isUpToDate = true;
+    @JsonIgnore
     private boolean hasRemote = true;
+    @JsonIgnore
     private boolean isRemoteAccessible = true;
+    @JsonIgnore
+    private boolean persistentValueChanged = false;
 
     public RepositoryInformation() {
     }
@@ -35,44 +44,45 @@ public class RepositoryInformation implements Comparable<RepositoryInformation>,
         this(path, name, dateAdded);
         this.pathValid = pathValid;
     }
-    @JsonIgnore
+
     public boolean hasRemote() {
         return hasRemote;
     }
 
-    @JsonIgnore
     public void setHasRemote(boolean hasRemote) {
         this.hasRemote = hasRemote;
     }
 
-    @JsonIgnore
     public boolean isRemoteAccessible() {
         return isRemoteAccessible;
     }
 
-    @JsonIgnore
     public void setRemoteAccessible(boolean remoteAccessible) {
         isRemoteAccessible = remoteAccessible;
     }
 
-    @JsonIgnore
     public boolean isUpToDate() {
         return isUpToDate;
     }
 
-    @JsonIgnore
     public void setUpToDate(boolean upToDate) {
         isUpToDate = upToDate;
     }
 
-    @JsonIgnore
     public boolean isPathValid() {
         return pathValid;
     }
 
-    @JsonIgnore
     public void setPathValid(boolean pathValid) {
         this.pathValid = pathValid;
+    }
+
+    public boolean isPersistentValueChanged() {
+        return persistentValueChanged;
+    }
+
+    public void setPersistentValueChanged(boolean persistentValueChanged) {
+        this.persistentValueChanged = persistentValueChanged;
     }
 
     public String getPath() {
@@ -81,6 +91,7 @@ public class RepositoryInformation implements Comparable<RepositoryInformation>,
 
     public void setPath(String path) {
         this.path = path;
+        this.persistentValueChanged = true;
     }
 
     public String getName() {
@@ -89,6 +100,7 @@ public class RepositoryInformation implements Comparable<RepositoryInformation>,
 
     public void setName(String name) {
         this.name = name;
+        this.persistentValueChanged = true;
     }
 
     public Date getDateAdded() {
@@ -97,6 +109,7 @@ public class RepositoryInformation implements Comparable<RepositoryInformation>,
 
     public void setDateAdded(Date dateAdded) {
         this.dateAdded = dateAdded;
+        this.persistentValueChanged = true;
     }
 
     @Override

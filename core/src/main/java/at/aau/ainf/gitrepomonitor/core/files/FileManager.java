@@ -125,7 +125,12 @@ public class FileManager {
         }
         repoListWrapper.removeFromList(repoList, new RepositoryInformation(originalPath));
         repoListWrapper.addToList(repoList, updatedInfo);
-        persistRepoLists();
+
+        // only persist repo lists if persistent properties were changed
+        if (updatedInfo.isPersistentValueChanged()) {
+            persistRepoLists();
+            updatedInfo.setPersistentValueChanged(false);
+        }
     }
 
     public synchronized void deleteRepo(RepositoryInformation repo) {

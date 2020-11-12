@@ -45,8 +45,10 @@ public class RepoListWrapper {
     }
 
     public synchronized void setWatchlist(Set<RepositoryInformation> watchlist) {
-        this.watchlist.clear();
-        watchlist.forEach(repoInfo -> this.watchlist.put(repoInfo.getPath(), repoInfo));
+        if (watchlist != null) {
+            this.watchlist.clear();
+            watchlist.forEach(repoInfo -> this.watchlist.put(repoInfo.getPath(), repoInfo));
+        }
     }
 
     public Set<RepositoryInformation> getFoundRepos() {
@@ -57,8 +59,10 @@ public class RepoListWrapper {
     }
 
     public void setFoundRepos(Set<RepositoryInformation> foundRepos) {
-        this.foundRepos.clear();
-        foundRepos.forEach(repoInfo -> this.foundRepos.put(repoInfo.getPath(), repoInfo));
+        if (foundRepos != null) {
+            this.foundRepos.clear();
+            foundRepos.forEach(repoInfo -> this.foundRepos.put(repoInfo.getPath(), repoInfo));
+        }
     }
 
     public boolean exists(RepositoryInformation repo) {
