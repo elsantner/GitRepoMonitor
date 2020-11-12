@@ -88,10 +88,10 @@ public class ControllerScan implements Initializable, PropertyChangeListener {
         btnRemoveFromWatchlist.disableProperty().bind(listWatchlist.getSelectionModel().selectedItemProperty().isNull());
 
         listFoundRepos.setCellFactory(new RepositoryInformationCellFactory());
-        listFoundRepos.setPlaceholder(new Label(ResourceStore.getResourceBundle().getString("list.noentries")));
+        listFoundRepos.setPlaceholder(new Label(ResourceStore.getString("list.noentries")));
         listFoundRepos.getSelectionModel().setSelectionMode(SelectionMode.MULTIPLE);
         listWatchlist.setCellFactory(new RepositoryInformationCellFactory());
-        listWatchlist.setPlaceholder(new Label(ResourceStore.getResourceBundle().getString("list.noentries")));
+        listWatchlist.setPlaceholder(new Label(ResourceStore.getString("list.noentries")));
         listWatchlist.getSelectionModel().setSelectionMode(SelectionMode.MULTIPLE);
         setWatchlistDisplay(fileManager.getWatchlist());
         setFoundReposDisplay(fileManager.getFoundRepos());
@@ -107,7 +107,7 @@ public class ControllerScan implements Initializable, PropertyChangeListener {
     @FXML
     public void btnSelectDirClicked(ActionEvent actionEvent) {
         DirectoryChooser directoryChooser = new DirectoryChooser();
-        directoryChooser.setTitle(ResourceStore.getResourceBundle().getString("scanpc.selectdir.title"));
+        directoryChooser.setTitle(ResourceStore.getString("scanpc.selectdir.title"));
         directoryChooser.setInitialDirectory(rootDir);
         File selectedDirectory = directoryChooser.showDialog(lblStatus.getScene().getWindow());
         if (selectedDirectory != null) {
@@ -120,8 +120,8 @@ public class ControllerScan implements Initializable, PropertyChangeListener {
     @FXML
     public void linkScanWholePcClicked(ActionEvent actionEvent) {
         rootDir = null;     // means scan whole pc
-        lblPath.setText(ResourceStore.getResourceBundle().getString("scanpc.wholepc"));
-        ttPath.setText(ResourceStore.getResourceBundle().getString("scanpc.wholepc"));
+        lblPath.setText(ResourceStore.getString("scanpc.wholepc"));
+        ttPath.setText(ResourceStore.getString("scanpc.wholepc"));
         linkWholePC.setVisited(false);
     }
 
@@ -144,15 +144,15 @@ public class ControllerScan implements Initializable, PropertyChangeListener {
             lblStatus.textProperty().bind(searchTask.messageProperty());
             searchTask.setOnFailed(workerStateEvent -> {
                 scanFinished();
-                lblDone.setText(ResourceStore.getResourceBundle().getString("scanpc.status.failed"));
+                lblDone.setText(ResourceStore.getString("scanpc.status.failed"));
             });
             searchTask.setOnSucceeded(workerStateEvent -> {
                 scanFinished();
-                lblDone.setText(ResourceStore.getResourceBundle().getString("scanpc.status.done"));
+                lblDone.setText(ResourceStore.getString("scanpc.status.done"));
             });
             searchTask.setOnCancelled(workerStateEvent -> {
                 scanFinished();
-                lblDone.setText(ResourceStore.getResourceBundle().getString("scanpc.status.cancelled"));
+                lblDone.setText(ResourceStore.getString("scanpc.status.cancelled"));
             });
         }
         else {

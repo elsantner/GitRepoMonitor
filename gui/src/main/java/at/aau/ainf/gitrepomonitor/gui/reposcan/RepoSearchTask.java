@@ -34,8 +34,7 @@ public class RepoSearchTask extends Task<Integer> {
 
             @Override
             public void dirScanned() {
-                updateMessage(String.format(ResourceStore.getResourceBundle().getString("scanpc.scan_status"),
-                        (++scannedDirCount), foundRepoCount));
+                updateMessage(ResourceStore.getString("scanpc.scan_status", (++scannedDirCount), foundRepoCount));
             }
         });
         return scannedDirCount;

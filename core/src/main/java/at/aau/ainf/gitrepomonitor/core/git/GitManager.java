@@ -97,6 +97,7 @@ public class GitManager {
         for (RepositoryInformation repo : watchlist) {
             updateRepoStatusAsync(repo.getPath(), (success, reposChecked, ex) -> {
                 checksFinished.value++;
+                // once all checks have finished, call callback
                 if (checksFinished.value == watchlist.size()) {
                     cb.finished(true, checksFinished.value, ex);
                 }
@@ -137,11 +138,7 @@ public class GitManager {
             repoInfo.setRemoteAccessible(true);
         }
         catch (TransportException ex) {
-            if (ex.getCause() != null && ex.getCause() instanceof NoRemoteRepositoryException) {
-                repoInfo.setHasRemote(false);
-            } else {
-                repoInfo.setHasRemote(true);
-            }
+            repoInfo.setHasRemote(ex.getCause() == null || !(ex.getCause() instanceof NoRemoteRepositoryException));
             repoInfo.setRemoteAccessible(false);
         }
         fileManager.editRepo(repoInfo.getPath(), repoInfo);

@@ -50,7 +50,7 @@ public class ControllerMain implements Initializable, ErrorDisplay, StatusDispla
             fileManager.init();
         } catch (IOException e) {
            Logger.getLogger(getClass().getName()).log(Level.SEVERE, "error occurred during file manager init", e);
-           showError(ResourceStore.getResourceBundle().getString("errormsg.file_access_denied"));
+           showError(ResourceStore.getString("errormsg.file_access_denied"));
         }
         fileManager.addWatchlistListener(this);
         gitManager = GitManager.getInstance();
@@ -61,7 +61,7 @@ public class ControllerMain implements Initializable, ErrorDisplay, StatusDispla
 
     private void setupUI() {
         watchlist.setCellFactory(new RepositoryInformationCellFactory(this));
-        watchlist.setPlaceholder(new Label(ResourceStore.getResourceBundle().getString("list.noentries")));
+        watchlist.setPlaceholder(new Label(ResourceStore.getString("list.noentries")));
         watchlist.getSelectionModel().setSelectionMode(SelectionMode.MULTIPLE);
         setWatchlistDisplay(fileManager.getWatchlist());
         indicatorScanRunning.visibleProperty().bind(ControllerScan.scanRunningProperty());
@@ -88,7 +88,7 @@ public class ControllerMain implements Initializable, ErrorDisplay, StatusDispla
         Stage stage = new Stage();
         stage.initModality(Modality.APPLICATION_MODAL);
         stage.initStyle(StageStyle.DECORATED);
-        stage.setTitle(ResourceStore.getResourceBundle().getString("scanpc"));
+        stage.setTitle(ResourceStore.getString("scanpc"));
         stage.setScene(new Scene(root));
         stage.setOnHidden(event -> controller.cleanup());
         stage.show();
@@ -98,10 +98,10 @@ public class ControllerMain implements Initializable, ErrorDisplay, StatusDispla
 
     @FXML
     public void btnCheckStatusClicked(ActionEvent actionEvent) {
-        displayStatus("Updating status of watchlist...");
+        displayStatus(ResourceStore.getString("status.update_watchlist_status"));
         btnCheckStatus.setDisable(true);
         gitManager.updateWatchlistStatusAsync((success, reposChecked, ex) -> {
-            displayStatus("Updated status of " + reposChecked + " repositories");
+            displayStatus(ResourceStore.getString("status.updated_n_repo_status", reposChecked));
             btnCheckStatus.setDisable(false);
         });
     }

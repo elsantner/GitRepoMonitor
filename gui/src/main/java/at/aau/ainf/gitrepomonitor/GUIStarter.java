@@ -44,14 +44,14 @@ public class GUIStarter extends Application {
         if (ControllerScan.scanRunningProperty().get()) {
             Alert closeConfirmation = new Alert(
                     Alert.AlertType.CONFIRMATION,
-                    ResourceStore.getResourceBundle().getString("exit_dialog.text")
+                    ResourceStore.getString("exit_dialog.text")
             );
 
             Button exitButton = (Button) closeConfirmation.getDialogPane().lookupButton(
                     ButtonType.OK
             );
-            exitButton.setText(ResourceStore.getResourceBundle().getString("btn.exit"));
-            closeConfirmation.setHeaderText(ResourceStore.getResourceBundle().getString("exit_dialog.title"));
+            exitButton.setText(ResourceStore.getString("btn.exit"));
+            closeConfirmation.setHeaderText(ResourceStore.getString("exit_dialog.title"));
             closeConfirmation.initModality(Modality.APPLICATION_MODAL);
             closeConfirmation.initOwner(primaryStage);
 

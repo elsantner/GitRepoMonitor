@@ -2,7 +2,6 @@ package at.aau.ainf.gitrepomonitor.gui.repolist;
 
 import at.aau.ainf.gitrepomonitor.core.files.RepositoryInformation;
 import at.aau.ainf.gitrepomonitor.core.git.GitManager;
-import at.aau.ainf.gitrepomonitor.gui.ErrorDisplay;
 import at.aau.ainf.gitrepomonitor.gui.StatusDisplay;
 import javafx.scene.control.ContextMenu;
 import javafx.scene.control.ListCell;

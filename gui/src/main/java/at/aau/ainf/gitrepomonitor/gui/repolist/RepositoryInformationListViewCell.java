@@ -1,6 +1,7 @@
 package at.aau.ainf.gitrepomonitor.gui.repolist;
 
 import at.aau.ainf.gitrepomonitor.core.files.RepositoryInformation;
+import at.aau.ainf.gitrepomonitor.gui.ResourceStore;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.control.Label;
@@ -56,16 +57,16 @@ public class RepositoryInformationListViewCell extends ListCell<RepositoryInform
         iconAttention.setVisible(true);
         if (!item.isPathValid()) {
             iconAttention.setImage(getImage("icon_attention.png"));
-            lblIcon.setTooltip(new Tooltip("Invalid path"));
+            lblIcon.setTooltip(new Tooltip(ResourceStore.getString("status.repo.invalid_path")));
         } else if (!item.isUpToDate()) {
             iconAttention.setImage(getImage("icon_pull.png"));
-            lblIcon.setTooltip(new Tooltip("Update available"));
+            lblIcon.setTooltip(new Tooltip(ResourceStore.getString("status.repo.update_available")));
         } else if (!item.hasRemote()) {
             iconAttention.setImage(getImage("icon_attention.png"));
-            lblIcon.setTooltip(new Tooltip("Repository has no remote"));
+            lblIcon.setTooltip(new Tooltip(ResourceStore.getString("status.repo.no_remote")));
         } else if (!item.isRemoteAccessible()) {
             iconAttention.setImage(getImage("icon_attention.png"));
-            lblIcon.setTooltip(new Tooltip("No authentication information provided"));
+            lblIcon.setTooltip(new Tooltip(ResourceStore.getString("status.repo.no_auth_info")));
         } else {
             iconAttention.setVisible(false);
             lblIcon.setTooltip(null);

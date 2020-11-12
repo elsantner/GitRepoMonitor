@@ -14,10 +14,10 @@ public class LoginDialog extends Dialog<Pair<Pair<String, String>, Boolean>> {
 
     public LoginDialog(String repoName) {
         super();
-        setTitle("HTTPS credentials");
-        setHeaderText("Input your credentials to the remote for '" + repoName + "'");
+        setTitle(ResourceStore.getString("login_dialog.title"));
+        setHeaderText(ResourceStore.getString("login_dialog.header", repoName));
 
-        loginButtonType = new ButtonType("Login", ButtonBar.ButtonData.OK_DONE);
+        loginButtonType = new ButtonType(ResourceStore.getString("btn.login"), ButtonBar.ButtonData.OK_DONE);
         getDialogPane().getButtonTypes().addAll(loginButtonType, ButtonType.CANCEL);
 
         setupInputElements();
@@ -38,20 +38,18 @@ public class LoginDialog extends Dialog<Pair<Pair<String, String>, Boolean>> {
         grid.setPadding(new Insets(20, 150, 10, 10));
 
         txtUsername = new TextField();
-        txtUsername.setPromptText("Username");
+        txtUsername.setPromptText(ResourceStore.getString("lbl.username"));
         txtPassword = new PasswordField();
-        txtPassword.setPromptText("Password");
+        txtPassword.setPromptText(ResourceStore.getString("lbl.password"));
 
-        grid.add(new Label("Username:"), 0, 0);
+        grid.add(new Label(ResourceStore.getString("lbl.username")), 0, 0);
         grid.add(txtUsername, 1, 0);
-        grid.add(new Label("Password:"), 0, 1);
+        grid.add(new Label(ResourceStore.getString("lbl.password")), 0, 1);
         grid.add(txtPassword, 1, 1);
 
         Node btnLogin = getDialogPane().lookupButton(loginButtonType);
         btnLogin.setDisable(true);
-        txtUsername.textProperty().addListener((observable, oldValue, newValue) -> {
-            btnLogin.setDisable(newValue.trim().isEmpty());
-        });
+        txtUsername.textProperty().addListener((observable, oldValue, newValue) -> btnLogin.setDisable(newValue.trim().isEmpty()));
 
         getDialogPane().setContent(grid);
         Platform.runLater(() -> txtUsername.requestFocus());

@@ -18,7 +18,6 @@ import java.util.ResourceBundle;
 
 public class ControllerEditRepo implements Initializable, ErrorDisplay {
 
-    private ResourceBundle localStrings;
     @FXML
     private TextField txtName;
     @FXML
@@ -30,8 +29,6 @@ public class ControllerEditRepo implements Initializable, ErrorDisplay {
 
     @Override
     public void initialize(URL location, ResourceBundle resources) {
-        localStrings = resources;
-
         this.fileManager = FileManager.getInstance();
         setupUI();
     }
@@ -71,7 +68,7 @@ public class ControllerEditRepo implements Initializable, ErrorDisplay {
     public void onBtnSaveClick(ActionEvent actionEvent) {
         try {
             if (!GitRepoHelper.validateRepositoryPath(txtPath.getText())) {
-                throw new IllegalArgumentException(ResourceStore.getResourceBundle().getString("errormsg.invalid_repo_path"));
+                throw new IllegalArgumentException(ResourceStore.getString("errormsg.invalid_repo_path"));
             }
             RepositoryInformation editedRepo = (RepositoryInformation) repo.clone();
             editedRepo.setPath(txtPath.getText());
@@ -100,7 +97,7 @@ public class ControllerEditRepo implements Initializable, ErrorDisplay {
 
     public void onBtnChoosePathClick(ActionEvent actionEvent) {
         DirectoryChooser directoryChooser = new DirectoryChooser();
-        directoryChooser.setTitle(localStrings.getString("edit_repo.selectdir.title"));
+        directoryChooser.setTitle(ResourceStore.getString("edit_repo.selectdir.title"));
         directoryChooser.setInitialDirectory(getDeepestExistingDirectory(txtPath.getText()));
         File selectedDirectory = directoryChooser.showDialog(txtName.getScene().getWindow());
         if (selectedDirectory != null) {
