@@ -166,7 +166,7 @@ public class GitManager {
     private List<RepositoryInformation> getPullableRepos(List<RepositoryInformation> list) {
         List<RepositoryInformation> pullableRepos = new ArrayList<>();
         for (RepositoryInformation repo : list) {
-            if (repo.isPullAvailable()) {
+            if (repo.getStatus() == RepositoryInformation.RepoStatus.PULL_AVAILABLE) {
                 pullableRepos.add(repo);
             }
         }
@@ -212,18 +212,25 @@ public class GitManager {
             int commitTimeLocal = getCommit(git.getRepository(), localHead.getObjectId()).getCommitTime();
             boolean equalHeads = remoteHead.getObjectId().equals(localHead.getObjectId());
 
-            repoInfo.setPullAvailable(!equalHeads && commitTimeRemote >= commitTimeLocal);
-            repoInfo.setPushAvailable(!equalHeads && commitTimeRemote <= commitTimeLocal);
-            repoInfo.setHasRemote(true);
-            repoInfo.setRemoteAccessible(true);
+            if (git.getRepository().readMergeHeads() != null) {
+                repoInfo.setStatus(RepositoryInformation.RepoStatus.MERGE_NEEDED);
+            } else if (!equalHeads && commitTimeRemote >= commitTimeLocal) {
+                repoInfo.setStatus(RepositoryInformation.RepoStatus.PULL_AVAILABLE);
+            } else if (!equalHeads) {
+                repoInfo.setStatus(RepositoryInformation.RepoStatus.PUSH_AVAILABLE);
+            } else {
+                repoInfo.setStatus(RepositoryInformation.RepoStatus.UP_TO_DATE);
+            }
         }
         catch (NoRemoteRepositoryException | InvalidRemoteException ex) {
-            repoInfo.setHasRemote(false);
-            repoInfo.setRemoteAccessible(false);
+            repoInfo.setStatus(RepositoryInformation.RepoStatus.NO_REMOTE);
         }
         catch (TransportException ex) {
-            repoInfo.setHasRemote(ex.getCause() == null || !(ex.getCause() instanceof NoRemoteRepositoryException));
-            repoInfo.setRemoteAccessible(false);
+            if (ex.getCause() != null && ex.getCause() instanceof NoRemoteRepositoryException) {
+                repoInfo.setStatus(RepositoryInformation.RepoStatus.NO_REMOTE);
+            } else {
+                repoInfo.setStatus(RepositoryInformation.RepoStatus.INACCESSIBLE_REMOTE);
+            }
         }
         fileManager.editRepo(repoInfo.getPath(), repoInfo);
     }

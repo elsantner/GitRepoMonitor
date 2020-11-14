@@ -14,20 +14,23 @@ public class RepositoryInformation implements Comparable<RepositoryInformation>,
     private String path;
     private String name;
     private Date dateAdded;
+
+    public enum RepoStatus {
+        UP_TO_DATE,
+        PATH_INVALID,
+        NO_REMOTE,
+        INACCESSIBLE_REMOTE,
+        PULL_AVAILABLE,
+        PUSH_AVAILABLE,
+        MERGE_NEEDED
+    }
     @JsonIgnore
-    private boolean pathValid;
-    @JsonIgnore
-    private boolean isPullAvailable = false;
-    @JsonIgnore
-    private boolean isPushAvailable = false;
-    @JsonIgnore
-    private boolean hasRemote = true;
-    @JsonIgnore
-    private boolean isRemoteAccessible = true;
+    private RepoStatus status;
     @JsonIgnore
     private boolean persistentValueChanged = false;
 
     public RepositoryInformation() {
+        this.status = RepoStatus.UP_TO_DATE;
     }
 
     public RepositoryInformation(String path) {
@@ -35,6 +38,7 @@ public class RepositoryInformation implements Comparable<RepositoryInformation>,
     }
 
     public RepositoryInformation(String path, String name) {
+        this();
         this.path = path;
         this.name = name;
     }
@@ -44,50 +48,13 @@ public class RepositoryInformation implements Comparable<RepositoryInformation>,
         this.dateAdded = dateAdded;
     }
 
-    private RepositoryInformation(String path, String name, Date dateAdded, boolean pathValid) {
-        this(path, name, dateAdded);
-        this.pathValid = pathValid;
-    }
-
     @JsonIgnore
-    public boolean hasRemote() {
-        return hasRemote;
+    public RepoStatus getStatus() {
+        return status;
     }
     @JsonIgnore
-    public void setHasRemote(boolean hasRemote) {
-        this.hasRemote = hasRemote;
-    }
-    @JsonIgnore
-    public boolean isRemoteAccessible() {
-        return isRemoteAccessible;
-    }
-    @JsonIgnore
-    public void setRemoteAccessible(boolean remoteAccessible) {
-        isRemoteAccessible = remoteAccessible;
-    }
-    @JsonIgnore
-    public boolean isPullAvailable() {
-        return isPullAvailable;
-    }
-    @JsonIgnore
-    public void setPullAvailable(boolean upToDate) {
-        isPullAvailable = upToDate;
-    }
-    @JsonIgnore
-    public boolean isPushAvailable() {
-        return isPushAvailable;
-    }
-    @JsonIgnore
-    public void setPushAvailable(boolean pushAvailable) {
-        isPushAvailable = pushAvailable;
-    }
-    @JsonIgnore
-    public boolean isPathValid() {
-        return pathValid;
-    }
-    @JsonIgnore
-    public void setPathValid(boolean pathValid) {
-        this.pathValid = pathValid;
+    public void setStatus(RepoStatus status) {
+        this.status = status;
     }
     @JsonIgnore
     public boolean isPersistentValueChanged() {

@@ -122,15 +122,15 @@ public class RepoListWrapper {
      * Sets pathValid property of all repos
      */
     public void checkRepoPathValidity() {
-        for (RepositoryInformation repo : Stream.concat(watchlist.values().stream(),
-                foundRepos.values().stream()).collect(Collectors.toList())) {
-            repo.setPathValid(GitRepoHelper.validateRepositoryPath(repo.getPath()));
-        }
+        checkRepoPathValidity(Stream.concat(watchlist.values().stream(),
+                foundRepos.values().stream()).collect(Collectors.toList()));
     }
 
     private void checkRepoPathValidity(Collection<RepositoryInformation> reposToCheck) {
         for (RepositoryInformation repo : reposToCheck) {
-            repo.setPathValid(GitRepoHelper.validateRepositoryPath(repo.getPath()));
+            if (!GitRepoHelper.validateRepositoryPath(repo.getPath())) {
+                repo.setStatus(RepositoryInformation.RepoStatus.PATH_INVALID);
+            }
         }
     }
 

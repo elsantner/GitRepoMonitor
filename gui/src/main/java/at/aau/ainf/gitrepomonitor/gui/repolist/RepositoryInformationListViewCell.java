@@ -55,21 +55,37 @@ public class RepositoryInformationListViewCell extends ListCell<RepositoryInform
 
     private void setIcon(RepositoryInformation item) {
         iconAttention.setVisible(true);
-        if (!item.isPathValid()) {
-            iconAttention.setImage(getImage("icon_attention.png"));
-            lblIcon.setTooltip(new Tooltip(ResourceStore.getString("status.repo.invalid_path")));
-        } else if (item.isPullAvailable()) {
-            iconAttention.setImage(getImage("icon_pull.png"));
-            lblIcon.setTooltip(new Tooltip(ResourceStore.getString("status.repo.pull_available")));
-        } else if (item.isPushAvailable()) {
-            iconAttention.setImage(getImage("icon_push.png"));
-            lblIcon.setTooltip(new Tooltip(ResourceStore.getString("status.repo.push_available")));
-        } else if (!item.hasRemote()) {
-            iconAttention.setImage(getImage("icon_attention.png"));
-            lblIcon.setTooltip(new Tooltip(ResourceStore.getString("status.repo.no_remote")));
-        } else if (!item.isRemoteAccessible()) {
-            iconAttention.setImage(getImage("icon_attention.png"));
-            lblIcon.setTooltip(new Tooltip(ResourceStore.getString("status.repo.no_auth_info")));
+        String imgPath = null;
+        String tooltipKey = null;
+        switch (item.getStatus()) {
+            case PATH_INVALID:
+                imgPath = "icon_attention.png";
+                tooltipKey = "status.repo.invalid_path";
+                break;
+            case PULL_AVAILABLE:
+                imgPath = "icon_pull.png";
+                tooltipKey = "status.repo.pull_available";
+                break;
+            case PUSH_AVAILABLE:
+                imgPath = "icon_push.png";
+                tooltipKey = "status.repo.push_available";
+                break;
+            case NO_REMOTE:
+                imgPath = "icon_attention.png";
+                tooltipKey = "status.repo.no_remote";
+                break;
+            case INACCESSIBLE_REMOTE:
+                imgPath = "icon_attention.png";
+                tooltipKey = "status.repo.no_auth_info";
+                break;
+            case MERGE_NEEDED:
+                imgPath = "icon_merge.png";
+                tooltipKey = "status.repo.merge_required";
+                break;
+        }
+        if (imgPath != null) {
+            iconAttention.setImage(getImage(imgPath));
+            lblIcon.setTooltip(new Tooltip(ResourceStore.getString(tooltipKey)));
         } else {
             iconAttention.setVisible(false);
             lblIcon.setTooltip(null);

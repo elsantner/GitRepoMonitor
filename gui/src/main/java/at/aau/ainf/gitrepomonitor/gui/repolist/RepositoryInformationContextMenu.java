@@ -107,14 +107,13 @@ public class RepositoryInformationContextMenu extends ContextMenu implements Err
         showInExplorerItem.setText(ResourceStore.getString("ctxmenu.show_in_explorer"));
         showInExplorerItem.setOnAction(event -> {
             try {
-                System.out.println(item);
                 Desktop.getDesktop().open(new File(item.getPath()));
             } catch (Exception e) {
                 showError(ResourceStore.getString("errormsg.open_in_explorer_failed"));
             }
         });
 
-        if (!item.isPathValid()) {
+        if (item.getStatus() == RepositoryInformation.RepoStatus.PATH_INVALID) {
             pullItem.setDisable(true);
         }
 
