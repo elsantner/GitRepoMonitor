@@ -191,7 +191,7 @@ public class GitManager {
                     .setRemote("origin")
                     .callAsMap();
             // TODO: add support for multiple branches
-            Ref remoteHead = refs.get("refs/heads/main");
+            Ref remoteHead = refs.get(git.getRepository().getFullBranch());
             Ref localHead = git.getRepository().findRef("HEAD");
 
 
