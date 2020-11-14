@@ -4,6 +4,7 @@ import at.aau.ainf.gitrepomonitor.core.files.FileManager;
 import at.aau.ainf.gitrepomonitor.core.files.RepositoryInformation;
 import at.aau.ainf.gitrepomonitor.core.git.GitManager;
 import at.aau.ainf.gitrepomonitor.gui.ErrorDisplay;
+import at.aau.ainf.gitrepomonitor.gui.StatusBarController;
 import at.aau.ainf.gitrepomonitor.gui.repolist.RepositoryInformationCellFactory;
 import at.aau.ainf.gitrepomonitor.gui.ResourceStore;
 import at.aau.ainf.gitrepomonitor.gui.StatusDisplay;
@@ -32,7 +33,7 @@ import java.util.ResourceBundle;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-public class ControllerMain implements Initializable, ErrorDisplay, StatusDisplay, PropertyChangeListener {
+public class ControllerMain extends StatusBarController implements Initializable, ErrorDisplay, StatusDisplay, PropertyChangeListener {
 
     @FXML
     private ProgressIndicator indicatorScanRunning;
@@ -44,10 +45,10 @@ public class ControllerMain implements Initializable, ErrorDisplay, StatusDispla
     private ListView<RepositoryInformation> watchlist;
     private FileManager fileManager;
     private GitManager gitManager;
-    private MainProgessMonitor progessMonitor;
 
     @Override
     public void initialize(URL url, ResourceBundle resourceBundle) {
+        super.initialize(url, resourceBundle);
         fileManager = FileManager.getInstance();
         try {
             fileManager.init();
@@ -59,7 +60,6 @@ public class ControllerMain implements Initializable, ErrorDisplay, StatusDispla
         gitManager = GitManager.getInstance();
         // check repo status
         gitManager.updateWatchlistStatusAsync((success, reposChecked, ex) -> {});
-        progessMonitor = new MainProgessMonitor();
         setupUI();
     }
 
@@ -125,11 +125,6 @@ public class ControllerMain implements Initializable, ErrorDisplay, StatusDispla
         Collections.sort(watchlist.getItems());
     }
 
-    @Override
-    public void displayStatus(String status) {
-        Platform.runLater(() -> lblStatus.setText(status));
-    }
-
     public void btnPullAllClicked(ActionEvent actionEvent) {
         gitManager.pullWatchlistAsync(results -> {
             if (results.isEmpty()) {
@@ -138,36 +133,5 @@ public class ControllerMain implements Initializable, ErrorDisplay, StatusDispla
                 displayStatus("Pulled " + results.size() + " repositories");
             }
         }, progessMonitor);
-    }
-
-    private class MainProgessMonitor implements ProgressMonitor {
-
-        private int totalWork;
-        private final DecimalFormat df = new DecimalFormat("##.##%");
-
-        @Override
-        public void start(int totalTasks) {
-
-        }
-
-        @Override
-        public void beginTask(String title, int totalWork) {
-            displayStatus("Pull started ...");
-            this.totalWork = totalWork;
-        }
-
-        @Override
-        public void update(int completed) {
-            displayStatus("Status : " + df.format((double) completed/totalWork));
-        }
-
-        @Override
-        public void endTask() {
-        }
-
-        @Override
-        public boolean isCancelled() {
-            return false;
-        }
     }
 }

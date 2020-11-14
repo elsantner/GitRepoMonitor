@@ -2,6 +2,7 @@ package at.aau.ainf.gitrepomonitor.gui.reposcan;
 
 import at.aau.ainf.gitrepomonitor.core.files.FileManager;
 import at.aau.ainf.gitrepomonitor.core.files.RepositoryInformation;
+import at.aau.ainf.gitrepomonitor.gui.StatusBarController;
 import at.aau.ainf.gitrepomonitor.gui.repolist.RepositoryInformationCellFactory;
 import at.aau.ainf.gitrepomonitor.gui.ResourceStore;
 import javafx.application.Platform;
@@ -22,11 +23,9 @@ import java.util.Collections;
 import java.util.List;
 import java.util.ResourceBundle;
 
-public class ControllerScan implements Initializable, PropertyChangeListener {
+public class ControllerScan extends StatusBarController implements Initializable, PropertyChangeListener {
 
     private File rootDir;
-    @FXML
-    private Label lblStatus;
     @FXML
     private Label lblPath;
     @FXML
@@ -68,6 +67,7 @@ public class ControllerScan implements Initializable, PropertyChangeListener {
 
     @Override
     public void initialize(URL url, ResourceBundle resourceBundle) {
+        super.initialize(url, resourceBundle);
         fileManager = FileManager.getInstance();
         fileManager.addWatchlistListener(this);
         fileManager.addFoundReposListener(this);
@@ -87,10 +87,10 @@ public class ControllerScan implements Initializable, PropertyChangeListener {
         btnAddToWatchlist.disableProperty().bind(listFoundRepos.getSelectionModel().selectedItemProperty().isNull());
         btnRemoveFromWatchlist.disableProperty().bind(listWatchlist.getSelectionModel().selectedItemProperty().isNull());
 
-        listFoundRepos.setCellFactory(new RepositoryInformationCellFactory());
+        listFoundRepos.setCellFactory(new RepositoryInformationCellFactory(this, progessMonitor));
         listFoundRepos.setPlaceholder(new Label(ResourceStore.getString("list.noentries")));
         listFoundRepos.getSelectionModel().setSelectionMode(SelectionMode.MULTIPLE);
-        listWatchlist.setCellFactory(new RepositoryInformationCellFactory());
+        listWatchlist.setCellFactory(new RepositoryInformationCellFactory(this, progessMonitor));
         listWatchlist.setPlaceholder(new Label(ResourceStore.getString("list.noentries")));
         listWatchlist.getSelectionModel().setSelectionMode(SelectionMode.MULTIPLE);
         setWatchlistDisplay(fileManager.getWatchlist());
