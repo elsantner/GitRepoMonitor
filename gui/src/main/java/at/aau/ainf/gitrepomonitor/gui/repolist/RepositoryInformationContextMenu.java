@@ -30,12 +30,12 @@ import java.util.Optional;
 public class RepositoryInformationContextMenu extends ContextMenu implements ErrorDisplay {
 
     private GitManager gitManager;
-    private ListCell<RepositoryInformation> cell;
+    private RepositoryInformation item;
     private StatusDisplay statusDisplay;
 
     public RepositoryInformationContextMenu(ListCell<RepositoryInformation> cell, StatusDisplay statusDisplay) {
         this.gitManager = GitManager.getInstance();
-        this.cell = cell;
+        this.item = cell.getItem();
         this.statusDisplay = statusDisplay;
         setupMenuItems();
     }
@@ -45,7 +45,7 @@ public class RepositoryInformationContextMenu extends ContextMenu implements Err
         checkStatusItem.setText(ResourceStore.getString("ctxmenu.check_status"));
         checkStatusItem.setOnAction(event -> {
             setStatus(ResourceStore.getString("status.update_repo_status"));
-            gitManager.updateRepoStatusAsync(cell.getItem().getPath(), (success, reposChecked, ex) -> {
+            gitManager.updateRepoStatusAsync(item.getPath(), (success, reposChecked, ex) -> {
                 if (!success) {
                     setStatus(ex.getMessage());
                 } else {
@@ -58,24 +58,22 @@ public class RepositoryInformationContextMenu extends ContextMenu implements Err
         pullItem.setText(ResourceStore.getString("ctxmenu.pull"));
         pullItem.setOnAction(event -> {
             // TODO: use stored credentials when implemented
-            gitManager.pullRepoAsync(cell.getItem().getPath(), (success, status, ex) -> {
-                if (success && status != PullCallback.Status.ALREADY_UP_TO_DATE) {
-                    setStatus(ResourceStore.getString("status.pull_successful"));
-                } else if(status == PullCallback.Status.ALREADY_UP_TO_DATE) {
-                    setStatus(ResourceStore.getString("status.pull_no_changes"));
-                } else if(status == PullCallback.Status.CONFLICTING) {
-                    setStatus(ResourceStore.getString("status.pull_conflict"));
+            gitManager.pullRepoAsync(item.getPath(), (success, status, ex) -> {
+                String statusMsg = getStatusMessage(success, status);
+                if (statusMsg != null) {
+                    setStatus(statusMsg);
                 } else {
                     if (ex instanceof TransportException) {
                         Platform.runLater(() -> {
-                            LoginDialog loginDialog = new LoginDialog(cell.getItem().toString());
+                            LoginDialog loginDialog = new LoginDialog(item.toString());
                             Optional<Pair<Pair<String, String>, Boolean>> credentials = loginDialog.showAndWait();
 
-                            credentials.ifPresent(pairBooleanPair -> gitManager.pullRepoAsync(cell.getItem().getPath(),
+                            credentials.ifPresent(pairBooleanPair -> gitManager.pullRepoAsync(item.getPath(),
                                     pairBooleanPair.getKey().getKey(),
-                                    pairBooleanPair.getKey().getValue(), (success1, wasUpdated1, ex1) -> {
-                                        if (success1) {
-                                            setStatus(ResourceStore.getString("status.pull_successful"));
+                                    pairBooleanPair.getKey().getValue(), (success1, status1, ex1) -> {
+                                        String statusMsg1 = getStatusMessage(success1, status1);
+                                        if (statusMsg1 != null) {
+                                            setStatus(statusMsg1);
                                         } else {
                                             showError(ex1.getMessage());
                                         }
@@ -92,7 +90,7 @@ public class RepositoryInformationContextMenu extends ContextMenu implements Err
         editItem.setText(ResourceStore.getString("ctxmenu.edit"));
         editItem.setOnAction(event -> {
             try {
-                openEditWindow(cell.getItem());
+                openEditWindow(item);
             } catch (IOException e) {
                 e.printStackTrace();
             }
@@ -100,23 +98,36 @@ public class RepositoryInformationContextMenu extends ContextMenu implements Err
 
         MenuItem deleteItem = new MenuItem();
         deleteItem.setText(ResourceStore.getString("ctxmenu.remove"));
-        deleteItem.setOnAction(event -> FileManager.getInstance().deleteRepo(cell.getItem()));
+        deleteItem.setOnAction(event -> FileManager.getInstance().deleteRepo(item));
 
         MenuItem showInExplorerItem = new MenuItem();
         showInExplorerItem.setText(ResourceStore.getString("ctxmenu.show_in_explorer"));
         showInExplorerItem.setOnAction(event -> {
             try {
-                Desktop.getDesktop().open(new File(cell.getItem().getPath()));
+                System.out.println(item);
+                Desktop.getDesktop().open(new File(item.getPath()));
             } catch (Exception e) {
                 showError(ResourceStore.getString("errormsg.open_in_explorer_failed"));
             }
         });
 
-        if (!cell.getItem().isPathValid()) {
+        if (!item.isPathValid()) {
             pullItem.setDisable(true);
         }
 
         this.getItems().addAll(checkStatusItem, pullItem, editItem, deleteItem, showInExplorerItem);
+    }
+
+    private String getStatusMessage(boolean success, PullCallback.Status status) {
+        String statusMsg = null;
+        if (success && status != PullCallback.Status.ALREADY_UP_TO_DATE) {
+            statusMsg = ResourceStore.getString("status.pull_successful");
+        } else if(status == PullCallback.Status.ALREADY_UP_TO_DATE) {
+            statusMsg = ResourceStore.getString("status.pull_no_changes");
+        } else if(status == PullCallback.Status.CONFLICTING) {
+            statusMsg = ResourceStore.getString("status.pull_conflict");
+        }
+        return statusMsg;
     }
 
     private void setStatus(String status) {

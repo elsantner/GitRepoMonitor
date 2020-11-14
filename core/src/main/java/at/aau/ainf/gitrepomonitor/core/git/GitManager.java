@@ -3,6 +3,7 @@ package at.aau.ainf.gitrepomonitor.core.git;
 import at.aau.ainf.gitrepomonitor.core.files.FileManager;
 import at.aau.ainf.gitrepomonitor.core.files.RepositoryInformation;
 import org.eclipse.jgit.api.Git;
+import org.eclipse.jgit.api.MergeResult;
 import org.eclipse.jgit.api.PullResult;
 import org.eclipse.jgit.api.errors.GitAPIException;
 import org.eclipse.jgit.api.errors.InvalidRemoteException;
@@ -20,7 +21,6 @@ import java.io.File;
 import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.Executors;
-import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.ThreadPoolExecutor;
 
 public class GitManager {
@@ -65,7 +65,7 @@ public class GitManager {
         return repoGit;
     }
 
-    private PullCallback.Status pullRepo(String path, CredentialsProvider cp) throws IOException, GitAPIException {
+    private MergeResult.MergeStatus pullRepo(String path, CredentialsProvider cp) throws IOException, GitAPIException {
         Git git = getRepoGit(path);
 
         PullResult pullResult = git.pull()
@@ -75,8 +75,8 @@ public class GitManager {
         if (pullResult.isSuccessful()) {
             updateRepoStatus(path);
         }
-
-        return PullCallback.Status.values()[pullResult.getMergeResult().getMergeStatus().ordinal()];
+        System.out.println(pullResult.getMergeResult().getMergeStatus());
+        return pullResult.getMergeResult().getMergeStatus();
     }
 
     public void pullRepoAsync(String path, PullCallback cb) {
@@ -89,12 +89,12 @@ public class GitManager {
 
     private void pullRepoAsync(String path, CredentialsProvider cp, PullCallback cb) {
         executor.submit(() -> {
-            PullCallback.Status status = null;
+            MergeResult.MergeStatus status;
             try {
                 status = pullRepo(path, cp);
-                cb.finished(true, status, null);
+                cb.finished(status.isSuccessful(), PullCallback.Status.values()[status.ordinal()], null);
             } catch (Exception e) {
-                cb.finished(false, status, e);
+                cb.finished(false, null, e);
             }
         });
     }
