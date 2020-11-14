@@ -19,11 +19,13 @@ import javafx.scene.control.*;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
 import javafx.stage.StageStyle;
+import org.eclipse.jgit.lib.ProgressMonitor;
 
 import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
 import java.io.IOException;
 import java.net.URL;
+import java.text.DecimalFormat;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.ResourceBundle;
@@ -42,6 +44,7 @@ public class ControllerMain implements Initializable, ErrorDisplay, StatusDispla
     private ListView<RepositoryInformation> watchlist;
     private FileManager fileManager;
     private GitManager gitManager;
+    private MainProgessMonitor progessMonitor;
 
     @Override
     public void initialize(URL url, ResourceBundle resourceBundle) {
@@ -56,11 +59,12 @@ public class ControllerMain implements Initializable, ErrorDisplay, StatusDispla
         gitManager = GitManager.getInstance();
         // check repo status
         gitManager.updateWatchlistStatusAsync((success, reposChecked, ex) -> {});
+        progessMonitor = new MainProgessMonitor();
         setupUI();
     }
 
     private void setupUI() {
-        watchlist.setCellFactory(new RepositoryInformationCellFactory(this));
+        watchlist.setCellFactory(new RepositoryInformationCellFactory(this, progessMonitor));
         watchlist.setPlaceholder(new Label(ResourceStore.getString("list.noentries")));
         watchlist.getSelectionModel().setSelectionMode(SelectionMode.MULTIPLE);
         setWatchlistDisplay(fileManager.getWatchlist());
@@ -133,6 +137,37 @@ public class ControllerMain implements Initializable, ErrorDisplay, StatusDispla
             } else {
                 displayStatus("Pulled " + results.size() + " repositories");
             }
-        });
+        }, progessMonitor);
+    }
+
+    private class MainProgessMonitor implements ProgressMonitor {
+
+        private int totalWork;
+        private final DecimalFormat df = new DecimalFormat("##.##%");
+
+        @Override
+        public void start(int totalTasks) {
+
+        }
+
+        @Override
+        public void beginTask(String title, int totalWork) {
+            displayStatus("Pull started ...");
+            this.totalWork = totalWork;
+        }
+
+        @Override
+        public void update(int completed) {
+            displayStatus("Status : " + df.format((double) completed/totalWork));
+        }
+
+        @Override
+        public void endTask() {
+        }
+
+        @Override
+        public boolean isCancelled() {
+            return false;
+        }
     }
 }

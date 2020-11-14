@@ -7,20 +7,23 @@ import javafx.scene.control.ContextMenu;
 import javafx.scene.control.ListCell;
 import javafx.scene.control.ListView;
 import javafx.util.Callback;
+import org.eclipse.jgit.lib.ProgressMonitor;
 
 public class RepositoryInformationCellFactory
         implements Callback<ListView<RepositoryInformation>, ListCell<RepositoryInformation>> {
 
     private StatusDisplay statusDisplay;
+    private ProgressMonitor progressMonitor;
     private GitManager gitManager;
 
     public RepositoryInformationCellFactory() {
         this.gitManager = GitManager.getInstance();
     }
 
-    public RepositoryInformationCellFactory(StatusDisplay statusDisplay) {
+    public RepositoryInformationCellFactory(StatusDisplay statusDisplay, ProgressMonitor progressMonitor) {
         this();
         this.statusDisplay = statusDisplay;
+        this.progressMonitor = progressMonitor;
     }
 
     @Override
@@ -45,6 +48,6 @@ public class RepositoryInformationCellFactory
      * @return setup ContextMenu
      */
     private ContextMenu getContextMenu(ListCell<RepositoryInformation> cell) {
-        return new RepositoryInformationContextMenu(cell, statusDisplay);
+        return new RepositoryInformationContextMenu(cell, statusDisplay, progressMonitor);
     }
 }

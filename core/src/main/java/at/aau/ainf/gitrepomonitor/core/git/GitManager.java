@@ -65,12 +65,13 @@ public class GitManager {
         return repoGit;
     }
 
-    private MergeResult.MergeStatus pullRepo(String path, CredentialsProvider cp) throws IOException, GitAPIException {
+    private MergeResult.MergeStatus pullRepo(String path, CredentialsProvider cp, ProgressMonitor progressMonitor) throws IOException, GitAPIException {
         Git git = getRepoGit(path);
 
         PullResult pullResult = git.pull()
                 .setCredentialsProvider(cp)
                 .setRemote("origin")
+                .setProgressMonitor(progressMonitor)
                 .call();
         if (pullResult.isSuccessful()) {
             updateRepoStatus(path);
@@ -80,18 +81,26 @@ public class GitManager {
     }
 
     public void pullRepoAsync(String path, PullCallback cb) {
-        pullRepoAsync(path, null, cb);
+        pullRepoAsync(path, null, cb, null);
+    }
+
+    public void pullRepoAsync(String path, PullCallback cb, ProgressMonitor progressMonitor) {
+        pullRepoAsync(path, null, cb, progressMonitor);
     }
 
     public void pullRepoAsync(String path, String username, String password, PullCallback cb) {
-        pullRepoAsync(path, new UsernamePasswordCredentialsProvider(username, password), cb);
+        pullRepoAsync(path, new UsernamePasswordCredentialsProvider(username, password), cb, null);
     }
 
-    private void pullRepoAsync(String path, CredentialsProvider cp, PullCallback cb) {
+    public void pullRepoAsync(String path, String username, String password, PullCallback cb, ProgressMonitor progressMonitor) {
+        pullRepoAsync(path, new UsernamePasswordCredentialsProvider(username, password), cb, progressMonitor);
+    }
+
+    private void pullRepoAsync(String path, CredentialsProvider cp, PullCallback cb, ProgressMonitor progressMonitor) {
         executor.submit(() -> {
             MergeResult.MergeStatus status;
             try {
-                status = pullRepo(path, cp);
+                status = pullRepo(path, cp, progressMonitor);
                 cb.finished(path, status.isSuccessful(), PullCallback.Status.values()[status.ordinal()], null);
             } catch (Exception e) {
                 cb.finished(path, false, null, e);
@@ -134,7 +143,7 @@ public class GitManager {
         git.fetch().setRemote("origin").call();
     }
 
-    public void pullWatchlistAsync(PullCallback cb) {
+    public void pullWatchlistAsync(PullCallback cb, ProgressMonitor progessMonitor) {
         List<RepositoryInformation> pullableRepos = getPullableRepos(fileManager.getWatchlist());
         MutableInteger pullsFinished = new MutableInteger();
         pullsFinished.value = 0;
@@ -147,7 +156,7 @@ public class GitManager {
                 if (pullsFinished.value == pullableRepos.size()) {
                     cb.finished(pullResults);
                 }
-            });
+            }, progessMonitor);
         }
         if (pullableRepos.isEmpty()) {
             cb.finished(new ArrayList<>());

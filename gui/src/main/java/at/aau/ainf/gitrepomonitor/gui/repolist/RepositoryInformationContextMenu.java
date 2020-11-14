@@ -21,6 +21,7 @@ import javafx.stage.Stage;
 import javafx.stage.StageStyle;
 import javafx.util.Pair;
 import org.eclipse.jgit.api.errors.TransportException;
+import org.eclipse.jgit.lib.ProgressMonitor;
 
 import java.awt.*;
 import java.io.File;
@@ -32,11 +33,13 @@ public class RepositoryInformationContextMenu extends ContextMenu implements Err
     private GitManager gitManager;
     private RepositoryInformation item;
     private StatusDisplay statusDisplay;
+    private ProgressMonitor progressMonitor;
 
-    public RepositoryInformationContextMenu(ListCell<RepositoryInformation> cell, StatusDisplay statusDisplay) {
+    public RepositoryInformationContextMenu(ListCell<RepositoryInformation> cell, StatusDisplay statusDisplay, ProgressMonitor progressMonitor) {
         this.gitManager = GitManager.getInstance();
         this.item = cell.getItem();
         this.statusDisplay = statusDisplay;
+        this.progressMonitor = progressMonitor;
         setupMenuItems();
     }
 
@@ -83,7 +86,7 @@ public class RepositoryInformationContextMenu extends ContextMenu implements Err
                         showError(results.get(0).getEx().getMessage());
                     }
                 }
-            });
+            }, progressMonitor);
         });
 
         MenuItem editItem = new MenuItem();
