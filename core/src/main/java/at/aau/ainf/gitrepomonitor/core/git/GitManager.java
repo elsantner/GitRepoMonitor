@@ -92,9 +92,9 @@ public class GitManager {
             MergeResult.MergeStatus status;
             try {
                 status = pullRepo(path, cp);
-                cb.finished(status.isSuccessful(), PullCallback.Status.values()[status.ordinal()], null);
+                cb.finished(path, status.isSuccessful(), PullCallback.Status.values()[status.ordinal()], null);
             } catch (Exception e) {
-                cb.finished(false, null, e);
+                cb.finished(path, false, null, e);
             }
         });
     }
@@ -132,6 +132,36 @@ public class GitManager {
     private void fetchRepo(String path) throws IOException, GitAPIException {
         Git git = getRepoGit(path);
         git.fetch().setRemote("origin").call();
+    }
+
+    public void pullWatchlistAsync(PullCallback cb) {
+        List<RepositoryInformation> pullableRepos = getPullableRepos(fileManager.getWatchlist());
+        MutableInteger pullsFinished = new MutableInteger();
+        pullsFinished.value = 0;
+        List<PullCallback.PullResult> pullResults = new ArrayList<>();
+        for (RepositoryInformation repo : pullableRepos) {
+            pullRepoAsync(repo.getPath(), results -> {
+                pullsFinished.value++;
+                pullResults.addAll(results);
+                // once all checks have finished, call callback
+                if (pullsFinished.value == pullableRepos.size()) {
+                    cb.finished(pullResults);
+                }
+            });
+        }
+        if (pullableRepos.isEmpty()) {
+            cb.finished(new ArrayList<>());
+        }
+    }
+
+    private List<RepositoryInformation> getPullableRepos(List<RepositoryInformation> list) {
+        List<RepositoryInformation> pullableRepos = new ArrayList<>();
+        for (RepositoryInformation repo : list) {
+            if (repo.isPullAvailable()) {
+                pullableRepos.add(repo);
+            }
+        }
+        return pullableRepos;
     }
 
     /**

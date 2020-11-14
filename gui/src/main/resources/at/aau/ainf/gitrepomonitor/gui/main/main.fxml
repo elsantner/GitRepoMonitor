@@ -44,6 +44,21 @@
             <Insets left="10.0" />
          </HBox.margin>
       </Button>
+      <Button fx:id="btnPullAll" minWidth="80.0" mnemonicParsing="false" onAction="#btnPullAllClicked" prefHeight="30.0" text="%btn.pull_all" HBox.hgrow="ALWAYS">
+         <tooltip>
+            <Tooltip text="%btn.checkstatus.tooltip" />
+         </tooltip>
+         <graphic>
+            <ImageView fitHeight="37.0" fitWidth="22.0" pickOnBounds="true" preserveRatio="true">
+               <image>
+                  <Image url="@../icons/icon_pull.png" />
+               </image>
+            </ImageView>
+         </graphic>
+         <HBox.margin>
+            <Insets left="10.0" />
+         </HBox.margin>
+      </Button>
     </HBox>
    <Label fx:id="lblStatus" layoutX="14.0" layoutY="330.0" AnchorPane.bottomAnchor="10.0" AnchorPane.leftAnchor="10.0" AnchorPane.rightAnchor="10.0" />
    <SplitPane dividerPositions="0.35" prefHeight="160.0" prefWidth="200.0" AnchorPane.bottomAnchor="30.0" AnchorPane.leftAnchor="10.0" AnchorPane.rightAnchor="10.0" AnchorPane.topAnchor="40.0">

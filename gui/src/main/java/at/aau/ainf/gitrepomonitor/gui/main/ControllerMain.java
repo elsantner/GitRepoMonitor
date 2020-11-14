@@ -125,4 +125,14 @@ public class ControllerMain implements Initializable, ErrorDisplay, StatusDispla
     public void displayStatus(String status) {
         Platform.runLater(() -> lblStatus.setText(status));
     }
+
+    public void btnPullAllClicked(ActionEvent actionEvent) {
+        gitManager.pullWatchlistAsync(results -> {
+            if (results.isEmpty()) {
+                displayStatus("No changes to pull");
+            } else {
+                displayStatus("Pulled " + results.size() + " repositories");
+            }
+        });
+    }
 }

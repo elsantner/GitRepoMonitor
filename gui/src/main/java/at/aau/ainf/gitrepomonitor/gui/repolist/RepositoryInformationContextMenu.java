@@ -58,29 +58,29 @@ public class RepositoryInformationContextMenu extends ContextMenu implements Err
         pullItem.setText(ResourceStore.getString("ctxmenu.pull"));
         pullItem.setOnAction(event -> {
             // TODO: use stored credentials when implemented
-            gitManager.pullRepoAsync(item.getPath(), (success, status, ex) -> {
-                String statusMsg = getStatusMessage(success, status);
+            gitManager.pullRepoAsync(item.getPath(), (results) -> {
+                String statusMsg = getStatusMessage(results.get(0).isSuccess(), results.get(0).getStatus());
                 if (statusMsg != null) {
                     setStatus(statusMsg);
                 } else {
-                    if (ex instanceof TransportException) {
+                    if (results.get(0).getEx() instanceof TransportException) {
                         Platform.runLater(() -> {
                             LoginDialog loginDialog = new LoginDialog(item.toString());
                             Optional<Pair<Pair<String, String>, Boolean>> credentials = loginDialog.showAndWait();
 
                             credentials.ifPresent(pairBooleanPair -> gitManager.pullRepoAsync(item.getPath(),
                                     pairBooleanPair.getKey().getKey(),
-                                    pairBooleanPair.getKey().getValue(), (success1, status1, ex1) -> {
-                                        String statusMsg1 = getStatusMessage(success1, status1);
+                                    pairBooleanPair.getKey().getValue(), (results1) -> {
+                                        String statusMsg1 = getStatusMessage(results1.get(0).isSuccess(), results1.get(0).getStatus());
                                         if (statusMsg1 != null) {
                                             setStatus(statusMsg1);
                                         } else {
-                                            showError(ex1.getMessage());
+                                            showError(results.get(0).getEx().getMessage());
                                         }
                                     }));
                         });
                     } else {
-                        showError(ex.getMessage());
+                        showError(results.get(0).getEx().getMessage());
                     }
                 }
             });
