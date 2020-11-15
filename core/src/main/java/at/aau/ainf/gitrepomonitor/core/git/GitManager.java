@@ -76,7 +76,6 @@ public class GitManager {
         if (pullResult.isSuccessful()) {
             updateRepoStatus(path);
         }
-        System.out.println(pullResult.getMergeResult().getMergeStatus());
         return pullResult.getMergeResult().getMergeStatus();
     }
 
@@ -101,9 +100,9 @@ public class GitManager {
             MergeResult.MergeStatus status;
             try {
                 status = pullRepo(path, cp, progressMonitor);
-                cb.finished(path, status.isSuccessful(), PullCallback.Status.values()[status.ordinal()], null);
+                cb.finished(path, status, null);
             } catch (Exception e) {
-                cb.finished(path, false, null, e);
+                cb.finished(path, MergeResult.MergeStatus.FAILED, e);
             }
         });
     }
@@ -152,7 +151,7 @@ public class GitManager {
             pullRepoAsync(repo.getPath(), results -> {
                 pullsFinished.value++;
                 pullResults.addAll(results);
-                // once all checks have finished, call callback
+                // once all pulls have finished, call callback
                 if (pullsFinished.value == pullableRepos.size()) {
                     cb.finished(pullResults);
                 }

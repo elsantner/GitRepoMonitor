@@ -20,6 +20,7 @@ import javafx.stage.Modality;
 import javafx.stage.Stage;
 import javafx.stage.StageStyle;
 import javafx.util.Pair;
+import org.eclipse.jgit.api.MergeResult;
 import org.eclipse.jgit.api.errors.TransportException;
 import org.eclipse.jgit.lib.ProgressMonitor;
 
@@ -62,7 +63,7 @@ public class RepositoryInformationContextMenu extends ContextMenu implements Err
         pullItem.setOnAction(event -> {
             // TODO: use stored credentials when implemented
             gitManager.pullRepoAsync(item.getPath(), (results) -> {
-                String statusMsg = getStatusMessage(results.get(0).isSuccess(), results.get(0).getStatus());
+                String statusMsg = getStatusMessage(results.get(0).getStatus());
                 if (statusMsg != null) {
                     setStatus(statusMsg);
                 } else {
@@ -74,7 +75,7 @@ public class RepositoryInformationContextMenu extends ContextMenu implements Err
                             credentials.ifPresent(pairBooleanPair -> gitManager.pullRepoAsync(item.getPath(),
                                     pairBooleanPair.getKey().getKey(),
                                     pairBooleanPair.getKey().getValue(), (results1) -> {
-                                        String statusMsg1 = getStatusMessage(results1.get(0).isSuccess(), results1.get(0).getStatus());
+                                        String statusMsg1 = getStatusMessage(results1.get(0).getStatus());
                                         if (statusMsg1 != null) {
                                             setStatus(statusMsg1);
                                         } else {
@@ -120,13 +121,13 @@ public class RepositoryInformationContextMenu extends ContextMenu implements Err
         this.getItems().addAll(checkStatusItem, pullItem, editItem, deleteItem, showInExplorerItem);
     }
 
-    private String getStatusMessage(boolean success, PullCallback.Status status) {
+    private String getStatusMessage(MergeResult.MergeStatus status) {
         String statusMsg = null;
-        if (success && status != PullCallback.Status.ALREADY_UP_TO_DATE) {
+        if (status.isSuccessful() && status != MergeResult.MergeStatus.ALREADY_UP_TO_DATE) {
             statusMsg = ResourceStore.getString("status.pull_successful");
-        } else if(status == PullCallback.Status.ALREADY_UP_TO_DATE) {
+        } else if(status == MergeResult.MergeStatus.ALREADY_UP_TO_DATE) {
             statusMsg = ResourceStore.getString("status.pull_no_changes");
-        } else if(status == PullCallback.Status.CONFLICTING) {
+        } else if(status == MergeResult.MergeStatus.CONFLICTING) {
             statusMsg = ResourceStore.getString("status.pull_conflict");
         }
         return statusMsg;
