@@ -1,14 +1,16 @@
 package at.aau.ainf.gitrepomonitor.gui.main;
 
-import at.aau.ainf.gitrepomonitor.files.FileManager;
-import at.aau.ainf.gitrepomonitor.files.RepositoryInformation;
+import at.aau.ainf.gitrepomonitor.core.files.FileManager;
+import at.aau.ainf.gitrepomonitor.core.files.RepositoryInformation;
+import at.aau.ainf.gitrepomonitor.core.git.GitManager;
 import at.aau.ainf.gitrepomonitor.gui.ErrorDisplay;
-import at.aau.ainf.gitrepomonitor.gui.RepositoryInformationCellFactory;
+import at.aau.ainf.gitrepomonitor.gui.StatusBarController;
+import at.aau.ainf.gitrepomonitor.gui.repolist.RepositoryInformationCellFactory;
 import at.aau.ainf.gitrepomonitor.gui.ResourceStore;
+import at.aau.ainf.gitrepomonitor.gui.StatusDisplay;
 import at.aau.ainf.gitrepomonitor.gui.reposcan.ControllerScan;
-import at.aau.ainf.gitrepomonitor.gui.reposcan.RepoSearchTask;
+import javafx.application.Platform;
 import javafx.event.ActionEvent;
-import javafx.event.EventHandler;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.fxml.Initializable;
@@ -18,45 +20,56 @@ import javafx.scene.control.*;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
 import javafx.stage.StageStyle;
-import javafx.stage.WindowEvent;
+import org.eclipse.jgit.lib.ProgressMonitor;
 
 import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
 import java.io.IOException;
 import java.net.URL;
+import java.text.DecimalFormat;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.ResourceBundle;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-public class ControllerMain implements Initializable, ErrorDisplay, PropertyChangeListener {
+public class ControllerMain extends StatusBarController implements Initializable, ErrorDisplay, StatusDisplay, PropertyChangeListener {
 
     @FXML
     private ProgressIndicator indicatorScanRunning;
     @FXML
+    private Label lblStatus;
+    @FXML
+    private Button btnCheckStatus;
+    @FXML
     private ListView<RepositoryInformation> watchlist;
     private FileManager fileManager;
+    private GitManager gitManager;
 
     @Override
     public void initialize(URL url, ResourceBundle resourceBundle) {
+        super.initialize(url, resourceBundle);
         fileManager = FileManager.getInstance();
         try {
             fileManager.init();
         } catch (IOException e) {
            Logger.getLogger(getClass().getName()).log(Level.SEVERE, "error occurred during file manager init", e);
-           showError(ResourceStore.getResourceBundle().getString("errormsg.file_access_denied"));
+           showError(ResourceStore.getString("errormsg.file_access_denied"));
         }
         fileManager.addWatchlistListener(this);
+        gitManager = GitManager.getInstance();
+        // check repo status
+        gitManager.updateWatchlistStatusAsync((success, reposChecked, ex) -> {});
         setupUI();
     }
 
     private void setupUI() {
-        watchlist.setCellFactory(new RepositoryInformationCellFactory());
-        watchlist.setPlaceholder(new Label(ResourceStore.getResourceBundle().getString("list.noentries")));
+        watchlist.setCellFactory(new RepositoryInformationCellFactory(this, progessMonitor));
+        watchlist.setPlaceholder(new Label(ResourceStore.getString("list.noentries")));
         watchlist.getSelectionModel().setSelectionMode(SelectionMode.MULTIPLE);
         setWatchlistDisplay(fileManager.getWatchlist());
         indicatorScanRunning.visibleProperty().bind(ControllerScan.scanRunningProperty());
+        indicatorScanRunning.managedProperty().bind(indicatorScanRunning.visibleProperty());
     }
 
     @FXML
@@ -79,22 +92,46 @@ public class ControllerMain implements Initializable, ErrorDisplay, PropertyChan
         Stage stage = new Stage();
         stage.initModality(Modality.APPLICATION_MODAL);
         stage.initStyle(StageStyle.DECORATED);
-        stage.setTitle(ResourceStore.getResourceBundle().getString("scanpc"));
+        stage.setTitle(ResourceStore.getString("scanpc"));
         stage.setScene(new Scene(root));
         stage.setOnHidden(event -> controller.cleanup());
         stage.show();
+        stage.setMinWidth(stage.getWidth());
+        stage.setMinHeight(stage.getHeight());
+    }
+
+    @FXML
+    public void btnCheckStatusClicked(ActionEvent actionEvent) {
+        displayStatus(ResourceStore.getString("status.update_watchlist_status"));
+        btnCheckStatus.setDisable(true);
+        gitManager.updateWatchlistStatusAsync((success, reposChecked, ex) -> {
+            displayStatus(ResourceStore.getString("status.updated_n_repo_status", reposChecked));
+            btnCheckStatus.setDisable(false);
+        });
     }
 
     @Override
     public void propertyChange(PropertyChangeEvent e) {
-        if (e.getPropertyName().equals("watchlist")) {
-            setWatchlistDisplay((Collection<RepositoryInformation>)e.getNewValue());
-        }
+        Platform.runLater(() -> {
+            if (e.getPropertyName().equals("watchlist")) {
+                setWatchlistDisplay((Collection<RepositoryInformation>)e.getNewValue());
+            }
+        });
     }
 
     private void setWatchlistDisplay(Collection<RepositoryInformation> repoInfo) {
         watchlist.getItems().clear();
         watchlist.getItems().addAll(repoInfo);
         Collections.sort(watchlist.getItems());
+    }
+
+    public void btnPullAllClicked(ActionEvent actionEvent) {
+        gitManager.pullWatchlistAsync(results -> {
+            if (results.isEmpty()) {
+                displayStatus("No changes to pull");
+            } else {
+                displayStatus("Pulled " + results.size() + " repositories");
+            }
+        }, progessMonitor);
     }
 }

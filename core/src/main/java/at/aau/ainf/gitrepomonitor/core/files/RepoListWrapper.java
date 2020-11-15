@@ -1,4 +1,4 @@
-package at.aau.ainf.gitrepomonitor.files;
+package at.aau.ainf.gitrepomonitor.core.files;
 
 import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
@@ -7,14 +7,14 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 public class RepoListWrapper {
-    private Set<RepositoryInformation> watchlist;
-    private Set<RepositoryInformation> foundRepos;
+    private Map<String, RepositoryInformation> watchlist;
+    private Map<String, RepositoryInformation> foundRepos;
     private List<PropertyChangeListener> listenersWatchlist;
     private List<PropertyChangeListener> listenersFoundRepos;
 
     public RepoListWrapper() {
-        this.watchlist = new HashSet<>();
-        this.foundRepos = new HashSet<>();
+        this.watchlist = new HashMap<>();
+        this.foundRepos = new HashMap<>();
         this.listenersWatchlist = new ArrayList<>();
         this.listenersFoundRepos = new ArrayList<>();
     }
@@ -39,24 +39,30 @@ public class RepoListWrapper {
 
     public Set<RepositoryInformation> getWatchlist() {
         if (watchlist == null) {
-             watchlist = new HashSet<>();
+             watchlist = new HashMap<>();
         }
-        return watchlist;
+        return new HashSet<>(watchlist.values());
     }
 
-    public void setWatchlist(Set<RepositoryInformation> watchlist) {
-        this.watchlist = watchlist;
+    public synchronized void setWatchlist(Set<RepositoryInformation> watchlist) {
+        if (watchlist != null) {
+            this.watchlist.clear();
+            watchlist.forEach(repoInfo -> this.watchlist.put(repoInfo.getPath(), repoInfo));
+        }
     }
 
     public Set<RepositoryInformation> getFoundRepos() {
         if (foundRepos == null) {
-            foundRepos = new HashSet<>();
+            foundRepos = new HashMap<>();
         }
-        return foundRepos;
+        return new HashSet<>(foundRepos.values());
     }
 
     public void setFoundRepos(Set<RepositoryInformation> foundRepos) {
-        this.foundRepos = foundRepos;
+        if (foundRepos != null) {
+            this.foundRepos.clear();
+            foundRepos.forEach(repoInfo -> this.foundRepos.put(repoInfo.getPath(), repoInfo));
+        }
     }
 
     public boolean exists(RepositoryInformation repo) {
@@ -68,9 +74,9 @@ public class RepoListWrapper {
     }
 
     public RepoList getListName(RepositoryInformation repo) {
-        if (watchlist.contains(repo)) {
+        if (watchlist.containsKey(repo.getPath())) {
             return RepoList.WATCH;
-        } else if (foundRepos.contains(repo)) {
+        } else if (foundRepos.containsKey(repo.getPath())) {
             return RepoList.FOUND;
         } else {
             return null;
@@ -81,11 +87,11 @@ public class RepoListWrapper {
         checkRepoPathValidity(repos);
         switch (list) {
             case WATCH:
-                watchlist.addAll(repos);
+                repos.forEach(repoInfo -> watchlist.put(repoInfo.getPath(), repoInfo));
                 notifyWatchlistChanged();
                 break;
             case FOUND:
-                foundRepos.addAll(repos);
+                repos.forEach(repoInfo -> foundRepos.put(repoInfo.getPath(), repoInfo));
                 notifyFoundReposChanged();
                 break;
         }
@@ -95,38 +101,45 @@ public class RepoListWrapper {
         addToList(list, Collections.singletonList(repo));
     }
 
-    public boolean removeFromList(RepoList list, Collection<RepositoryInformation> repos) {
-        boolean status = false;
+    public void removeFromList(RepoList list, Collection<RepositoryInformation> repos) {
         switch (list) {
             case WATCH:
-                status = watchlist.removeAll(repos);
+                repos.forEach(repoInfo -> watchlist.remove(repoInfo.getPath()));
                 notifyWatchlistChanged();
                 break;
             case FOUND:
-                status = foundRepos.removeAll(repos);
+                repos.forEach(repoInfo -> foundRepos.remove(repoInfo.getPath()));
                 notifyFoundReposChanged();
                 break;
         }
-        return status;
     }
 
-    public boolean removeFromList(RepoList list, RepositoryInformation repo) {
-        return removeFromList(list, Collections.singletonList(repo));
+    public void removeFromList(RepoList list, RepositoryInformation repo) {
+        removeFromList(list, Collections.singletonList(repo));
     }
 
     /**
      * Sets pathValid property of all repos
      */
     public void checkRepoPathValidity() {
-        for (RepositoryInformation repo : Stream.concat(watchlist.stream(), foundRepos.stream()).collect(Collectors.toList())) {
-            repo.setPathValid(GitRepoHelper.validateRepositoryPath(repo.getPath()));
-        }
+        checkRepoPathValidity(Stream.concat(watchlist.values().stream(),
+                foundRepos.values().stream()).collect(Collectors.toList()));
     }
 
     private void checkRepoPathValidity(Collection<RepositoryInformation> reposToCheck) {
         for (RepositoryInformation repo : reposToCheck) {
-            repo.setPathValid(GitRepoHelper.validateRepositoryPath(repo.getPath()));
+            if (!GitRepoHelper.validateRepositoryPath(repo.getPath())) {
+                repo.setStatus(RepositoryInformation.RepoStatus.PATH_INVALID);
+            }
         }
+    }
+
+    public RepositoryInformation getRepo(String path) {
+        RepositoryInformation repo = watchlist.get(path);
+        if (repo == null) {
+            repo = foundRepos.get(path);
+        }
+        return repo;
     }
 
     public enum RepoList {

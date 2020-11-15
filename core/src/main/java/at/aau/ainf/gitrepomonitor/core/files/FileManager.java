@@ -1,4 +1,4 @@
-package at.aau.ainf.gitrepomonitor.files;
+package at.aau.ainf.gitrepomonitor.core.files;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.dataformat.xml.XmlMapper;
@@ -7,11 +7,10 @@ import java.beans.PropertyChangeListener;
 import java.io.File;
 import java.io.IOException;
 import java.util.Calendar;
-import java.util.Date;
 import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.logging.Logger;
-import static at.aau.ainf.gitrepomonitor.files.RepoListWrapper.RepoList.*;
+import static at.aau.ainf.gitrepomonitor.core.files.RepoListWrapper.RepoList.*;
 
 public class FileManager {
     private static FileManager instance;
@@ -31,6 +30,10 @@ public class FileManager {
     private FileManager() {
         this.mapper = XmlMapper.xmlBuilder().build();
         this.fileRepoLists = new File(System.getenv("APPDATA") + "/GitRepoMonitor/repolists.xml");
+    }
+
+    public boolean isInitialized() {
+        return repoListInitialized;
     }
 
     public synchronized void init() throws IOException {
@@ -102,6 +105,10 @@ public class FileManager {
         persistRepoLists();
     }
 
+    public RepositoryInformation getRepo(String path) {
+        return (RepositoryInformation) repoListWrapper.getRepo(path).clone();
+    }
+
     /**
      * This method updates a given RepositoryInformation object in the persistent storage and
      * informs all listeners of the change.
@@ -118,7 +125,12 @@ public class FileManager {
         }
         repoListWrapper.removeFromList(repoList, new RepositoryInformation(originalPath));
         repoListWrapper.addToList(repoList, updatedInfo);
-        persistRepoLists();
+
+        // only persist repo lists if persistent properties were changed
+        if (updatedInfo.isPersistentValueChanged()) {
+            persistRepoLists();
+            updatedInfo.setPersistentValueChanged(false);
+        }
     }
 
     public synchronized void deleteRepo(RepositoryInformation repo) {

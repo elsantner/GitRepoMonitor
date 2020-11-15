@@ -12,4 +12,9 @@ public abstract class ResourceStore {
     public static ResourceBundle getResourceBundle() {
         return resourceBundle;
     }
+
+    public static String getString(String key, Object... args) {
+        String str = resourceBundle.getString(key);
+        return String.format(str, args);
+    }
 }

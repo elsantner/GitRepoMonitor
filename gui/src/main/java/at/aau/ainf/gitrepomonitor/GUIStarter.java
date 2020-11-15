@@ -36,20 +36,22 @@ public class GUIStarter extends Application {
         primaryStage.setScene(new Scene(root, 800, 500));
         primaryStage.setOnCloseRequest(confirmCloseEventHandler);
         primaryStage.show();
+        primaryStage.setMinWidth(primaryStage.getWidth());
+        primaryStage.setMinHeight(primaryStage.getHeight());
     }
 
     private final EventHandler<WindowEvent> confirmCloseEventHandler = event -> {
         if (ControllerScan.scanRunningProperty().get()) {
             Alert closeConfirmation = new Alert(
                     Alert.AlertType.CONFIRMATION,
-                    ResourceStore.getResourceBundle().getString("exit_dialog.text")
+                    ResourceStore.getString("exit_dialog.text")
             );
 
             Button exitButton = (Button) closeConfirmation.getDialogPane().lookupButton(
                     ButtonType.OK
             );
-            exitButton.setText(ResourceStore.getResourceBundle().getString("btn.exit"));
-            closeConfirmation.setHeaderText(ResourceStore.getResourceBundle().getString("exit_dialog.title"));
+            exitButton.setText(ResourceStore.getString("btn.exit"));
+            closeConfirmation.setHeaderText(ResourceStore.getString("exit_dialog.title"));
             closeConfirmation.initModality(Modality.APPLICATION_MODAL);
             closeConfirmation.initOwner(primaryStage);
 
