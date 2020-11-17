@@ -8,13 +8,17 @@ import org.eclipse.jgit.api.PullResult;
 import org.eclipse.jgit.api.errors.GitAPIException;
 import org.eclipse.jgit.api.errors.InvalidRemoteException;
 import org.eclipse.jgit.api.errors.TransportException;
+import org.eclipse.jgit.diff.DiffEntry;
 import org.eclipse.jgit.errors.NoRemoteRepositoryException;
 import org.eclipse.jgit.lib.*;
+import org.eclipse.jgit.merge.MergeStrategy;
 import org.eclipse.jgit.revwalk.RevCommit;
 import org.eclipse.jgit.revwalk.RevWalk;
 import org.eclipse.jgit.storage.file.FileRepositoryBuilder;
 import org.eclipse.jgit.transport.CredentialsProvider;
 import org.eclipse.jgit.transport.UsernamePasswordCredentialsProvider;
+import org.eclipse.jgit.treewalk.CanonicalTreeParser;
+import org.eclipse.jgit.treewalk.EmptyTreeIterator;
 import org.eclipse.jgit.util.MutableInteger;
 
 import java.io.File;
@@ -193,20 +197,6 @@ public class GitManager {
             Ref remoteHead = refs.get(git.getRepository().getFullBranch());
             Ref localHead = git.getRepository().findRef("HEAD");
 
-
-            // maybe usable for merging...
-            /*ObjectReader reader = git.getRepository().newObjectReader();
-            CanonicalTreeParser oldTreeIter = new CanonicalTreeParser();
-            oldTreeIter.reset( reader, getCommit(git.getRepository(), localHead.getObjectId()).getTree() );
-            CanonicalTreeParser newTreeIter = new CanonicalTreeParser();
-            newTreeIter.reset( reader, getCommit(git.getRepository(), remoteHead.getObjectId()).getTree() );
-
-            List<DiffEntry> diff = git.diff()
-                    .setOldTree(oldTreeIter)
-                    .setNewTree(newTreeIter)
-                    .call();
-            */
-
             int commitTimeRemote = getCommit(git.getRepository(), remoteHead.getObjectId()).getCommitTime();
             int commitTimeLocal = getCommit(git.getRepository(), localHead.getObjectId()).getCommitTime();
             boolean equalHeads = remoteHead.getObjectId().equals(localHead.getObjectId());
@@ -240,5 +230,95 @@ public class GitManager {
             commit = revWalk.parseCommit(objectId);
         }
         return commit;
+    }
+
+    /**
+     * Asynchronously gets a list of all commits including changed files.
+     * @param path Path of the repository.
+     * @param cb Callback to be called when process finishes.
+     */
+    public void getLogAsync(String path, LogCallback cb) {
+        executor.submit(() -> {
+            try {
+                cb.finished(true, getLog(path));
+            } catch (Exception ex) {
+                cb.finished(ex);
+            }
+        });
+    }
+
+    /**
+     * Returns a list of all commits including changed files.
+     * @param path Path of the repository.
+     * @return List of all commits including changed files
+     * @throws IOException If repository path is invalid
+     * @throws GitAPIException If error during log generation occurs.
+     */
+    public List<CommitChange> getLog(String path) throws IOException, GitAPIException {
+        Git git = getRepoGit(path);
+        Iterable<RevCommit> log = git.log().call();
+        List<CommitChange> changes = new ArrayList<>();
+
+        // compare each commit to its immediate predecessor
+        RevCommit prevRev = null;
+        for (RevCommit rev : log) {
+            if (prevRev != null) {
+                List<DiffEntry> diffs = getDiff(git, rev.toObjectId(), prevRev.toObjectId());
+                changes.add(new CommitChange(prevRev, diffs));
+            }
+            prevRev = rev;
+        }
+        // initial commit is compared to empty repository
+        List<DiffEntry> diffs = getDiff(git, prevRev.toObjectId());
+        changes.add(new CommitChange(prevRev, diffs));
+
+        return changes;
+    }
+
+    /**
+     * Returns a list of file changes between two commits.
+     * @param git Git of which the commits are part of.
+     * @param objectIdOld ID of the commit to which the new commit is compared.
+     * @param objectIdNew ID of the commit which is compared to the old commit.
+     * @return List of DiffEntries which represent file changes.
+     * @throws IOException If invalid git is passed.
+     * @throws GitAPIException If error during diff calculation occurs.
+     */
+    private List<DiffEntry> getDiff(Git git, ObjectId objectIdOld, ObjectId objectIdNew) throws IOException, GitAPIException {
+        try (ObjectReader reader = git.getRepository().newObjectReader()) {
+            CanonicalTreeParser oldTreeIter = new CanonicalTreeParser();
+            oldTreeIter.reset(reader, getCommit(git.getRepository(), objectIdOld).getTree());
+            CanonicalTreeParser newTreeIter = new CanonicalTreeParser();
+            newTreeIter.reset(reader, getCommit(git.getRepository(), objectIdNew).getTree());
+
+            return git.diff()
+                    .setOldTree(oldTreeIter)
+                    .setNewTree(newTreeIter)
+                    .setShowNameAndStatusOnly(true)
+                    .call();
+        }
+    }
+
+    /**
+     * Returns a list of file changes between the provided commit and the empty repository.
+     * (This means all files in the commit will be marked as ADDED).
+     * @param git Git of which the commits are part of.
+     * @param objectIdInitial ID of the commit to which the new commit is compared.
+     * @return List of DiffEntries which represent file changes.
+     * @throws IOException If invalid git is passed.
+     * @throws GitAPIException If error during diff calculation occurs.
+     */
+    private List<DiffEntry> getDiff(Git git, ObjectId objectIdInitial) throws IOException, GitAPIException {
+        try (ObjectReader reader = git.getRepository().newObjectReader()) {
+            EmptyTreeIterator oldTreeIter = new EmptyTreeIterator();
+            CanonicalTreeParser newTreeIter = new CanonicalTreeParser();
+            newTreeIter.reset(reader, getCommit(git.getRepository(), objectIdInitial).getTree());
+
+            return git.diff()
+                    .setOldTree(oldTreeIter)
+                    .setNewTree(newTreeIter)
+                    .setShowNameAndStatusOnly(true)
+                    .call();
+        }
     }
 }

@@ -2,12 +2,13 @@ package at.aau.ainf.gitrepomonitor.gui.main;
 
 import at.aau.ainf.gitrepomonitor.core.files.FileManager;
 import at.aau.ainf.gitrepomonitor.core.files.RepositoryInformation;
+import at.aau.ainf.gitrepomonitor.core.git.CommitChange;
 import at.aau.ainf.gitrepomonitor.core.git.GitManager;
 import at.aau.ainf.gitrepomonitor.gui.ErrorDisplay;
-import at.aau.ainf.gitrepomonitor.gui.StatusBarController;
-import at.aau.ainf.gitrepomonitor.gui.repolist.RepositoryInformationCellFactory;
 import at.aau.ainf.gitrepomonitor.gui.ResourceStore;
+import at.aau.ainf.gitrepomonitor.gui.StatusBarController;
 import at.aau.ainf.gitrepomonitor.gui.StatusDisplay;
+import at.aau.ainf.gitrepomonitor.gui.repolist.RepositoryInformationCellFactory;
 import at.aau.ainf.gitrepomonitor.gui.reposcan.ControllerScan;
 import javafx.application.Platform;
 import javafx.event.ActionEvent;
@@ -17,19 +18,17 @@ import javafx.fxml.Initializable;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
+import javafx.scene.layout.VBox;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
 import javafx.stage.StageStyle;
-import org.eclipse.jgit.lib.ProgressMonitor;
+import org.eclipse.jgit.api.errors.GitAPIException;
 
 import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
 import java.io.IOException;
 import java.net.URL;
-import java.text.DecimalFormat;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.ResourceBundle;
+import java.util.*;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -43,6 +42,9 @@ public class ControllerMain extends StatusBarController implements Initializable
     private Button btnCheckStatus;
     @FXML
     private ListView<RepositoryInformation> watchlist;
+    @FXML
+    private VBox containerCommitLog;
+
     private FileManager fileManager;
     private GitManager gitManager;
 
@@ -70,6 +72,36 @@ public class ControllerMain extends StatusBarController implements Initializable
         setWatchlistDisplay(fileManager.getWatchlist());
         indicatorScanRunning.visibleProperty().bind(ControllerScan.scanRunningProperty());
         indicatorScanRunning.managedProperty().bind(indicatorScanRunning.visibleProperty());
+        setupCommitLogDisplay();
+    }
+
+    private void setupCommitLogDisplay() {
+        watchlist.getSelectionModel().selectedItemProperty().addListener((observable, oldValue, newValue) -> {
+            if (newValue != null) {
+                gitManager.getLogAsync(newValue.getPath(), (success, changes, ex) -> {
+                    Platform.runLater(() -> {
+                        if (success) {
+                            displayCommitChanges(changes);
+                        } else {
+                            // TODO: show error in log display
+                            displayStatus(ex.getMessage());
+                        }
+                    });
+                });
+            }
+        });
+    }
+
+    private void addCommitView(CommitChange commitChange) {
+        CommitView commitView = new CommitView(commitChange);
+        containerCommitLog.getChildren().add(commitView);
+    }
+
+    private void displayCommitChanges(List<CommitChange> changes) {
+        containerCommitLog.getChildren().clear();
+        for (CommitChange change : changes) {
+            addCommitView(change);
+        }
     }
 
     @FXML
