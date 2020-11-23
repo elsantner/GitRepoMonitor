@@ -88,10 +88,10 @@ public class ControllerScan extends StatusBarController implements Initializable
         btnRemoveFromWatchlist.disableProperty().bind(listWatchlist.getSelectionModel().selectedItemProperty().isNull());
 
         listFoundRepos.setCellFactory(new RepositoryInformationCellFactory(this, progessMonitor));
-        listFoundRepos.setPlaceholder(new Label(ResourceStore.getString("list.noentries")));
+        listFoundRepos.setPlaceholder(new Label(ResourceStore.getString("list.no_entries")));
         listFoundRepos.getSelectionModel().setSelectionMode(SelectionMode.MULTIPLE);
         listWatchlist.setCellFactory(new RepositoryInformationCellFactory(this, progessMonitor));
-        listWatchlist.setPlaceholder(new Label(ResourceStore.getString("list.noentries")));
+        listWatchlist.setPlaceholder(new Label(ResourceStore.getString("list.no_entries")));
         listWatchlist.getSelectionModel().setSelectionMode(SelectionMode.MULTIPLE);
         setWatchlistDisplay(fileManager.getWatchlist());
         setFoundReposDisplay(fileManager.getFoundRepos());

@@ -11,14 +11,11 @@
    <ScrollPane fx:id="scrollPane" AnchorPane.bottomAnchor="0.0" AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="0.0">
       <VBox fx:id="containerCommitLog" />
    </ScrollPane>
-   <VBox fx:id="emptyView" alignment="CENTER" AnchorPane.bottomAnchor="0.0" AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="0.0">
-      <children>
-         <ImageView fitHeight="70.0" fitWidth="100.0" pickOnBounds="true" preserveRatio="true">
-            <image>
-               <Image url="@../icons/icon_empty.png" />
-            </image>
-         </ImageView>
-         <Label text="%commitlog.nocommits" />
-      </children>
+   <VBox fx:id="emptyView" alignment="CENTER" AnchorPane.bottomAnchor="0.0" AnchorPane.leftAnchor="0.0"
+         AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="0.0">
+      <ImageView fitHeight="70.0" fitWidth="100.0" pickOnBounds="true" preserveRatio="true">
+         <Image url="@../icons/icon_empty.png"/>
+      </ImageView>
+      <Label text="%commitlog.no_commits"/>
    </VBox>
 </fx:root>

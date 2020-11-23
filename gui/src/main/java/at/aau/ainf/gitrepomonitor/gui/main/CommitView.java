@@ -1,8 +1,10 @@
 package at.aau.ainf.gitrepomonitor.gui.main;
 
 import at.aau.ainf.gitrepomonitor.core.git.CommitChange;
+import at.aau.ainf.gitrepomonitor.gui.ResourceStore;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
+import javafx.scene.control.Hyperlink;
 import javafx.scene.control.Label;
 import javafx.scene.control.Tooltip;
 import javafx.scene.image.Image;
@@ -21,6 +23,7 @@ import java.util.List;
 
 public class CommitView extends Region {
     public static final int MIN_HEIGHT = 35;
+    public static int FILE_DISPLAYED_DEFAULT = 0;
 
     private static final Image iconAdded;
     private static final Image iconEdited;
@@ -46,6 +49,8 @@ public class CommitView extends Region {
     private Tooltip ttCommitMessage;
     @FXML
     private Tooltip ttUsername;
+
+    private Hyperlink linkShowAll;
 
     private FXMLLoader loader;
     private static DateFormat df = new SimpleDateFormat("dd.MM.yyyy HH:mm");
@@ -79,8 +84,20 @@ public class CommitView extends Region {
     }
 
     private void addFileChanges(List<DiffEntry> fileChanges) {
-        for (DiffEntry diff : fileChanges) {
-            boxFileChanges.getChildren().add(new FileChange(diff));
+        for (int i=0; i<Math.min(FILE_DISPLAYED_DEFAULT, fileChanges.size()); i++) {
+            boxFileChanges.getChildren().add(new FileChange(fileChanges.get(i)));
+        }
+        // if there are more file changes to display, add a link to show them all
+        if (FILE_DISPLAYED_DEFAULT < fileChanges.size()) {
+            Hyperlink linkShowAll = new Hyperlink(ResourceStore.getString("commitlog.show_all_changes", fileChanges.size()));
+            // if link is clicked remove it and add remaining file changes
+            linkShowAll.setOnAction(event -> {
+                boxFileChanges.getChildren().remove(linkShowAll);
+                for (int i=FILE_DISPLAYED_DEFAULT; i<fileChanges.size(); i++) {
+                    boxFileChanges.getChildren().add(new FileChange(fileChanges.get(i)));
+                }
+            });
+            boxFileChanges.getChildren().add(linkShowAll);
         }
     }
 

@@ -68,7 +68,7 @@ public class ControllerMain extends StatusBarController implements Initializable
 
     private void setupUI() {
         watchlist.setCellFactory(new RepositoryInformationCellFactory(this, progessMonitor));
-        watchlist.setPlaceholder(new Label(ResourceStore.getString("list.noentries")));
+        watchlist.setPlaceholder(new Label(ResourceStore.getString("list.no_entries")));
         watchlist.getSelectionModel().setSelectionMode(SelectionMode.MULTIPLE);
         setWatchlistDisplay(fileManager.getWatchlist());
         indicatorScanRunning.visibleProperty().bind(ControllerScan.scanRunningProperty());
@@ -85,7 +85,7 @@ public class ControllerMain extends StatusBarController implements Initializable
                             lblCommitLog.setText(ResourceStore.getString("commitlog.status", changes.size()));
                             commitLogView.setCommitLog(changes);
                         } else {
-                            lblCommitLog.setText(ResourceStore.getString("commitlog.nocommits"));
+                            lblCommitLog.setText(ResourceStore.getString("commitlog.no_commits"));
                             commitLogView.setCommitLog(null);
                             displayStatus(ex.getMessage());
                         }
