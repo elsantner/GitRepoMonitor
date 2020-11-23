@@ -1,10 +1,12 @@
 package at.aau.ainf.gitrepomonitor.gui.main;
 
 import at.aau.ainf.gitrepomonitor.core.git.CommitChange;
+import at.aau.ainf.gitrepomonitor.gui.ResourceStore;
 import javafx.application.Platform;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.control.ScrollPane;
+import javafx.scene.layout.AnchorPane;
 import javafx.scene.layout.VBox;
 
 import java.io.IOException;
@@ -17,10 +19,14 @@ import java.util.concurrent.TimeUnit;
 /**
  * Displays commits including changed files.
  */
-public class CommitLogView extends ScrollPane {
+public class CommitLogView extends AnchorPane {
 
     @FXML
     private VBox containerCommitLog;
+    @FXML
+    private ScrollPane scrollPane;
+    @FXML
+    private VBox emptyView;
 
     private final Object lock = true;
     private List<CommitChange> currentCommitLog = new ArrayList<>();
@@ -29,7 +35,9 @@ public class CommitLogView extends ScrollPane {
     private boolean isTimerTaskScheduled = false;
 
     public CommitLogView() {
-        FXMLLoader loader = new FXMLLoader(getClass().getResource("/at/aau/ainf/gitrepomonitor/gui/main/commit_log_view.fxml"));
+        FXMLLoader loader = new FXMLLoader(getClass().
+                getResource("/at/aau/ainf/gitrepomonitor/gui/main/commit_log_view.fxml"),
+                ResourceStore.getResourceBundle());
         loader.setController(this);
         loader.setRoot(this);
 
@@ -43,7 +51,12 @@ public class CommitLogView extends ScrollPane {
             t.setDaemon(true);
             return t;
         });
-        setup();
+        setupLazyLoading();
+        setupEmptyView();
+    }
+
+    private void setupEmptyView() {
+        emptyView.managedProperty().bind(emptyView.visibleProperty());
     }
 
     public List<CommitChange> getCommitLog() {
@@ -53,18 +66,23 @@ public class CommitLogView extends ScrollPane {
     public void setCommitLog(List<CommitChange> currentCommitLog) {
         synchronized (lock) {       // avoid any problems with quickly switching between selected repos
             if (currentCommitLog == null) {
-                throw new NullPointerException("commit log must not be null");
+                currentCommitLog = new ArrayList<>();
             }
 
             this.currentCommitLog = currentCommitLog;
             displayCommitChanges();
+            if (currentCommitLog.isEmpty()) {
+                emptyView.setVisible(true);
+            } else {
+                emptyView.setVisible(false);
+            }
         }
     }
 
-    private void setup() {
-        this.vvalueProperty().addListener((observable, oldValue, newValue) -> {
+    private void setupLazyLoading() {
+        scrollPane.vvalueProperty().addListener((observable, oldValue, newValue) -> {
             // load 10 more commits if scrolled in the bottom 25% of the list
-            if ((double)newValue > this.getVmax() * 0.75) {
+            if ((double)newValue > scrollPane.getVmax() * 0.75) {
                 loadMoreCommitChanges(currentCommitLogDisplayIndex, 10);
             }
         });
@@ -88,7 +106,6 @@ public class CommitLogView extends ScrollPane {
     private int loadMoreCommitChanges(int startIndex, int maxCount) {
         synchronized (lock) {       // avoid any problems with quickly switching between selected repos
             int i = 0;
-            System.out.println(startIndex + " " + maxCount);
             for (; i < maxCount && startIndex + i < currentCommitLog.size(); i++) {
                 addCommitView(currentCommitLog.get(startIndex + i));
             }

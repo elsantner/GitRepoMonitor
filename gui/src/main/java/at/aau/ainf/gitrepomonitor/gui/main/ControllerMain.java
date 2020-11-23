@@ -85,7 +85,8 @@ public class ControllerMain extends StatusBarController implements Initializable
                             lblCommitLog.setText(ResourceStore.getString("commitlog.status", changes.size()));
                             commitLogView.setCommitLog(changes);
                         } else {
-                            // TODO: show error in log display
+                            lblCommitLog.setText(ResourceStore.getString("commitlog.nocommits"));
+                            commitLogView.setCommitLog(null);
                             displayStatus(ex.getMessage());
                         }
                     });
