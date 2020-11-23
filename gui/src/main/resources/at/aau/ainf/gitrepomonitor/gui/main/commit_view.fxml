@@ -6,33 +6,32 @@
 <?import javafx.scene.layout.HBox?>
 <?import javafx.scene.layout.VBox?>
 
-<VBox fx:id="containerMain" maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity"
-      xmlns="http://javafx.com/javafx/8.0.171" xmlns:fx="http://javafx.com/fxml/1">
+<VBox fx:id="containerMain" maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" xmlns="http://javafx.com/javafx/8.0.171" xmlns:fx="http://javafx.com/fxml/1">
    <padding>
-      <Insets bottom="5.0"/>
+      <Insets bottom="5.0" />
    </padding>
    <HBox fx:id="container">
-      <Label fx:id="lblMsg" text="Commit Message" HBox.hgrow="ALWAYS">
+      <Label fx:id="lblMsg" style="-fx-font-weight: bold;" text="Commit Message" HBox.hgrow="ALWAYS">
          <HBox.margin>
-            <Insets/>
+            <Insets />
          </HBox.margin>
          <tooltip>
-            <Tooltip fx:id="ttCommitMessage"/>
+            <Tooltip fx:id="ttCommitMessage" />
          </tooltip>
       </Label>
-      <Label text=" ("/>
-      <Label fx:id="lblDate" text="Date"/>
-      <Label text=" by "/>
+      <Label text=" (" />
+      <Label fx:id="lblDate" text="Date" />
+      <Label text=" by " />
       <Label fx:id="lblUsername" text="Username" textFill="#b9ac1a">
          <tooltip>
-            <Tooltip fx:id="ttUsername"/>
+            <Tooltip fx:id="ttUsername" />
          </tooltip>
       </Label>
-      <Label text=")"/>
+      <Label text=")" />
    </HBox>
    <VBox fx:id="boxFileChanges">
       <VBox.margin>
-         <Insets left="5.0"/>
+         <Insets left="5.0" />
       </VBox.margin>
    </VBox>
 </VBox>

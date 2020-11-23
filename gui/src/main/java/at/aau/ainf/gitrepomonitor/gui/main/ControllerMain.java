@@ -2,7 +2,6 @@ package at.aau.ainf.gitrepomonitor.gui.main;
 
 import at.aau.ainf.gitrepomonitor.core.files.FileManager;
 import at.aau.ainf.gitrepomonitor.core.files.RepositoryInformation;
-import at.aau.ainf.gitrepomonitor.core.git.CommitChange;
 import at.aau.ainf.gitrepomonitor.core.git.GitManager;
 import at.aau.ainf.gitrepomonitor.gui.ErrorDisplay;
 import at.aau.ainf.gitrepomonitor.gui.ResourceStore;
@@ -18,17 +17,17 @@ import javafx.fxml.Initializable;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
-import javafx.scene.layout.VBox;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
 import javafx.stage.StageStyle;
-import org.eclipse.jgit.api.errors.GitAPIException;
 
 import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
 import java.io.IOException;
 import java.net.URL;
-import java.util.*;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.ResourceBundle;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -43,7 +42,9 @@ public class ControllerMain extends StatusBarController implements Initializable
     @FXML
     private ListView<RepositoryInformation> watchlist;
     @FXML
-    private VBox containerCommitLog;
+    private CommitLogView commitLogView;
+    @FXML
+    private Label lblCommitLog;
 
     private FileManager fileManager;
     private GitManager gitManager;
@@ -81,7 +82,8 @@ public class ControllerMain extends StatusBarController implements Initializable
                 gitManager.getLogAsync(newValue.getPath(), (success, changes, ex) -> {
                     Platform.runLater(() -> {
                         if (success) {
-                            displayCommitChanges(changes);
+                            lblCommitLog.setText(ResourceStore.getString("commitlog.status", changes.size()));
+                            commitLogView.setCommitLog(changes);
                         } else {
                             // TODO: show error in log display
                             displayStatus(ex.getMessage());
@@ -90,18 +92,6 @@ public class ControllerMain extends StatusBarController implements Initializable
                 });
             }
         });
-    }
-
-    private void addCommitView(CommitChange commitChange) {
-        CommitView commitView = new CommitView(commitChange);
-        containerCommitLog.getChildren().add(commitView);
-    }
-
-    private void displayCommitChanges(List<CommitChange> changes) {
-        containerCommitLog.getChildren().clear();
-        for (CommitChange change : changes) {
-            addCommitView(change);
-        }
     }
 
     @FXML

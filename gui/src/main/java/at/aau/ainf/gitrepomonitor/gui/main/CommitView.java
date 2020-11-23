@@ -20,6 +20,8 @@ import java.util.Date;
 import java.util.List;
 
 public class CommitView extends Region {
+    public static final int MIN_HEIGHT = 35;
+
     private static final Image iconAdded;
     private static final Image iconEdited;
     private static final Image iconRemoved;
@@ -56,7 +58,7 @@ public class CommitView extends Region {
             try {
                 loader.load();
             } catch (IOException e) {
-                e.printStackTrace();
+                throw new RuntimeException(e);
             }
         }
 
