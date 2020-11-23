@@ -40,6 +40,7 @@ public class GitManager {
     private final HashMap<String, Git> repoCache;
     private FileManager fileManager;
     private ThreadPoolExecutor executor;
+    private PullListener pullListener;
 
     private GitManager() {
         this.repoCache = new HashMap<>();
@@ -49,6 +50,16 @@ public class GitManager {
             t.setDaemon(true);
             return t;
         });
+    }
+
+    public void setPullListener(PullListener pullListener) {
+        this.pullListener = pullListener;
+    }
+
+    private void notifyPullListener(String path, MergeResult.MergeStatus status) {
+        if (this.pullListener != null) {
+            this.pullListener.pullExecuted(path, status);
+        }
     }
 
     /**
@@ -80,6 +91,7 @@ public class GitManager {
         if (pullResult.isSuccessful()) {
             updateRepoStatus(path);
         }
+        notifyPullListener(path, pullResult.getMergeResult().getMergeStatus());
         return pullResult.getMergeResult().getMergeStatus();
     }
 

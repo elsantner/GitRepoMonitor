@@ -3,6 +3,7 @@ package at.aau.ainf.gitrepomonitor.gui.main;
 import at.aau.ainf.gitrepomonitor.core.files.FileManager;
 import at.aau.ainf.gitrepomonitor.core.files.RepositoryInformation;
 import at.aau.ainf.gitrepomonitor.core.git.GitManager;
+import at.aau.ainf.gitrepomonitor.core.git.PullListener;
 import at.aau.ainf.gitrepomonitor.gui.ErrorDisplay;
 import at.aau.ainf.gitrepomonitor.gui.ResourceStore;
 import at.aau.ainf.gitrepomonitor.gui.StatusBarController;
@@ -20,6 +21,7 @@ import javafx.scene.control.*;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
 import javafx.stage.StageStyle;
+import org.eclipse.jgit.api.MergeResult;
 
 import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
@@ -31,7 +33,8 @@ import java.util.ResourceBundle;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-public class ControllerMain extends StatusBarController implements Initializable, ErrorDisplay, StatusDisplay, PropertyChangeListener {
+public class ControllerMain extends StatusBarController implements Initializable, ErrorDisplay, StatusDisplay,
+        PropertyChangeListener, PullListener {
 
     @FXML
     private ProgressIndicator indicatorScanRunning;
@@ -78,21 +81,25 @@ public class ControllerMain extends StatusBarController implements Initializable
 
     private void setupCommitLogDisplay() {
         watchlist.getSelectionModel().selectedItemProperty().addListener((observable, oldValue, newValue) -> {
-            if (newValue != null) {
-                gitManager.getLogAsync(newValue.getPath(), (success, changes, ex) -> {
-                    Platform.runLater(() -> {
-                        if (success) {
-                            lblCommitLog.setText(ResourceStore.getString("commitlog.status", changes.size()));
-                            commitLogView.setCommitLog(changes);
-                        } else {
-                            lblCommitLog.setText(ResourceStore.getString("commitlog.no_commits"));
-                            commitLogView.setCommitLog(null);
-                            displayStatus(ex.getMessage());
-                        }
-                    });
-                });
-            }
+            updateCommitLog(newValue);
         });
+    }
+
+    private void updateCommitLog(RepositoryInformation repo) {
+        if (repo != null) {
+            gitManager.getLogAsync(repo.getPath(), (success, changes, ex) -> {
+                Platform.runLater(() -> {
+                    if (success) {
+                        lblCommitLog.setText(ResourceStore.getString("commitlog.status", changes.size()));
+                        commitLogView.setCommitLog(changes);
+                    } else {
+                        lblCommitLog.setText(ResourceStore.getString("commitlog.no_commits"));
+                        commitLogView.setCommitLog(null);
+                        displayStatus(ex.getMessage());
+                    }
+                });
+            });
+        }
     }
 
     @FXML
@@ -142,7 +149,7 @@ public class ControllerMain extends StatusBarController implements Initializable
         });
     }
 
-    private void setWatchlistDisplay(Collection<RepositoryInformation> repoInfo) {
+    private synchronized void setWatchlistDisplay(Collection<RepositoryInformation> repoInfo) {
         watchlist.getItems().clear();
         watchlist.getItems().addAll(repoInfo);
         Collections.sort(watchlist.getItems());
@@ -154,7 +161,16 @@ public class ControllerMain extends StatusBarController implements Initializable
                 displayStatus("No changes to pull");
             } else {
                 displayStatus("Pulled " + results.size() + " repositories");
+                updateCommitLog(watchlist.getSelectionModel().getSelectedItem());
             }
         }, progessMonitor);
+    }
+
+    @Override
+    public void pullExecuted(String path, MergeResult.MergeStatus status) {
+        RepositoryInformation repo = watchlist.getSelectionModel().getSelectedItem();
+        if (repo != null && repo.getPath().equals(path)) {
+            updateCommitLog(repo);
+        }
     }
 }
