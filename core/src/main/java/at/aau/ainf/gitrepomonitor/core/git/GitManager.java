@@ -233,7 +233,7 @@ public class GitManager {
                 repoInfo.setStatus(RepositoryInformation.RepoStatus.INACCESSIBLE_REMOTE);
             }
         }
-        fileManager.editRepo(repoInfo.getPath(), repoInfo);
+        fileManager.updateRepoStatus(repoInfo.getPath(), repoInfo.getStatus());
     }
 
     private RevCommit getCommit(Repository repo, ObjectId objectId) throws IOException {

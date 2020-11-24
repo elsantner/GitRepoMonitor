@@ -18,10 +18,7 @@ import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
 import java.io.File;
 import java.net.URL;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
-import java.util.ResourceBundle;
+import java.util.*;
 
 public class ControllerScan extends StatusBarController implements Initializable, PropertyChangeListener {
 
@@ -71,6 +68,7 @@ public class ControllerScan extends StatusBarController implements Initializable
         fileManager = FileManager.getInstance();
         fileManager.addWatchlistListener(this);
         fileManager.addFoundReposListener(this);
+        fileManager.addRepoStatusListener(this);
 
         setupUI();
         setupSearchTask();
@@ -197,6 +195,9 @@ public class ControllerScan extends StatusBarController implements Initializable
                 setWatchlistDisplay((Collection<RepositoryInformation>)e.getNewValue());
             } else if (e.getPropertyName().equals("foundRepos")) {
                 setFoundReposDisplay((Collection<RepositoryInformation>)e.getNewValue());
+            } else if (e.getPropertyName().equals("repoStatus")) {
+                listWatchlist.refresh();
+                listFoundRepos.refresh();
             }
         });
     }

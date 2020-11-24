@@ -29,6 +29,7 @@ import java.io.IOException;
 import java.net.URL;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Optional;
 import java.util.ResourceBundle;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -63,7 +64,9 @@ public class ControllerMain extends StatusBarController implements Initializable
            showError(ResourceStore.getString("errormsg.file_access_denied"));
         }
         fileManager.addWatchlistListener(this);
+        fileManager.addRepoStatusListener(this);
         gitManager = GitManager.getInstance();
+        gitManager.setPullListener(this);
         // check repo status
         gitManager.updateWatchlistStatusAsync((success, reposChecked, ex) -> {});
         setupUI();
@@ -145,6 +148,8 @@ public class ControllerMain extends StatusBarController implements Initializable
         Platform.runLater(() -> {
             if (e.getPropertyName().equals("watchlist")) {
                 setWatchlistDisplay((Collection<RepositoryInformation>)e.getNewValue());
+            } else if (e.getPropertyName().equals("repoStatus")) {
+                watchlist.refresh();
             }
         });
     }
