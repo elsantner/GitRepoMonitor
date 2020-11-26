@@ -7,7 +7,6 @@ import javafx.fxml.FXMLLoader;
 import javafx.scene.control.Label;
 import javafx.scene.control.ListCell;
 import javafx.scene.control.Tooltip;
-import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.HBox;
 
@@ -84,15 +83,11 @@ public class RepositoryInformationListViewCell extends ListCell<RepositoryInform
                 break;
         }
         if (imgPath != null) {
-            iconAttention.setImage(getImage(imgPath));
+            iconAttention.setImage(ResourceStore.getImage(imgPath));
             lblIcon.setTooltip(new Tooltip(ResourceStore.getString(tooltipKey)));
         } else {
             iconAttention.setVisible(false);
             lblIcon.setTooltip(null);
         }
-    }
-
-    private Image getImage(String path) {
-        return new Image("/at/aau/ainf/gitrepomonitor/gui/icons/" + path);
     }
 }

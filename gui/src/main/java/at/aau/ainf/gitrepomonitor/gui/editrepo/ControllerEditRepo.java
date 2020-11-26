@@ -11,6 +11,7 @@ import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
 import javafx.scene.control.*;
+import javafx.scene.image.ImageView;
 import javafx.scene.layout.AnchorPane;
 import javafx.stage.DirectoryChooser;
 import javafx.stage.Stage;
@@ -22,9 +23,13 @@ import java.util.ResourceBundle;
 public class ControllerEditRepo implements Initializable, ErrorDisplay {
 
     @FXML
-    public PasswordField txtHttpsPassword;
-    @FXML
     public TextField txtHttpsUsername;
+    @FXML
+    public ToggleButton toggleShowPW;
+    @FXML
+    public PasswordField txtHttpsPasswordHidden;
+    @FXML
+    public TextField txtHttpsPasswordShown;
     @FXML
     public AnchorPane authContainerHTTPS;
     @FXML
@@ -35,6 +40,10 @@ public class ControllerEditRepo implements Initializable, ErrorDisplay {
     public RadioButton radioBtnSSL;
     @FXML
     public AnchorPane authContainerSSL;
+    @FXML
+    public ImageView iconShowPW;
+    @FXML
+    public Tooltip ttShowPW;
     @FXML
     private TextField txtName;
     @FXML
@@ -62,10 +71,25 @@ public class ControllerEditRepo implements Initializable, ErrorDisplay {
                 validateTextFieldPath();
             }
         });
+        // only show selected credential input
         authContainerHTTPS.managedProperty().bind(authContainerHTTPS.visibleProperty());
         authContainerHTTPS.visibleProperty().bind(radioBtnHttps.selectedProperty());
         authContainerSSL.managedProperty().bind(authContainerSSL.visibleProperty());
         authContainerSSL.visibleProperty().bind(radioBtnSSL.selectedProperty());
+
+        // sync text between hidden and shown password fields
+        txtHttpsPasswordHidden.textProperty().bindBidirectional(txtHttpsPasswordShown.textProperty());
+        txtHttpsPasswordHidden.visibleProperty().bind(toggleShowPW.selectedProperty().not());
+        txtHttpsPasswordShown.visibleProperty().bind(toggleShowPW.selectedProperty());
+        toggleShowPW.selectedProperty().addListener((observable, oldValue, newValue) -> {
+            if (newValue) {
+                iconShowPW.setImage(ResourceStore.getImage("icon_hidden.png"));
+                ttShowPW.setText(ResourceStore.getString("edit_repo.hide_password"));
+            } else {
+                iconShowPW.setImage(ResourceStore.getImage("icon_visible.png"));
+                ttShowPW.setText(ResourceStore.getString("edit_repo.show_password"));
+            }
+        });
     }
 
     private void validateTextFieldPath() {
@@ -142,7 +166,7 @@ public class ControllerEditRepo implements Initializable, ErrorDisplay {
                 btnTestConnection.setDisable(false);
             }));
         } else if (radioBtnHttps.isSelected()) {
-            gitManager.testRepoConnectionAsync(repo, txtHttpsUsername.getText(), txtHttpsPassword.getText(),
+            gitManager.testRepoConnectionAsync(repo, txtHttpsUsername.getText(), txtHttpsPasswordHidden.getText(),
                     status -> Platform.runLater(() -> {
                         setConnectionStatusDisplay(status);
                         btnTestConnection.setDisable(false);
