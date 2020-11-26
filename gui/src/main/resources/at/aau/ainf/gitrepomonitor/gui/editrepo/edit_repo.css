@@ -3,3 +3,7 @@
     -fx-focus-color: red;
     -fx-focus-color: red;
 }
+
+RadioButton:selected {
+    -fx-font-weight: bold;
+}

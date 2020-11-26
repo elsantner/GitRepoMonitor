@@ -8,7 +8,11 @@ import at.aau.ainf.gitrepomonitor.gui.ResourceStore;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
+import javafx.scene.control.PasswordField;
+import javafx.scene.control.RadioButton;
 import javafx.scene.control.TextField;
+import javafx.scene.control.ToggleGroup;
+import javafx.scene.layout.AnchorPane;
 import javafx.stage.DirectoryChooser;
 import javafx.stage.Stage;
 
@@ -18,6 +22,20 @@ import java.util.ResourceBundle;
 
 public class ControllerEditRepo implements Initializable, ErrorDisplay {
 
+    @FXML
+    public PasswordField txtHttpsPassword;
+    @FXML
+    public TextField txtHttpsUsername;
+    @FXML
+    public AnchorPane authContainerHTTPS;
+    @FXML
+    public RadioButton radioBtnNone;
+    @FXML
+    public RadioButton radioBtnHttps;
+    @FXML
+    public RadioButton radioBtnSSL;
+    @FXML
+    public AnchorPane authContainerSSL;
     @FXML
     private TextField txtName;
     @FXML
@@ -39,6 +57,10 @@ public class ControllerEditRepo implements Initializable, ErrorDisplay {
                 validateTextFieldPath();
             }
         });
+        authContainerHTTPS.managedProperty().bind(authContainerHTTPS.visibleProperty());
+        authContainerHTTPS.visibleProperty().bind(radioBtnHttps.selectedProperty());
+        authContainerSSL.managedProperty().bind(authContainerSSL.visibleProperty());
+        authContainerSSL.visibleProperty().bind(radioBtnSSL.selectedProperty());
     }
 
     private void validateTextFieldPath() {
@@ -104,5 +126,8 @@ public class ControllerEditRepo implements Initializable, ErrorDisplay {
             txtPath.setText(selectedDirectory.getAbsolutePath());
             validateTextFieldPath();
         }
+    }
+
+    public void onBtnTestConnClick(ActionEvent actionEvent) {
     }
 }
