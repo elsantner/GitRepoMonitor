@@ -5,12 +5,15 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 
 import java.util.Date;
 import java.util.Objects;
+import java.util.UUID;
 
 @JsonAutoDetect(fieldVisibility = JsonAutoDetect.Visibility.ANY,
         getterVisibility = JsonAutoDetect.Visibility.NONE,
         setterVisibility = JsonAutoDetect.Visibility.NONE,
         creatorVisibility = JsonAutoDetect.Visibility.NONE)
 public class RepositoryInformation implements Comparable<RepositoryInformation>, Cloneable {
+
+    private UUID UID;
     private String path;
     private String name;
     private Date dateAdded;
@@ -31,6 +34,9 @@ public class RepositoryInformation implements Comparable<RepositoryInformation>,
     private boolean persistentValueChanged = false;
 
     public RepositoryInformation() {
+        // generate random UUID upon creation
+        // this value is overwritten during deserialization
+        this.UID = UUID.randomUUID();
         this.status = RepoStatus.UP_TO_DATE;
     }
 
@@ -47,6 +53,10 @@ public class RepositoryInformation implements Comparable<RepositoryInformation>,
     public RepositoryInformation(String path, String name, Date dateAdded) {
         this(path, name);
         this.dateAdded = dateAdded;
+    }
+
+    public UUID getUID() {
+        return UID;
     }
 
     @JsonIgnore
