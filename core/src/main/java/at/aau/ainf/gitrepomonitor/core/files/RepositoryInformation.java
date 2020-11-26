@@ -22,7 +22,8 @@ public class RepositoryInformation implements Comparable<RepositoryInformation>,
         INACCESSIBLE_REMOTE,
         PULL_AVAILABLE,
         PUSH_AVAILABLE,
-        MERGE_NEEDED
+        MERGE_NEEDED,
+        UNKNOWN_ERROR
     }
     @JsonIgnore
     private RepoStatus status;

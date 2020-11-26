@@ -3,15 +3,14 @@ package at.aau.ainf.gitrepomonitor.gui.editrepo;
 import at.aau.ainf.gitrepomonitor.core.files.FileManager;
 import at.aau.ainf.gitrepomonitor.core.files.GitRepoHelper;
 import at.aau.ainf.gitrepomonitor.core.files.RepositoryInformation;
+import at.aau.ainf.gitrepomonitor.core.git.GitManager;
 import at.aau.ainf.gitrepomonitor.gui.ErrorDisplay;
 import at.aau.ainf.gitrepomonitor.gui.ResourceStore;
+import javafx.application.Platform;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
-import javafx.scene.control.PasswordField;
-import javafx.scene.control.RadioButton;
-import javafx.scene.control.TextField;
-import javafx.scene.control.ToggleGroup;
+import javafx.scene.control.*;
 import javafx.scene.layout.AnchorPane;
 import javafx.stage.DirectoryChooser;
 import javafx.stage.Stage;
@@ -40,14 +39,20 @@ public class ControllerEditRepo implements Initializable, ErrorDisplay {
     private TextField txtName;
     @FXML
     private TextField txtPath;
+    @FXML
+    public Button btnTestConnection;
+    @FXML
+    private Label lblTestConnectionStatus;
 
     private FileManager fileManager;
+    private GitManager gitManager;
     private String originalPath;
     private RepositoryInformation repo;
 
     @Override
     public void initialize(URL location, ResourceBundle resources) {
         this.fileManager = FileManager.getInstance();
+        this.gitManager = GitManager.getInstance();
         setupUI();
     }
 
@@ -128,6 +133,49 @@ public class ControllerEditRepo implements Initializable, ErrorDisplay {
         }
     }
 
+    @FXML
     public void onBtnTestConnClick(ActionEvent actionEvent) {
+        btnTestConnection.setDisable(true);
+        if (radioBtnNone.isSelected()) {
+            gitManager.testRepoConnectionAsync(repo, status -> Platform.runLater(() -> {
+                setConnectionStatusDisplay(status);
+                btnTestConnection.setDisable(false);
+            }));
+        } else if (radioBtnHttps.isSelected()) {
+            gitManager.testRepoConnectionAsync(repo, txtHttpsUsername.getText(), txtHttpsPassword.getText(),
+                    status -> Platform.runLater(() -> {
+                        setConnectionStatusDisplay(status);
+                        btnTestConnection.setDisable(false);
+                    }));
+        } else {
+            btnTestConnection.setDisable(false);
+        }
+
+    }
+
+    private void setConnectionStatusDisplay(RepositoryInformation.RepoStatus status) {
+        String statusStringKey;
+        boolean success = false;
+        if (status == RepositoryInformation.RepoStatus.PATH_INVALID) {
+            statusStringKey = "status.repo.invalid_path";
+        } else if (status == RepositoryInformation.RepoStatus.NO_REMOTE) {
+            statusStringKey = "status.repo.no_remote";
+        } else if (status == RepositoryInformation.RepoStatus.INACCESSIBLE_REMOTE) {
+            statusStringKey = "status.repo.no_auth_info";
+        } else if (status == RepositoryInformation.RepoStatus.UNKNOWN_ERROR) {
+            statusStringKey = "status.repo.unknown_error";
+        } else {
+            statusStringKey = "status.connection.success";
+            success = true;
+        }
+
+        lblTestConnectionStatus.setText(ResourceStore.getString(statusStringKey));
+        if (success) {
+            lblTestConnectionStatus.getStyleClass().remove("failure");
+            lblTestConnectionStatus.getStyleClass().add("success");
+        } else {
+            lblTestConnectionStatus.getStyleClass().remove("success");
+            lblTestConnectionStatus.getStyleClass().add("failure");
+        }
     }
 }

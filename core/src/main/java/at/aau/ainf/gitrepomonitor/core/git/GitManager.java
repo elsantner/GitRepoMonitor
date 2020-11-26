@@ -11,7 +11,6 @@ import org.eclipse.jgit.api.errors.TransportException;
 import org.eclipse.jgit.diff.DiffEntry;
 import org.eclipse.jgit.errors.NoRemoteRepositoryException;
 import org.eclipse.jgit.lib.*;
-import org.eclipse.jgit.merge.MergeStrategy;
 import org.eclipse.jgit.revwalk.RevCommit;
 import org.eclipse.jgit.revwalk.RevWalk;
 import org.eclipse.jgit.storage.file.FileRepositoryBuilder;
@@ -23,9 +22,14 @@ import org.eclipse.jgit.util.MutableInteger;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadPoolExecutor;
+
+import static at.aau.ainf.gitrepomonitor.core.files.RepositoryInformation.RepoStatus.*;
 
 public class GitManager {
     private static GitManager instance;
@@ -153,9 +157,11 @@ public class GitManager {
         });
     }
 
-    private void fetchRepo(String path) throws IOException, GitAPIException {
-        Git git = getRepoGit(path);
-        git.fetch().setRemote("origin").call();
+    private void fetchRepo(Git repoGit, CredentialsProvider cp) throws GitAPIException {
+        repoGit.fetch()
+                .setRemote("origin")
+                .setCredentialsProvider(cp)
+                .call();
     }
 
     public void pullWatchlistAsync(PullCallback cb, ProgressMonitor progessMonitor) {
@@ -189,51 +195,66 @@ public class GitManager {
     }
 
     /**
-     * Sets pullAvailable, pushAvailable, hasRemote and remoteAccessible of the Repo at the provided path.
+     * Sets status of the Repo at the provided path.
      * @param path Path the repo is located at
      * @throws IOException If repo path is invalid
-     * @throws GitAPIException If error during pull occurred
      */
-    private void updateRepoStatus(String path) throws IOException, GitAPIException {
+    private void updateRepoStatus(String path) throws IOException {
         RepositoryInformation repoInfo = fileManager.getRepo(path);
+        // TODO: add stored credentials
+        repoInfo.setStatus(getRepoStatus(getRepoGit(path), null));
+        fileManager.updateRepoStatus(repoInfo.getPath(), repoInfo.getStatus());
+    }
+
+    /**
+     * Gets the current status of the given repository
+     * @param repoGit Repository to check
+     * @return Status of the repository
+     */
+    private RepositoryInformation.RepoStatus getRepoStatus(Git repoGit, CredentialsProvider cp) throws IOException {
+        RepositoryInformation.RepoStatus status;
+
         try {
             // update refs
-            fetchRepo(path);
-            Git git = getRepoGit(path);
+            fetchRepo(repoGit, cp);
             // query remote heads
-            Map<String, Ref> refs = git.lsRemote()
+            Map<String, Ref> refs = repoGit.lsRemote()
                     .setHeads(true)
                     .setRemote("origin")
+                    .setCredentialsProvider(cp)
                     .callAsMap();
             // TODO: add support for multiple branches
-            Ref remoteHead = refs.get(git.getRepository().getFullBranch());
-            Ref localHead = git.getRepository().findRef("HEAD");
+            Ref remoteHead = refs.get(repoGit.getRepository().getFullBranch());
+            Ref localHead = repoGit.getRepository().findRef("HEAD");
 
-            int commitTimeRemote = getCommit(git.getRepository(), remoteHead.getObjectId()).getCommitTime();
-            int commitTimeLocal = getCommit(git.getRepository(), localHead.getObjectId()).getCommitTime();
+            int commitTimeRemote = getCommit(repoGit.getRepository(), remoteHead.getObjectId()).getCommitTime();
+            int commitTimeLocal = getCommit(repoGit.getRepository(), localHead.getObjectId()).getCommitTime();
             boolean equalHeads = remoteHead.getObjectId().equals(localHead.getObjectId());
 
-            if (git.getRepository().readMergeHeads() != null) {
-                repoInfo.setStatus(RepositoryInformation.RepoStatus.MERGE_NEEDED);
+            if (repoGit.getRepository().readMergeHeads() != null) {
+                status = MERGE_NEEDED;
             } else if (!equalHeads && commitTimeRemote >= commitTimeLocal) {
-                repoInfo.setStatus(RepositoryInformation.RepoStatus.PULL_AVAILABLE);
+                status = PULL_AVAILABLE;
             } else if (!equalHeads) {
-                repoInfo.setStatus(RepositoryInformation.RepoStatus.PUSH_AVAILABLE);
+                status = PUSH_AVAILABLE;
             } else {
-                repoInfo.setStatus(RepositoryInformation.RepoStatus.UP_TO_DATE);
+                status =UP_TO_DATE;
             }
         }
         catch (NoRemoteRepositoryException | InvalidRemoteException ex) {
-            repoInfo.setStatus(RepositoryInformation.RepoStatus.NO_REMOTE);
+            status = NO_REMOTE;
         }
         catch (TransportException ex) {
             if (ex.getCause() != null && ex.getCause() instanceof NoRemoteRepositoryException) {
-                repoInfo.setStatus(RepositoryInformation.RepoStatus.NO_REMOTE);
+                status = NO_REMOTE;
             } else {
-                repoInfo.setStatus(RepositoryInformation.RepoStatus.INACCESSIBLE_REMOTE);
+                status = INACCESSIBLE_REMOTE;
             }
+        } catch (GitAPIException ex) {
+            status = UNKNOWN_ERROR;
         }
-        fileManager.updateRepoStatus(repoInfo.getPath(), repoInfo.getStatus());
+
+        return status;
     }
 
     private RevCommit getCommit(Repository repo, ObjectId objectId) throws IOException {
@@ -332,5 +353,24 @@ public class GitManager {
                     .setShowNameAndStatusOnly(true)
                     .call();
         }
+    }
+
+    public void testRepoConnectionAsync(RepositoryInformation repo, ConnectionTestCallback cb) {
+        executor.submit(() -> cb.finished(testRepoConnection(repo, null)));
+    }
+
+    public void testRepoConnectionAsync(RepositoryInformation repo, String httpsUsername, String httpsPassword, ConnectionTestCallback cb) {
+        executor.submit(() -> cb.finished(testRepoConnection(repo, new UsernamePasswordCredentialsProvider(httpsUsername, httpsPassword))));
+    }
+
+    private RepositoryInformation.RepoStatus testRepoConnection(RepositoryInformation repo, CredentialsProvider cp) {
+        RepositoryInformation.RepoStatus status;
+        try {
+            Git git = getRepoGit(repo.getPath());
+            status = getRepoStatus(git, cp);
+        } catch (IOException e) {
+            status = PATH_INVALID;
+        }
+        return status;
     }
 }
