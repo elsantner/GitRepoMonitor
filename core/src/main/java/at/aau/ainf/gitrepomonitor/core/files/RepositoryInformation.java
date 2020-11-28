@@ -13,7 +13,8 @@ import java.util.UUID;
         creatorVisibility = JsonAutoDetect.Visibility.NONE)
 public class RepositoryInformation implements Comparable<RepositoryInformation>, Cloneable {
 
-    private UUID UID;
+    private final UUID id;
+    private AuthMethod authMethod;
     private String path;
     private String name;
     private Date dateAdded;
@@ -28,6 +29,13 @@ public class RepositoryInformation implements Comparable<RepositoryInformation>,
         MERGE_NEEDED,
         UNKNOWN_ERROR
     }
+
+    public enum AuthMethod {
+        NONE,
+        HTTPS,
+        SSH
+    }
+
     @JsonIgnore
     private RepoStatus status;
     @JsonIgnore
@@ -36,8 +44,9 @@ public class RepositoryInformation implements Comparable<RepositoryInformation>,
     public RepositoryInformation() {
         // generate random UUID upon creation
         // this value is overwritten during deserialization
-        this.UID = UUID.randomUUID();
+        this.id = UUID.randomUUID();
         this.status = RepoStatus.UP_TO_DATE;
+        this.authMethod = AuthMethod.NONE;
     }
 
     public RepositoryInformation(String path) {
@@ -55,8 +64,16 @@ public class RepositoryInformation implements Comparable<RepositoryInformation>,
         this.dateAdded = dateAdded;
     }
 
-    public UUID getUID() {
-        return UID;
+    public UUID getID() {
+        return id;
+    }
+
+    public AuthMethod getAuthMethod() {
+        return authMethod;
+    }
+
+    public void setAuthMethod(AuthMethod authMethod) {
+        this.authMethod = authMethod;
     }
 
     @JsonIgnore

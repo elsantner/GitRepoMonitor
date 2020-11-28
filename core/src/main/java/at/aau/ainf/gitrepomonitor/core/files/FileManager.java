@@ -9,6 +9,7 @@ import java.io.IOException;
 import java.util.Calendar;
 import java.util.List;
 import java.util.NoSuchElementException;
+import java.util.UUID;
 import java.util.logging.Logger;
 import static at.aau.ainf.gitrepomonitor.core.files.RepoListWrapper.RepoList.*;
 
@@ -29,7 +30,7 @@ public class FileManager {
 
     private FileManager() {
         this.mapper = XmlMapper.xmlBuilder().build();
-        this.fileRepoLists = new File(System.getenv("APPDATA") + "/GitRepoMonitor/repolists.xml");
+        this.fileRepoLists = new File(Utils.getProgramHomeDir() + "repolists.xml");
     }
 
     public boolean isInitialized() {

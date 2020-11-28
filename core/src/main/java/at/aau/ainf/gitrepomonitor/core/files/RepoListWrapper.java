@@ -139,7 +139,7 @@ class RepoListWrapper {
 
     private void checkRepoPathValidity(Collection<RepositoryInformation> reposToCheck) {
         for (RepositoryInformation repo : reposToCheck) {
-            if (!GitRepoHelper.validateRepositoryPath(repo.getPath())) {
+            if (!Utils.validateRepositoryPath(repo.getPath())) {
                 repo.setStatus(RepositoryInformation.RepoStatus.PATH_INVALID);
             }
         }

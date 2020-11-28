@@ -17,7 +17,7 @@
 <?import javafx.scene.layout.StackPane?>
 <?import javafx.scene.layout.VBox?>
 
-<AnchorPane stylesheets="@edit_repo.css" xmlns="http://javafx.com/javafx/8.0.171" xmlns:fx="http://javafx.com/fxml/1" fx:controller="at.aau.ainf.gitrepomonitor.gui.editrepo.ControllerEditRepo">
+<AnchorPane prefHeight="250.0" stylesheets="@edit_repo.css" xmlns="http://javafx.com/javafx/8.0.171" xmlns:fx="http://javafx.com/fxml/1" fx:controller="at.aau.ainf.gitrepomonitor.gui.editrepo.ControllerEditRepo">
    <padding>
       <Insets bottom="10.0" left="10.0" right="10.0" top="10.0" />
    </padding>
@@ -40,20 +40,30 @@
    </HBox>
    <Separator layoutX="10.0" layoutY="87.0" prefWidth="200.0" AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="65.0" />
    <HBox layoutX="20.0" layoutY="20.0" AnchorPane.leftAnchor="10.0" AnchorPane.rightAnchor="10.0" AnchorPane.topAnchor="75.0">
-      <HBox maxWidth="140.0" minWidth="140.0" prefWidth="140.0" HBox.hgrow="NEVER">
-         <Label text="Authentication method" />
+      <HBox alignment="CENTER_LEFT" spacing="10.0" HBox.hgrow="ALWAYS">
+         <Label text="Authentication method" HBox.hgrow="ALWAYS" />
+         <Button fx:id="btnLoadCredentials" mnemonicParsing="false" onAction="#onBtnLoadCredentialsClick">
+            <graphic>
+               <ImageView fitHeight="17.0" fitWidth="19.0" pickOnBounds="true" preserveRatio="true">
+                  <Image url="@../icons/icon_key.png"/>
+               </ImageView>
+            </graphic>
+            <tooltip>
+               <Tooltip text="%edit_repo.load_credentials" />
+            </tooltip>
+         </Button>
       </HBox>
-      <HBox alignment="TOP_RIGHT" spacing="15.0" HBox.hgrow="ALWAYS">
-         <RadioButton fx:id="radioBtnNone" mnemonicParsing="false" text="None" HBox.hgrow="ALWAYS">
+      <HBox alignment="CENTER_RIGHT" spacing="15.0" HBox.hgrow="ALWAYS">
+         <RadioButton fx:id="radioBtnNone" mnemonicParsing="false" selected="true" text="None" HBox.hgrow="ALWAYS">
             <toggleGroup>
                <ToggleGroup fx:id="authMethod" />
             </toggleGroup>
          </RadioButton>
-         <RadioButton fx:id="radioBtnHttps" mnemonicParsing="false" selected="true" text="HTTPS credentials" toggleGroup="$authMethod" HBox.hgrow="ALWAYS" />
+         <RadioButton fx:id="radioBtnHttps" mnemonicParsing="false" text="HTTPS credentials" toggleGroup="$authMethod" HBox.hgrow="ALWAYS" />
          <RadioButton fx:id="radioBtnSSL" mnemonicParsing="false" text="SSL certificate" toggleGroup="$authMethod" HBox.hgrow="ALWAYS" />
       </HBox>
    </HBox>
-   <VBox spacing="20.0" AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="100.0">
+   <VBox spacing="20.0" AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="105.0">
       <AnchorPane fx:id="authContainerHTTPS">
          <VBox.margin>
             <Insets />
@@ -75,14 +85,13 @@
             </HBox>
             <HBox alignment="TOP_RIGHT" spacing="5.0" HBox.hgrow="ALWAYS">
                <StackPane HBox.hgrow="ALWAYS">
-                  <PasswordField fx:id="txtHttpsPasswordHidden"/>
-                  <TextField fx:id="txtHttpsPasswordShown" visible="false"/>
+                  <PasswordField fx:id="txtHttpsPasswordHidden" />
+                  <TextField fx:id="txtHttpsPasswordShown" visible="false" />
                </StackPane>
                <ToggleButton fx:id="toggleShowPW" mnemonicParsing="false" HBox.hgrow="ALWAYS">
                   <graphic>
-                     <ImageView fx:id="iconShowPW" fitHeight="17.0" fitWidth="19.0" pickOnBounds="true"
-                                preserveRatio="true">
-                        <Image url="@../icons/icon_visible.png"/>
+                     <ImageView fx:id="iconShowPW" fitHeight="17.0" fitWidth="19.0" pickOnBounds="true" preserveRatio="true">
+                        <Image url="@../icons/icon_visible.png" />
                      </ImageView>
                   </graphic>
                   <tooltip>

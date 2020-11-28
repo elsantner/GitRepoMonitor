@@ -1,10 +1,13 @@
 package at.aau.ainf.gitrepomonitor.gui.editrepo;
 
 import at.aau.ainf.gitrepomonitor.core.files.FileManager;
-import at.aau.ainf.gitrepomonitor.core.files.GitRepoHelper;
+import at.aau.ainf.gitrepomonitor.core.files.Utils;
 import at.aau.ainf.gitrepomonitor.core.files.RepositoryInformation;
+import at.aau.ainf.gitrepomonitor.core.files.authentication.HttpsCredentials;
+import at.aau.ainf.gitrepomonitor.core.files.authentication.SecureStorage;
 import at.aau.ainf.gitrepomonitor.core.git.GitManager;
 import at.aau.ainf.gitrepomonitor.gui.ErrorDisplay;
+import at.aau.ainf.gitrepomonitor.gui.MasterPasswordQuery;
 import at.aau.ainf.gitrepomonitor.gui.ResourceStore;
 import javafx.application.Platform;
 import javafx.event.ActionEvent;
@@ -20,7 +23,7 @@ import java.io.File;
 import java.net.URL;
 import java.util.ResourceBundle;
 
-public class ControllerEditRepo implements Initializable, ErrorDisplay {
+public class ControllerEditRepo implements Initializable, ErrorDisplay, MasterPasswordQuery {
 
     @FXML
     public TextField txtHttpsUsername;
@@ -45,6 +48,8 @@ public class ControllerEditRepo implements Initializable, ErrorDisplay {
     @FXML
     public Tooltip ttShowPW;
     @FXML
+    public Button btnLoadCredentials;
+    @FXML
     private TextField txtName;
     @FXML
     private TextField txtPath;
@@ -54,14 +59,18 @@ public class ControllerEditRepo implements Initializable, ErrorDisplay {
     private Label lblTestConnectionStatus;
 
     private FileManager fileManager;
+    private SecureStorage secureStorage;
     private GitManager gitManager;
     private String originalPath;
     private RepositoryInformation repo;
+
+    private boolean httpsCredentialsChanged;
 
     @Override
     public void initialize(URL location, ResourceBundle resources) {
         this.fileManager = FileManager.getInstance();
         this.gitManager = GitManager.getInstance();
+        this.secureStorage = SecureStorage.getInstance();
         setupUI();
     }
 
@@ -92,12 +101,31 @@ public class ControllerEditRepo implements Initializable, ErrorDisplay {
         });
     }
 
-    private void validateTextFieldPath() {
-        if (GitRepoHelper.validateRepositoryPath(txtPath.getText())) {
+    private boolean validateTextFields() {
+        return validateTextFieldPath();
+    }
+
+    private boolean validateHttpsCredentials() {
+        boolean status = false;
+        if (radioBtnHttps.isSelected()) {
+            status = txtHttpsUsername.getText().isBlank();
+            if (status) {
+                txtHttpsUsername.getStyleClass().add("error-input");
+            } else {
+                txtHttpsUsername.getStyleClass().remove("error-input");
+            }
+        }
+        return !status;
+    }
+
+    private boolean validateTextFieldPath() {
+        boolean status;
+        if (status = Utils.validateRepositoryPath(txtPath.getText())) {
             txtPath.getStyleClass().remove("error-input");
         } else {
             txtPath.getStyleClass().add("error-input");
         }
+        return status;
     }
 
     public void setRepo(RepositoryInformation repo) {
@@ -105,7 +133,53 @@ public class ControllerEditRepo implements Initializable, ErrorDisplay {
         this.originalPath = repo.getPath();
         this.txtName.setText(repo.getName());
         this.txtPath.setText(repo.getPath());
-        validateTextFieldPath();
+
+        setupCredentials();
+        setupCredentialChangeListener();
+        validateTextFields();
+    }
+
+    private void setupCredentials() {
+        setAuthenticationMethod();
+        // if auth method is not NONE, then there must be stored credentials
+        if (repo.getAuthMethod() == RepositoryInformation.AuthMethod.NONE) {
+            btnLoadCredentials.setVisible(false);
+        } else if (repo.getAuthMethod() == RepositoryInformation.AuthMethod.HTTPS) {
+            txtHttpsUsername.setPromptText("Stored Username");
+            txtHttpsPasswordHidden.setPromptText("Stored Password");
+            txtHttpsPasswordShown.setPromptText("Stored Password");
+        }
+    }
+
+    private void setAuthenticationMethod() {
+        switch (repo.getAuthMethod()) {
+            case NONE:
+                radioBtnNone.setSelected(true);
+                break;
+            case HTTPS:
+                radioBtnHttps.setSelected(true);
+                break;
+            case SSH:
+                radioBtnSSL.setSelected(true);
+                break;
+        }
+    }
+
+    private void setupCredentialChangeListener() {
+        txtHttpsUsername.textProperty().addListener((observable, oldValue, newValue) -> {
+            httpsCredentialsChanged = true;
+            clearHttpsInputPrompts();
+        });
+        txtHttpsPasswordHidden.textProperty().addListener((observable, oldValue, newValue) -> {
+            httpsCredentialsChanged = true;
+            clearHttpsInputPrompts();
+        });
+    }
+
+    private void clearHttpsInputPrompts() {
+        txtHttpsUsername.setPromptText(null);
+        txtHttpsPasswordHidden.setPromptText(null);
+        txtHttpsPasswordShown.setPromptText(null);
     }
 
     @FXML
@@ -118,20 +192,79 @@ public class ControllerEditRepo implements Initializable, ErrorDisplay {
     @FXML
     public void onBtnSaveClick(ActionEvent actionEvent) {
         try {
-            if (!GitRepoHelper.validateRepositoryPath(txtPath.getText())) {
+            if (!Utils.validateRepositoryPath(txtPath.getText())) {
                 throw new IllegalArgumentException(ResourceStore.getString("errormsg.invalid_repo_path"));
             }
-            RepositoryInformation editedRepo = (RepositoryInformation) repo.clone();
-            editedRepo.setPath(txtPath.getText());
-            editedRepo.setName(txtName.getText());
-            fileManager.editRepo(originalPath, editedRepo);
+
+            // only require master pw if credentials wre actually changed
+            if (wasAuthChanged()) {
+                // TODO: remove credentials if none was selected (or only delete when explicitly requested?)
+                if (radioBtnHttps.isSelected()) {
+                    if (!validateHttpsCredentials()) {
+                        throw new IllegalArgumentException("HTTPS username must not be empty");
+                    }
+
+                    String masterPW;
+                    if (secureStorage.isMasterPasswordSet()) {
+                        masterPW = showMasterPasswordInputDialog(false);
+                    } else {
+                        masterPW = showMasterPasswordInputDialog(true);
+                        if (masterPW != null) {
+                            secureStorage.setMasterPassword(masterPW);
+                        }
+                    }
+                    // if master password dialog was aborted, abort method
+                    if (masterPW == null) {
+                        return;
+                    }
+                    secureStorage.storeHttpsCredentials(masterPW, repo.getID(),
+                            txtHttpsUsername.getText(), txtHttpsPasswordHidden.getText());
+                }
+            }
+            // update repo data
+            updateRepoInformation(getSelectedAuthMethod());
 
             Stage stage = (Stage) txtName.getScene().getWindow();
             stage.close();
+        } catch (SecurityException ex) {
+            showError("Wrong Master Password");
         } catch (Exception ex) {
             showError(ex.getMessage());
             ex.printStackTrace();
         }
+    }
+
+    private RepositoryInformation.AuthMethod getSelectedAuthMethod() {
+        if (radioBtnNone.isSelected())
+            return RepositoryInformation.AuthMethod.NONE;
+        else if (radioBtnHttps.isSelected())
+            return RepositoryInformation.AuthMethod.HTTPS;
+        else
+            return RepositoryInformation.AuthMethod.SSH;
+    }
+
+    /**
+     * Check if the authentication method was changed in the GUI
+     * @return True, if changed
+     */
+    private boolean wasAuthChanged() {
+        switch (repo.getAuthMethod()) {
+            case NONE:
+                return !radioBtnNone.isSelected();
+            case HTTPS:
+                return !radioBtnHttps.isSelected() || httpsCredentialsChanged;
+            case SSH:
+                return !radioBtnSSL.isSelected();
+        }
+        return false;
+    }
+
+    private void updateRepoInformation(RepositoryInformation.AuthMethod authMethod) {
+        RepositoryInformation editedRepo = (RepositoryInformation) repo.clone();
+        editedRepo.setPath(txtPath.getText());
+        editedRepo.setName(txtName.getText());
+        editedRepo.setAuthMethod(authMethod);
+        fileManager.editRepo(originalPath, editedRepo);
     }
 
     private File getDeepestExistingDirectory(String path) {
@@ -200,6 +333,22 @@ public class ControllerEditRepo implements Initializable, ErrorDisplay {
         } else {
             lblTestConnectionStatus.getStyleClass().remove("success");
             lblTestConnectionStatus.getStyleClass().add("failure");
+        }
+    }
+
+    public void onBtnLoadCredentialsClick(ActionEvent actionEvent) {
+        try {
+            String masterPW = showMasterPasswordInputDialog(false);
+            if (masterPW != null) {
+                HttpsCredentials credentials = secureStorage.getHttpsCredentials(masterPW, repo.getID());
+                txtHttpsUsername.setText(credentials.getUsername());
+                txtHttpsPasswordHidden.setText(credentials.getPassword());
+                btnLoadCredentials.setVisible(false);
+                // all previous changes are overwritten --> no changes made yet
+                httpsCredentialsChanged = false;
+            }
+        } catch (Exception e) {
+            showError(e.getMessage());
         }
     }
 }
