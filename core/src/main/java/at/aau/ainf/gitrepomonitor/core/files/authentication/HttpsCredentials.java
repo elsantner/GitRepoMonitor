@@ -5,13 +5,13 @@ import java.util.UUID;
 public class HttpsCredentials {
     private UUID repoID;
     private String username;
-    private String password;
+    private char[] password;
 
     public HttpsCredentials() {
         // for serialization
     }
 
-    public HttpsCredentials(UUID repoID, String username, String password) {
+    public HttpsCredentials(UUID repoID, String username, char[] password) {
         this.repoID = repoID;
         this.username = username;
         this.password = password;
@@ -33,11 +33,11 @@ public class HttpsCredentials {
         this.username = username;
     }
 
-    public String getPassword() {
+    public char[] getPassword() {
         return password;
     }
 
-    public void setPassword(String password) {
+    public void setPassword(char[] password) {
         this.password = password;
     }
 }

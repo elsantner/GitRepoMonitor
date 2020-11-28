@@ -45,7 +45,7 @@ public class SecureStorage {
     private static final String CREDENTIALS_FILENAME = "creds";
 
     private XmlMapper mapper;
-    private String masterPassword;
+    private char[] masterPassword;
     private boolean cacheMasterPassword = false;
 
     public static synchronized SecureStorage getInstance() {
@@ -85,12 +85,17 @@ public class SecureStorage {
     }
 
     public void clearCachedMasterPassword() {
+        clearCharArray(masterPassword);
         masterPassword = null;
     }
 
-    private synchronized void cacheMasterPasswordIfEnabled(String masterPassword) {
+    private void clearCharArray(char[] a) {
+        Arrays.fill(a, (char) 0);
+    }
+
+    private synchronized void cacheMasterPasswordIfEnabled(char[] masterPassword) {
         if (cacheMasterPassword) {
-            this.masterPassword = masterPassword;
+            this.masterPassword = Arrays.copyOf(masterPassword, masterPassword.length);
         }
     }
 
@@ -100,7 +105,7 @@ public class SecureStorage {
         }
     }
 
-    private String getCachedMasterPasswordIfNull(String mpCandidate) {
+    private char[] getCachedMasterPasswordIfNull(char[] mpCandidate) {
         if (mpCandidate == null) {
             throwIfMasterPasswordNotCached();
             return masterPassword;
@@ -117,23 +122,26 @@ public class SecureStorage {
         return (credentialsFile.exists() && !credentialsFile.isDirectory());
     }
 
-    public void setMasterPassword(String masterPW) throws AuthenticationException, IOException {
+    public void setMasterPassword(char[] masterPW) throws AuthenticationException, IOException {
         if (isMasterPasswordSet()) {
             throw new AuthenticationException("master password was already set");
         }
         writeCredentials(new CredentialWrapper(), masterPW);
+        clearCharArray(masterPW);
     }
 
-    public void updateMasterPassword(String currentMasterPW, String newMasterPW) throws AuthenticationException, IOException {
+    public void updateMasterPassword(char[] currentMasterPW, char[] newMasterPW) throws AuthenticationException, IOException {
         if (!isMasterPasswordSet()) {
             throw new AuthenticationException("master password was not set before");
         }
         CredentialWrapper wrapper = readCredentials(currentMasterPW);
         writeCredentials(wrapper, newMasterPW);
+        clearCharArray(currentMasterPW);
+        clearCharArray(newMasterPW);
     }
 
-    public void storeHttpsCredentials(String masterPW, UUID repoID,
-                                         String httpsUsername, String httpsPassword) throws IOException {
+    public void storeHttpsCredentials(char[] masterPW, UUID repoID,
+                                         String httpsUsername, char[] httpsPassword) throws IOException {
 
         masterPW = getCachedMasterPasswordIfNull(masterPW);
         CredentialWrapper allCredentials = readCredentials(masterPW);
@@ -142,18 +150,21 @@ public class SecureStorage {
         writeCredentials(allCredentials, masterPW);
 
         cacheMasterPasswordIfEnabled(masterPW);
+        clearCharArray(masterPW);
+        clearCharArray(httpsPassword);
     }
 
-    public void storeHttpsCredentials(UUID repoID, String httpsUsername, String httpsPassword) throws IOException {
+    public void storeHttpsCredentials(UUID repoID, String httpsUsername, char[] httpsPassword) throws IOException {
         throwIfMasterPasswordNotCached();
         storeHttpsCredentials(masterPassword, repoID, httpsUsername, httpsPassword);
     }
 
-    public HttpsCredentials getHttpsCredentials(String masterPW, UUID repoID) throws IOException {
+    public HttpsCredentials getHttpsCredentials(char[] masterPW, UUID repoID) throws IOException {
         masterPW = getCachedMasterPasswordIfNull(masterPW);
         CredentialWrapper allCredentials = readCredentials(masterPW);
         HttpsCredentials credentials = allCredentials.getCredentials(repoID);
         cacheMasterPasswordIfEnabled(masterPW);
+        clearCharArray(masterPW);
         return credentials;
     }
 
@@ -162,10 +173,13 @@ public class SecureStorage {
         return getHttpsCredentials(masterPassword, repoID);
     }
 
-    public CredentialsProvider getHttpsCredentialProvider(String masterPW, UUID repoID) throws IOException {
+    public CredentialsProvider getHttpsCredentialProvider(char[] masterPW, UUID repoID) throws IOException {
+        masterPW = getCachedMasterPasswordIfNull(masterPW);
+        char[] masterPwCopy = Arrays.copyOf(masterPW, masterPW.length);
         HttpsCredentials credentials = getHttpsCredentials(masterPW, repoID);
         CredentialsProvider cp = new UsernamePasswordCredentialsProvider(credentials.getUsername(), credentials.getPassword());
-        cacheMasterPasswordIfEnabled(masterPW);
+        cacheMasterPasswordIfEnabled(masterPwCopy);
+        clearCharArray(masterPwCopy);
         return cp;
     }
 
@@ -174,7 +188,7 @@ public class SecureStorage {
         return getHttpsCredentialProvider(masterPassword, repoID);
     }
 
-    public Map<UUID, CredentialsProvider> getHttpsCredentialProviders(String masterPW, List<RepositoryInformation> repos) throws IOException {
+    public Map<UUID, CredentialsProvider> getHttpsCredentialProviders(char[] masterPW, List<RepositoryInformation> repos) throws IOException {
         masterPW = getCachedMasterPasswordIfNull(masterPW);
         Map<UUID, CredentialsProvider> map = new HashMap<>();
         CredentialWrapper allCredentials = readCredentials(masterPW);
@@ -188,6 +202,7 @@ public class SecureStorage {
             }
         }
         cacheMasterPasswordIfEnabled(masterPW);
+        clearCharArray(masterPW);
         return map;
     }
 
@@ -196,7 +211,7 @@ public class SecureStorage {
         return getHttpsCredentialProviders(masterPassword, repos);
     }
 
-    protected CredentialWrapper readCredentials(String masterPW) throws IOException {
+    protected CredentialWrapper readCredentials(char[] masterPW) throws IOException {
         File credsFile = openCredentialsFile();
         byte[] bytes;
         String credentialsXml;
@@ -210,7 +225,7 @@ public class SecureStorage {
         }
     }
 
-    protected void writeCredentials(CredentialWrapper credentials, String masterPW) throws IOException {
+    protected void writeCredentials(CredentialWrapper credentials, char[] masterPW) throws IOException {
         File credsFile = openCredentialsFile();
         byte[] bytes;
         String credentialsXml;
@@ -235,7 +250,7 @@ public class SecureStorage {
         return credentialsFile;
     }
 
-    protected byte[] encryptToBytes(String plaintext, String key) {
+    protected byte[] encryptToBytes(String plaintext, char[] key) {
         try {
             Cipher cipher = getCipherInstantiation(Cipher.ENCRYPT_MODE, key);
             return cipher.doFinal(plaintext.getBytes(StandardCharsets.UTF_8));
@@ -245,12 +260,12 @@ public class SecureStorage {
         }
     }
 
-    protected String decryptFromBytes(byte[] ciphertext, String key) throws BadPaddingException, IllegalBlockSizeException {
+    protected String decryptFromBytes(byte[] ciphertext, char[] key) throws BadPaddingException, IllegalBlockSizeException {
         Cipher cipher = getCipherInstantiation(Cipher.DECRYPT_MODE, key);
         return new String(cipher.doFinal(ciphertext));
     }
 
-    protected String encrypt(String plaintext, String key) {
+    protected String encrypt(String plaintext, char[] key) {
         try {
             Cipher cipher = getCipherInstantiation(Cipher.ENCRYPT_MODE, key);
             return Base64.getEncoder().encodeToString(cipher.doFinal(plaintext.getBytes(StandardCharsets.UTF_8)));
@@ -260,15 +275,15 @@ public class SecureStorage {
         }
     }
 
-    protected String decrypt(String ciphertext, String key) throws BadPaddingException, IllegalBlockSizeException {
+    protected String decrypt(String ciphertext, char[] key) throws BadPaddingException, IllegalBlockSizeException {
         Cipher cipher = getCipherInstantiation(Cipher.DECRYPT_MODE, key);
         return new String(cipher.doFinal(Base64.getDecoder().decode(ciphertext)));
     }
 
-    private Cipher getCipherInstantiation(int cipherMode, String key) {
+    private Cipher getCipherInstantiation(int cipherMode, char[] key) {
         try {
             SecretKeyFactory factory = SecretKeyFactory.getInstance("PBKDF2WithHmacSHA256");
-            KeySpec keySpec = new PBEKeySpec(key.toCharArray(), SALT.getBytes(), 65536, 256);
+            KeySpec keySpec = new PBEKeySpec(key, SALT.getBytes(), 65536, 256);
             SecretKeySpec secretKeySpec = new SecretKeySpec(factory.generateSecret(keySpec).getEncoded(), "AES");
 
             IvParameterSpec iv = new IvParameterSpec(new byte[]{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0});

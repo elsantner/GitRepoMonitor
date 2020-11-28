@@ -15,27 +15,27 @@ public class SecureStorageTestable extends SecureStorage {
         return CREDENTIALS_FILENAME;
     }
 
-    public String encrypt(String plaintext, String key) {
+    public String encrypt(String plaintext, char[] key) {
         return super.encrypt(plaintext, key);
     }
 
-    public String decrypt(String plaintext, String key) throws BadPaddingException, IllegalBlockSizeException {
+    public String decrypt(String plaintext, char[] key) throws BadPaddingException, IllegalBlockSizeException {
         return super.decrypt(plaintext, key);
     }
 
-    public String decryptFromBytes(byte[] ciphertext, String key) throws BadPaddingException, IllegalBlockSizeException {
+    public String decryptFromBytes(byte[] ciphertext, char[] key) throws BadPaddingException, IllegalBlockSizeException {
         return super.decryptFromBytes(ciphertext, key);
     }
 
-    public byte[] encryptToBytes(String plaintext, String key) {
+    public byte[] encryptToBytes(String plaintext, char[] key) {
         return super.encryptToBytes(plaintext, key);
     }
 
-    public CredentialWrapper readCredentials(String masterPW) throws IOException {
+    public CredentialWrapper readCredentials(char[] masterPW) throws IOException {
         return super.readCredentials(masterPW);
     }
 
-    public void writeCredentials(CredentialWrapper credentials, String masterPW) throws IOException {
+    public void writeCredentials(CredentialWrapper credentials, char[] masterPW) throws IOException {
         super.writeCredentials(credentials, masterPW);
     }
 

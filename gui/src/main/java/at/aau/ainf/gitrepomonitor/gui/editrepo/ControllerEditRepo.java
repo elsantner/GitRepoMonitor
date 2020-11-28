@@ -225,15 +225,15 @@ public class ControllerEditRepo implements Initializable, ErrorDisplay, MasterPa
                     } else {
                         masterPW = showMasterPasswordInputDialog(true);
                         if (masterPW != null) {
-                            secureStorage.setMasterPassword(masterPW);
+                            secureStorage.setMasterPassword(Utils.toCharOrNull(masterPW));
                         }
                     }
                     // if master password dialog was aborted, abort method
                     if (masterPW == null) {
                         return;
                     }
-                    secureStorage.storeHttpsCredentials(masterPW, repo.getID(),
-                            txtHttpsUsername.getText(), txtHttpsPasswordHidden.getText());
+                    secureStorage.storeHttpsCredentials(Utils.toCharOrNull(masterPW), repo.getID(),
+                            txtHttpsUsername.getText(), txtHttpsPasswordHidden.getText().toCharArray());
                 }
             }
             // update repo data
@@ -382,9 +382,9 @@ public class ControllerEditRepo implements Initializable, ErrorDisplay, MasterPa
     }
 
     private void loadCredentials(String masterPW) throws IOException {
-        HttpsCredentials credentials = secureStorage.getHttpsCredentials(masterPW, repo.getID());
+        HttpsCredentials credentials = secureStorage.getHttpsCredentials(Utils.toCharOrNull(masterPW), repo.getID());
         txtHttpsUsername.setText(credentials.getUsername());
-        txtHttpsPasswordHidden.setText(credentials.getPassword());
+        txtHttpsPasswordHidden.setText(new String(credentials.getPassword()));
         btnLoadCredentials.setVisible(false);
         // all previous changes are overwritten --> no changes made yet
         httpsCredentialsChanged = false;

@@ -111,7 +111,7 @@ public class GitManager {
         }
     }
 
-    private MergeResult.MergeStatus pullRepo(String path, String masterPW, ProgressMonitor progressMonitor) throws IOException, GitAPIException {
+    private MergeResult.MergeStatus pullRepo(String path, char[] masterPW, ProgressMonitor progressMonitor) throws IOException, GitAPIException {
         RepositoryInformation repoInfo = fileManager.getRepo(path);
         CredentialsProvider credProvider = null;
         if (repoInfo.isAuthenticated()) {
@@ -121,11 +121,11 @@ public class GitManager {
     }
 
     public void pullRepoAsync(String path, PullCallback cb) {
-        pullRepoAsync(path, (String) null, cb, null);
+        pullRepoAsync(path, (char[]) null, cb, null);
     }
 
     public void pullRepoAsync(String path, PullCallback cb, ProgressMonitor progressMonitor) {
-        pullRepoAsync(path, (String) null, cb, progressMonitor);
+        pullRepoAsync(path, (char[]) null, cb, progressMonitor);
     }
 
     private void pullRepoAsync(String path, CredentialsProvider cp, PullCallback cb, ProgressMonitor progressMonitor) {
@@ -144,7 +144,7 @@ public class GitManager {
         });
     }
 
-    public void pullRepoAsync(String path, String masterPW, PullCallback cb, ProgressMonitor progressMonitor) {
+    public void pullRepoAsync(String path, char[] masterPW, PullCallback cb, ProgressMonitor progressMonitor) {
         executor.submit(() -> {
             MergeResult.MergeStatus status;
             try {
@@ -164,7 +164,7 @@ public class GitManager {
      *           If the master password was incorrect, success = false and repos checked
      *           resembles the number of repos which could be checked without any credentials.
      */
-    public void updateWatchlistStatusAsync(String masterPW, UpdateStatusCallback cb) {
+    public void updateWatchlistStatusAsync(char[] masterPW, UpdateStatusCallback cb) {
         List<RepositoryInformation> watchlist = fileManager.getWatchlist();
         MutableInteger checksFinished = new MutableInteger();
         checksFinished.value = 0;
@@ -208,7 +208,7 @@ public class GitManager {
         });
     }
 
-    public void updateRepoStatusAsync(String path, String masterPW, UpdateStatusCallback cb) {
+    public void updateRepoStatusAsync(String path, char[] masterPW, UpdateStatusCallback cb) {
         executor.submit(() -> {
             try {
                 updateRepoStatus(path, masterPW);
@@ -226,7 +226,7 @@ public class GitManager {
                 .call();
     }
 
-    private Map<UUID, CredentialsProvider> getCredentialsIfPossible(String masterPW, List<RepositoryInformation> repos) {
+    private Map<UUID, CredentialsProvider> getCredentialsIfPossible(char[] masterPW, List<RepositoryInformation> repos) {
         Map<UUID, CredentialsProvider> credentials = new HashMap<>();
         try {
             credentials = secureStorage.getHttpsCredentialProviders(masterPW, repos);
@@ -236,7 +236,7 @@ public class GitManager {
         return credentials;
     }
 
-    public void pullWatchlistAsync(String masterPW, PullCallback cb, ProgressMonitor progressMonitor) {
+    public void pullWatchlistAsync(char[] masterPW, PullCallback cb, ProgressMonitor progressMonitor) {
         List<RepositoryInformation> watchlist = fileManager.getWatchlist();
         MutableInteger pullsFinished = new MutableInteger();
         pullsFinished.value = 0;
@@ -278,7 +278,7 @@ public class GitManager {
      * @param masterPW Master Password for stored credentials
      * @throws IOException If repo path is invalid
      */
-    private void updateRepoStatus(String path, String masterPW) throws IOException {
+    private void updateRepoStatus(String path, char[] masterPW) throws IOException {
         RepositoryInformation repoInfo = fileManager.getRepo(path);
         // if master password is provided & repo has authentication method specified, use those credentials
         try {

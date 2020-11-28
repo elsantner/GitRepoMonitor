@@ -15,4 +15,8 @@ public abstract class Utils {
     public static String getProgramHomeDir() {
         return System.getenv("APPDATA") + "/GitRepoMonitor/";
     }
+
+    public static char[] toCharOrNull(String str) {
+        return str != null ? str.toCharArray() : null;
+    }
 }

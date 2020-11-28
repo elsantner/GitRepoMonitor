@@ -2,6 +2,7 @@ package at.aau.ainf.gitrepomonitor.gui.main;
 
 import at.aau.ainf.gitrepomonitor.core.files.FileManager;
 import at.aau.ainf.gitrepomonitor.core.files.RepositoryInformation;
+import at.aau.ainf.gitrepomonitor.core.files.Utils;
 import at.aau.ainf.gitrepomonitor.core.files.authentication.SecureStorage;
 import at.aau.ainf.gitrepomonitor.core.git.GitManager;
 import at.aau.ainf.gitrepomonitor.core.git.PullListener;
@@ -152,7 +153,7 @@ public class ControllerMain extends StatusBarController implements Initializable
         }
         displayStatus(ResourceStore.getString("status.update_watchlist_status"));
         btnCheckStatus.setDisable(true);
-        gitManager.updateWatchlistStatusAsync(masterPW, (success, reposChecked, reposFailed, ex) -> {
+        gitManager.updateWatchlistStatusAsync(Utils.toCharOrNull(masterPW), (success, reposChecked, reposFailed, ex) -> {
             if (success) {
                 displayStatus(ResourceStore.getString("status.updated_n_repo_status", reposChecked));
             } else {
@@ -186,7 +187,7 @@ public class ControllerMain extends StatusBarController implements Initializable
         if (fileManager.isWatchlistAuthenticationRequired() && !secureStorage.isMasterPasswordCached()) {
             masterPW = showMasterPasswordInputDialog(false);
         }
-        gitManager.pullWatchlistAsync(masterPW, (results, pullsFailed, wrongMasterPW) -> {
+        gitManager.pullWatchlistAsync(Utils.toCharOrNull(masterPW), (results, pullsFailed, wrongMasterPW) -> {
             if (results.isEmpty()) {
                 displayStatus("No changes to pull");
             } else {

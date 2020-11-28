@@ -2,6 +2,7 @@ package at.aau.ainf.gitrepomonitor.gui.repolist;
 
 import at.aau.ainf.gitrepomonitor.core.files.FileManager;
 import at.aau.ainf.gitrepomonitor.core.files.RepositoryInformation;
+import at.aau.ainf.gitrepomonitor.core.files.Utils;
 import at.aau.ainf.gitrepomonitor.core.files.authentication.SecureStorage;
 import at.aau.ainf.gitrepomonitor.core.git.GitManager;
 import at.aau.ainf.gitrepomonitor.core.git.PullCallback;
@@ -54,7 +55,7 @@ public class RepositoryInformationContextMenu extends ContextMenu implements Err
             }
 
             setStatus(ResourceStore.getString("status.update_repo_status"));
-            gitManager.updateRepoStatusAsync(item.getPath(), masterPW, (success, reposChecked, reposFailed, ex) -> {
+            gitManager.updateRepoStatusAsync(item.getPath(), Utils.toCharOrNull(masterPW), (success, reposChecked, reposFailed, ex) -> {
                 if (!success) {
                     setStatus(ResourceStore.getString("status.wrong_master_password", reposChecked));
                 } else {
@@ -70,7 +71,7 @@ public class RepositoryInformationContextMenu extends ContextMenu implements Err
             if (item.isAuthenticated() && !secureStorage.isMasterPasswordCached()) {
                 masterPW = showMasterPasswordInputDialog(false);
             }
-            gitManager.pullRepoAsync(item.getPath(), masterPW, (results, pullsFailed, wrongMP) -> {
+            gitManager.pullRepoAsync(item.getPath(), Utils.toCharOrNull(masterPW), (results, pullsFailed, wrongMP) -> {
                 PullCallback.PullResult result = results.get(0);
                 String statusMsg = getStatusMessage(result.getStatus());
                 if (statusMsg != null) {

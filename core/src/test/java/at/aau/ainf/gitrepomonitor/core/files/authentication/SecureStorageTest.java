@@ -16,7 +16,7 @@ public class SecureStorageTest {
     public void testCipher() throws Exception {
         SecureStorageTestable secStorage = new SecureStorageTestable();
         String plaintext = "someText";
-        String secretKey = "someSecretKey";
+        char[] secretKey = "someSecretKey".toCharArray();
         String ciphertext = secStorage.encrypt(plaintext, secretKey);
         assertEquals(secStorage.decrypt(ciphertext, secretKey), plaintext);
     }
@@ -25,7 +25,7 @@ public class SecureStorageTest {
     public void testCipherBytes() throws Exception {
         SecureStorageTestable secStorage = new SecureStorageTestable();
         String plaintext = "someText";
-        String secretKey = "someSecretKey";
+        char[] secretKey = "someSecretKey".toCharArray();
         byte[] ciphertext = secStorage.encryptToBytes(plaintext, secretKey);
         assertEquals(secStorage.decryptFromBytes(ciphertext, secretKey), plaintext);
     }
@@ -34,10 +34,10 @@ public class SecureStorageTest {
     public void testRead() throws Exception {
         SecureStorageTestable secStorage = new SecureStorageTestable();
         CredentialWrapper originalWrapper = new CredentialWrapper();
-        originalWrapper.putCredentials(new HttpsCredentials(new UUID(0, 0), "username1", "pw1"));
-        originalWrapper.putCredentials(new HttpsCredentials(new UUID(0, 0), "user2", "pw2"));
-        secStorage.writeCredentials(originalWrapper, "someMasterSecret");
-        CredentialWrapper loadedWrapper = secStorage.readCredentials("someMasterSecret");
+        originalWrapper.putCredentials(new HttpsCredentials(new UUID(0, 0), "username1", "pw1".toCharArray()));
+        originalWrapper.putCredentials(new HttpsCredentials(new UUID(0, 0), "user2", "pw2".toCharArray()));
+        secStorage.writeCredentials(originalWrapper, "someMasterSecret".toCharArray());
+        CredentialWrapper loadedWrapper = secStorage.readCredentials("someMasterSecret".toCharArray());
 
         assertEquals(originalWrapper.getHttpsCredentials().size(), loadedWrapper.getHttpsCredentials().size());
     }
@@ -46,19 +46,20 @@ public class SecureStorageTest {
     public void testReadWrongPassword() throws Exception {
         SecureStorageTestable secStorage = new SecureStorageTestable();
         CredentialWrapper originalWrapper = new CredentialWrapper();
-        originalWrapper.putCredentials(new HttpsCredentials(new UUID(0, 0), "username1", "pw1"));
+        originalWrapper.putCredentials(new HttpsCredentials(new UUID(0, 0),
+                "username1", "pw1".toCharArray()));
 
-        secStorage.writeCredentials(originalWrapper, "someMasterSecret");
-        secStorage.readCredentials("wrongMasterSecret");
+        secStorage.writeCredentials(originalWrapper, "someMasterSecret".toCharArray());
+        secStorage.readCredentials("wrongMasterSecret".toCharArray());
     }
 
     @Test
     public void testSetMasterPW() throws Exception {
         SecureStorageTestable secStorage = new SecureStorageTestable();
         assertFalse(secStorage.isMasterPasswordSet());
-        secStorage.setMasterPassword("someMasterPW");
+        secStorage.setMasterPassword("someMasterPW".toCharArray());
         assertTrue(secStorage.isMasterPasswordSet());
-        secStorage.updateMasterPassword("someMasterPW", "newPW");
+        secStorage.updateMasterPassword("someMasterPW".toCharArray(), "newPW".toCharArray());
         assertTrue(secStorage.isMasterPasswordSet());
     }
 
