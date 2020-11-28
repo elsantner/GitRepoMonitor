@@ -1,5 +1,6 @@
 package at.aau.ainf.gitrepomonitor.core.files.authentication;
 
+import at.aau.ainf.gitrepomonitor.core.files.RepositoryInformation;
 import at.aau.ainf.gitrepomonitor.core.files.Utils;
 import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.core.type.TypeReference;
@@ -21,10 +22,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.security.spec.KeySpec;
-import java.util.Base64;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
 
 
 /**
@@ -113,6 +111,22 @@ public class SecureStorage {
             map.put(credentials.getRepoID(),
                     new UsernamePasswordCredentialsProvider(credentials.getUsername(), credentials.getPassword()));
         }
+        return map;
+    }
+
+    public Map<UUID, CredentialsProvider> getHttpsCredentialProviders(String masterPW, List<RepositoryInformation> repos) throws IOException {
+        Map<UUID, CredentialsProvider> map = new HashMap<>();
+        CredentialWrapper allCredentials = readCredentials(masterPW);
+        for (HttpsCredentials credentials : allCredentials.getHttpsCredentials()) {
+            map.put(credentials.getRepoID(),
+                    new UsernamePasswordCredentialsProvider(credentials.getUsername(), credentials.getPassword()));
+        }
+        for (RepositoryInformation repo : repos) {
+            if (!repo.isAuthenticated()) {
+                map.remove(repo.getID());
+            }
+        }
+
         return map;
     }
 

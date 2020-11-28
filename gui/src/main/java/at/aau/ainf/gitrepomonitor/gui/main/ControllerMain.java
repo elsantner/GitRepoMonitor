@@ -140,18 +140,19 @@ public class ControllerMain extends StatusBarController implements Initializable
         if (fileManager.isWatchlistAuthenticationRequired()) {
             masterPW = showMasterPasswordInputDialog(false);
         }
-
-        displayStatus(ResourceStore.getString("status.update_watchlist_status"));
-        btnCheckStatus.setDisable(true);
-        gitManager.updateWatchlistStatusAsync(masterPW, (success, reposChecked, reposFailed, ex) -> {
-            if (success) {
-                displayStatus(ResourceStore.getString("status.updated_n_repo_status", reposChecked));
-            } else {
-                displayStatus(ResourceStore.getString("status.updated_n_of_m_repo_status_wrong_mp",
-                        reposChecked, reposChecked+reposFailed));
-            }
-            btnCheckStatus.setDisable(false);
-        });
+        if (masterPW != null) {
+            displayStatus(ResourceStore.getString("status.update_watchlist_status"));
+            btnCheckStatus.setDisable(true);
+            gitManager.updateWatchlistStatusAsync(masterPW, (success, reposChecked, reposFailed, ex) -> {
+                if (success) {
+                    displayStatus(ResourceStore.getString("status.updated_n_repo_status", reposChecked));
+                } else {
+                    displayStatus(ResourceStore.getString("status.updated_n_of_m_repo_status_wrong_mp",
+                            reposChecked, reposChecked + reposFailed));
+                }
+                btnCheckStatus.setDisable(false);
+            });
+        }
     }
 
     @Override
@@ -171,15 +172,28 @@ public class ControllerMain extends StatusBarController implements Initializable
         Collections.sort(watchlist.getItems());
     }
 
+    @FXML
     public void btnPullAllClicked(ActionEvent actionEvent) {
-        gitManager.pullWatchlistAsync(results -> {
-            if (results.isEmpty()) {
-                displayStatus("No changes to pull");
-            } else {
-                displayStatus("Pulled " + results.size() + " repositories");
-                updateCommitLog(watchlist.getSelectionModel().getSelectedItem());
-            }
-        }, progessMonitor);
+        String masterPW = null;
+        if (fileManager.isWatchlistAuthenticationRequired()) {
+            masterPW = showMasterPasswordInputDialog(false);
+        }
+        if (masterPW != null) {
+            gitManager.pullWatchlistAsync(masterPW, (results, pullsFailed, wrongMasterPW) -> {
+                if (results.isEmpty()) {
+                    displayStatus("No changes to pull");
+                } else {
+                    if (wrongMasterPW) {
+                        displayStatus(ResourceStore.getString("status.pulled_n_of_m_repo_status_wrong_mp",
+                                results.size(), (results.size() + pullsFailed)));
+                    } else {
+                        displayStatus(ResourceStore.getString("status.pulled_n_of_m_repo_status",
+                                results.size(), (results.size() + pullsFailed)));
+                    }
+                    updateCommitLog(watchlist.getSelectionModel().getSelectedItem());
+                }
+            }, progessMonitor);
+        }
     }
 
     @Override

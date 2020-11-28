@@ -8,6 +8,7 @@ import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.api.MergeResult;
 import org.eclipse.jgit.api.PullResult;
 import org.eclipse.jgit.api.errors.GitAPIException;
+import org.eclipse.jgit.api.errors.InvalidConfigurationException;
 import org.eclipse.jgit.api.errors.InvalidRemoteException;
 import org.eclipse.jgit.api.errors.TransportException;
 import org.eclipse.jgit.diff.DiffEntry;
@@ -27,6 +28,7 @@ import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import static at.aau.ainf.gitrepomonitor.core.files.RepositoryInformation.RepoStatus.*;
 
@@ -85,35 +87,39 @@ public class GitManager {
         return repoGit;
     }
 
-    private MergeResult.MergeStatus pullRepo(String path, CredentialsProvider cp, ProgressMonitor progressMonitor) throws IOException, GitAPIException {
+    private MergeResult.MergeStatus pullRepo(String path, CredentialsProvider cp, ProgressMonitor progressMonitor) throws IOException, InvalidConfigurationException {
         Git git = getRepoGit(path);
 
-        PullResult pullResult = git.pull()
-                .setCredentialsProvider(cp)
-                .setRemote("origin")
-                .setProgressMonitor(progressMonitor)
-                .call();
-        if (pullResult.isSuccessful()) {
-            updateRepoStatus(path, (String) null);
+        try {
+            PullResult pullResult = git.pull()
+                    .setCredentialsProvider(cp)
+                    .setRemote("origin")
+                    .setProgressMonitor(progressMonitor)
+                    .call();
+            if (pullResult.isSuccessful()) {
+                updateRepoStatus(path, cp);
+            }
+            notifyPullListener(path, pullResult.getMergeResult().getMergeStatus());
+            return pullResult.getMergeResult().getMergeStatus();
+        } catch (InvalidConfigurationException ex) {
+            throw ex;
+        } catch (GitAPIException ex) {
+            throw new SecurityException("authentication failed");
         }
-        notifyPullListener(path, pullResult.getMergeResult().getMergeStatus());
-        return pullResult.getMergeResult().getMergeStatus();
+    }
+
+    private MergeResult.MergeStatus pullRepo(String path, String masterPW, ProgressMonitor progressMonitor) throws IOException, GitAPIException {
+        RepositoryInformation repoInfo = fileManager.getRepo(path);
+        CredentialsProvider credProvider = secureStorage.getHttpsCredentialProvider(masterPW, repoInfo.getID());
+        return pullRepo(path, credProvider, progressMonitor);
     }
 
     public void pullRepoAsync(String path, PullCallback cb) {
-        pullRepoAsync(path, null, cb, null);
+        pullRepoAsync(path, (String) null, cb, null);
     }
 
     public void pullRepoAsync(String path, PullCallback cb, ProgressMonitor progressMonitor) {
-        pullRepoAsync(path, null, cb, progressMonitor);
-    }
-
-    public void pullRepoAsync(String path, String username, String password, PullCallback cb) {
-        pullRepoAsync(path, new UsernamePasswordCredentialsProvider(username, password), cb, null);
-    }
-
-    public void pullRepoAsync(String path, String username, String password, PullCallback cb, ProgressMonitor progressMonitor) {
-        pullRepoAsync(path, new UsernamePasswordCredentialsProvider(username, password), cb, progressMonitor);
+        pullRepoAsync(path, (String) null, cb, progressMonitor);
     }
 
     private void pullRepoAsync(String path, CredentialsProvider cp, PullCallback cb, ProgressMonitor progressMonitor) {
@@ -121,6 +127,22 @@ public class GitManager {
             MergeResult.MergeStatus status;
             try {
                 status = pullRepo(path, cp, progressMonitor);
+                cb.finished(path, status, null);
+            } catch (SecurityException e) {
+                cb.failed(true);
+            } catch (InvalidConfigurationException e) {
+                cb.failed(false);
+            } catch (Exception e) {
+                cb.finished(path, MergeResult.MergeStatus.FAILED, e);
+            }
+        });
+    }
+
+    public void pullRepoAsync(String path, String masterPW, PullCallback cb, ProgressMonitor progressMonitor) {
+        executor.submit(() -> {
+            MergeResult.MergeStatus status;
+            try {
+                status = pullRepo(path, masterPW, progressMonitor);
                 cb.finished(path, status, null);
             } catch (Exception e) {
                 cb.finished(path, MergeResult.MergeStatus.FAILED, e);
@@ -143,15 +165,8 @@ public class GitManager {
         MutableInteger checksSuccessful = new MutableInteger();
         checksSuccessful.value = 0;
 
-        // load credentials of all repos
-        Map<UUID, CredentialsProvider> credentials = new HashMap<>();
-        if (masterPW != null) {
-            try {
-                credentials = secureStorage.getHttpsCredentialProviders(masterPW);
-            } catch (Exception ex) {
-                // nothing since repos without need for authentication will still be checked
-            }
-        }
+        // load credentials of all repos if correct masterPW
+        Map<UUID, CredentialsProvider> credentials = getCredentialsIfPossible(masterPW, watchlist);
 
         for (RepositoryInformation repo : watchlist) {
             updateRepoStatusAsync(repo.getPath(), credentials.get(repo.getID()),
@@ -198,10 +213,6 @@ public class GitManager {
         });
     }
 
-    public void updateRepoStatusAsync(String path, UpdateStatusCallback cb) {
-        updateRepoStatusAsync(path, (String) null, cb);
-    }
-
     private void fetchRepo(Git repoGit, CredentialsProvider cp) throws GitAPIException {
         repoGit.fetch()
                 .setRemote("origin")
@@ -209,42 +220,51 @@ public class GitManager {
                 .call();
     }
 
+    private Map<UUID, CredentialsProvider> getCredentialsIfPossible(String masterPW, List<RepositoryInformation> repos) {
+        Map<UUID, CredentialsProvider> credentials = new HashMap<>();
+        if (masterPW != null) {
+            try {
+                credentials = secureStorage.getHttpsCredentialProviders(masterPW, repos);
+            } catch (Exception ex) {
+                // nothing since repos without need for authentication will still be checked
+            }
+        }
+        return credentials;
+    }
+
     public void pullWatchlistAsync(String masterPW, PullCallback cb, ProgressMonitor progressMonitor) {
-        List<RepositoryInformation> pullableRepos = getPullableRepos(fileManager.getWatchlist());
+        List<RepositoryInformation> watchlist = fileManager.getWatchlist();
         MutableInteger pullsFinished = new MutableInteger();
         pullsFinished.value = 0;
-        List<PullCallback.PullResult> pullResults = new ArrayList<>();
-        for (RepositoryInformation repo : pullableRepos) {
+        MutableInteger pullsFailed = new MutableInteger();
+        pullsFailed.value = 0;
+        AtomicBoolean wrongMasterPW = new AtomicBoolean(false);
 
-            // TODO: finish
-            pullRepoAsync(repo.getPath(), results -> {
+        // load credentials of all repos if correct masterPW
+        Map<UUID, CredentialsProvider> credentials = getCredentialsIfPossible(masterPW, watchlist);
+
+        List<PullCallback.PullResult> pullResults = new ArrayList<>();
+        for (RepositoryInformation repo : watchlist) {
+
+            pullRepoAsync(repo.getPath(), credentials.get(repo.getID()), (results, pullsFailedCount, wrongMP) -> {
                 pullsFinished.value++;
                 pullResults.addAll(results);
+                pullsFailed.value += pullsFailedCount;
+                wrongMasterPW.set(wrongMasterPW.get() || wrongMP);
                 // once all pulls have finished, call callback
-                if (pullsFinished.value == pullableRepos.size()) {
-                    cb.finished(pullResults);
+                if (pullsFinished.value == watchlist.size()) {
+                    cb.finished(pullResults, pullsFailed.value, wrongMasterPW.get());
                 }
             }, progressMonitor);
         }
-        if (pullableRepos.isEmpty()) {
-            cb.finished(new ArrayList<>());
+        if (watchlist.isEmpty()) {
+            cb.finished(new ArrayList<>(), 0, false);
         }
     }
 
     public void pullWatchlistAsync(PullCallback cb, ProgressMonitor progressMonitor) {
         pullWatchlistAsync(null, cb, progressMonitor);
     }
-
-    private List<RepositoryInformation> getPullableRepos(List<RepositoryInformation> list) {
-        List<RepositoryInformation> pullableRepos = new ArrayList<>();
-        for (RepositoryInformation repo : list) {
-            if (repo.getStatus() == RepositoryInformation.RepoStatus.PULL_AVAILABLE) {
-                pullableRepos.add(repo);
-            }
-        }
-        return pullableRepos;
-    }
-
     /**
      * Sets status of the Repo at the provided path.
      * IF a master password != null is provided, the stored credentials of a repo are
