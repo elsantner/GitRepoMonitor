@@ -110,7 +110,10 @@ public class GitManager {
 
     private MergeResult.MergeStatus pullRepo(String path, String masterPW, ProgressMonitor progressMonitor) throws IOException, GitAPIException {
         RepositoryInformation repoInfo = fileManager.getRepo(path);
-        CredentialsProvider credProvider = secureStorage.getHttpsCredentialProvider(masterPW, repoInfo.getID());
+        CredentialsProvider credProvider = null;
+        if (repoInfo.isAuthenticated()) {
+            credProvider = secureStorage.getHttpsCredentialProvider(masterPW, repoInfo.getID());
+        }
         return pullRepo(path, credProvider, progressMonitor);
     }
 
@@ -222,12 +225,10 @@ public class GitManager {
 
     private Map<UUID, CredentialsProvider> getCredentialsIfPossible(String masterPW, List<RepositoryInformation> repos) {
         Map<UUID, CredentialsProvider> credentials = new HashMap<>();
-        if (masterPW != null) {
-            try {
-                credentials = secureStorage.getHttpsCredentialProviders(masterPW, repos);
-            } catch (Exception ex) {
-                // nothing since repos without need for authentication will still be checked
-            }
+        try {
+            credentials = secureStorage.getHttpsCredentialProviders(masterPW, repos);
+        } catch (Exception ex) {
+            // nothing since repos without need for authentication will still be checked
         }
         return credentials;
     }
@@ -279,7 +280,7 @@ public class GitManager {
         // if master password is provided & repo has authentication method specified, use those credentials
         try {
             CredentialsProvider cp = null;
-            if (masterPW != null && repoInfo.isAuthenticated()) {
+            if (repoInfo.isAuthenticated()) {
                 cp = secureStorage.getHttpsCredentialProvider(masterPW, repoInfo.getID());
             }
             updateRepoStatus(path, cp);

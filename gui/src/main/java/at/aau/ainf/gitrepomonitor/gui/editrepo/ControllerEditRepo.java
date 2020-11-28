@@ -20,6 +20,7 @@ import javafx.stage.DirectoryChooser;
 import javafx.stage.Stage;
 
 import java.io.File;
+import java.io.IOException;
 import java.net.URL;
 import java.util.ResourceBundle;
 
@@ -142,12 +143,24 @@ public class ControllerEditRepo implements Initializable, ErrorDisplay, MasterPa
     private void setupCredentials() {
         setAuthenticationMethod();
         // if auth method is not NONE, then there must be stored credentials
-        if (repo.getAuthMethod() == RepositoryInformation.AuthMethod.NONE) {
+        if (!repo.isAuthenticated()) {
             btnLoadCredentials.setVisible(false);
         } else if (repo.getAuthMethod() == RepositoryInformation.AuthMethod.HTTPS) {
-            txtHttpsUsername.setPromptText("Stored Username");
-            txtHttpsPasswordHidden.setPromptText("Stored Password");
-            txtHttpsPasswordShown.setPromptText("Stored Password");
+            // load credentials if mp is cached
+            if (secureStorage.isMasterPasswordCached()) {
+                try {
+                    loadCredentials(null);
+                } catch (SecurityException e) {
+                    showError("Wrong Master Password");
+                } catch (Exception ex) {
+                    ex.printStackTrace();
+                    showError(ex.getMessage());
+                }
+            } else {
+                txtHttpsUsername.setPromptText("Stored Username");
+                txtHttpsPasswordHidden.setPromptText("Stored Password");
+                txtHttpsPasswordShown.setPromptText("Stored Password");
+            }
         }
     }
 
@@ -204,9 +217,11 @@ public class ControllerEditRepo implements Initializable, ErrorDisplay, MasterPa
                         throw new IllegalArgumentException("HTTPS username must not be empty");
                     }
 
-                    String masterPW;
+                    String masterPW = null;
                     if (secureStorage.isMasterPasswordSet()) {
-                        masterPW = showMasterPasswordInputDialog(false);
+                        if (secureStorage.isMasterPasswordCached()) {
+                            masterPW = showMasterPasswordInputDialog(false);
+                        }
                     } else {
                         masterPW = showMasterPasswordInputDialog(true);
                         if (masterPW != null) {
@@ -352,12 +367,7 @@ public class ControllerEditRepo implements Initializable, ErrorDisplay, MasterPa
         try {
             String masterPW = showMasterPasswordInputDialog(false);
             if (masterPW != null) {
-                HttpsCredentials credentials = secureStorage.getHttpsCredentials(masterPW, repo.getID());
-                txtHttpsUsername.setText(credentials.getUsername());
-                txtHttpsPasswordHidden.setText(credentials.getPassword());
-                btnLoadCredentials.setVisible(false);
-                // all previous changes are overwritten --> no changes made yet
-                httpsCredentialsChanged = false;
+                loadCredentials(masterPW);
                 return true;
             } else {
                 return false;
@@ -365,10 +375,18 @@ public class ControllerEditRepo implements Initializable, ErrorDisplay, MasterPa
         } catch (SecurityException e) {
             showError("Wrong Master Password");
             return false;
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
             showError(e.getMessage());
             return false;
         }
+    }
+
+    private void loadCredentials(String masterPW) throws IOException {
+        HttpsCredentials credentials = secureStorage.getHttpsCredentials(masterPW, repo.getID());
+        txtHttpsUsername.setText(credentials.getUsername());
+        txtHttpsPasswordHidden.setText(credentials.getPassword());
+        btnLoadCredentials.setVisible(false);
+        // all previous changes are overwritten --> no changes made yet
+        httpsCredentialsChanged = false;
     }
 }

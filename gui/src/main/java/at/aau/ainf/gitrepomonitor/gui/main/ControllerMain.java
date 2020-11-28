@@ -2,6 +2,7 @@ package at.aau.ainf.gitrepomonitor.gui.main;
 
 import at.aau.ainf.gitrepomonitor.core.files.FileManager;
 import at.aau.ainf.gitrepomonitor.core.files.RepositoryInformation;
+import at.aau.ainf.gitrepomonitor.core.files.authentication.SecureStorage;
 import at.aau.ainf.gitrepomonitor.core.git.GitManager;
 import at.aau.ainf.gitrepomonitor.core.git.PullListener;
 import at.aau.ainf.gitrepomonitor.gui.*;
@@ -48,6 +49,7 @@ public class ControllerMain extends StatusBarController implements Initializable
 
     private FileManager fileManager;
     private GitManager gitManager;
+    private SecureStorage secureStorage;
 
     @Override
     public void initialize(URL url, ResourceBundle resourceBundle) {
@@ -73,7 +75,10 @@ public class ControllerMain extends StatusBarController implements Initializable
                         reposChecked));
             }
         });
+        secureStorage = SecureStorage.getInstance();
         setupUI();
+        // TODO: let user choose to cache mp or not
+        SecureStorage.getInstance().setCacheMasterPassword(true);
     }
 
     private void setupUI() {
@@ -137,22 +142,20 @@ public class ControllerMain extends StatusBarController implements Initializable
     @FXML
     public void btnCheckStatusClicked(ActionEvent actionEvent) {
         String masterPW = null;
-        if (fileManager.isWatchlistAuthenticationRequired()) {
+        if (fileManager.isWatchlistAuthenticationRequired() && !secureStorage.isMasterPasswordCached()) {
             masterPW = showMasterPasswordInputDialog(false);
         }
-        if (masterPW != null) {
-            displayStatus(ResourceStore.getString("status.update_watchlist_status"));
-            btnCheckStatus.setDisable(true);
-            gitManager.updateWatchlistStatusAsync(masterPW, (success, reposChecked, reposFailed, ex) -> {
-                if (success) {
-                    displayStatus(ResourceStore.getString("status.updated_n_repo_status", reposChecked));
-                } else {
-                    displayStatus(ResourceStore.getString("status.updated_n_of_m_repo_status_wrong_mp",
-                            reposChecked, reposChecked + reposFailed));
-                }
-                btnCheckStatus.setDisable(false);
-            });
-        }
+        displayStatus(ResourceStore.getString("status.update_watchlist_status"));
+        btnCheckStatus.setDisable(true);
+        gitManager.updateWatchlistStatusAsync(masterPW, (success, reposChecked, reposFailed, ex) -> {
+            if (success) {
+                displayStatus(ResourceStore.getString("status.updated_n_repo_status", reposChecked));
+            } else {
+                displayStatus(ResourceStore.getString("status.updated_n_of_m_repo_status_wrong_mp",
+                        reposChecked, reposChecked + reposFailed));
+            }
+            btnCheckStatus.setDisable(false);
+        });
     }
 
     @Override
@@ -175,25 +178,23 @@ public class ControllerMain extends StatusBarController implements Initializable
     @FXML
     public void btnPullAllClicked(ActionEvent actionEvent) {
         String masterPW = null;
-        if (fileManager.isWatchlistAuthenticationRequired()) {
+        if (fileManager.isWatchlistAuthenticationRequired() && !secureStorage.isMasterPasswordCached()) {
             masterPW = showMasterPasswordInputDialog(false);
         }
-        if (masterPW != null) {
-            gitManager.pullWatchlistAsync(masterPW, (results, pullsFailed, wrongMasterPW) -> {
-                if (results.isEmpty()) {
-                    displayStatus("No changes to pull");
+        gitManager.pullWatchlistAsync(masterPW, (results, pullsFailed, wrongMasterPW) -> {
+            if (results.isEmpty()) {
+                displayStatus("No changes to pull");
+            } else {
+                if (wrongMasterPW) {
+                    displayStatus(ResourceStore.getString("status.pulled_n_of_m_repo_status_wrong_mp",
+                            results.size(), (results.size() + pullsFailed)));
                 } else {
-                    if (wrongMasterPW) {
-                        displayStatus(ResourceStore.getString("status.pulled_n_of_m_repo_status_wrong_mp",
-                                results.size(), (results.size() + pullsFailed)));
-                    } else {
-                        displayStatus(ResourceStore.getString("status.pulled_n_of_m_repo_status",
-                                results.size(), (results.size() + pullsFailed)));
-                    }
-                    updateCommitLog(watchlist.getSelectionModel().getSelectedItem());
+                    displayStatus(ResourceStore.getString("status.pulled_n_of_m_repo_status",
+                            results.size(), (results.size() + pullsFailed)));
                 }
-            }, progessMonitor);
-        }
+                updateCommitLog(watchlist.getSelectionModel().getSelectedItem());
+            }
+        }, progessMonitor);
     }
 
     @Override

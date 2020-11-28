@@ -45,6 +45,8 @@ public class SecureStorage {
     private static final String CREDENTIALS_FILENAME = "creds";
 
     private XmlMapper mapper;
+    private String masterPassword;
+    private boolean cacheMasterPassword = false;
 
     public static synchronized SecureStorage getInstance() {
         if (instance == null) {
@@ -59,6 +61,51 @@ public class SecureStorage {
 
     protected String getCredentialsFilename() {
         return CREDENTIALS_FILENAME;
+    }
+
+    /**
+     * Set whether to cache the master password.
+     * If enabled, once any method has been called using a valid master password,
+     * it is stored internally and subsequent functions requiring the master password
+     * can be called without it.
+     * @param cacheMasterPassword True, if master password should be cached.
+     */
+    public synchronized void setCacheMasterPassword(boolean cacheMasterPassword) {
+        this.cacheMasterPassword = cacheMasterPassword;
+        if (!cacheMasterPassword) {
+            masterPassword = null;
+        }
+    }
+
+    /**
+     * @return True, if the master password is currently cached.
+     */
+    public boolean isMasterPasswordCached() {
+        return masterPassword != null;
+    }
+
+    public void clearCachedMasterPassword() {
+        masterPassword = null;
+    }
+
+    private synchronized void cacheMasterPasswordIfEnabled(String masterPassword) {
+        if (cacheMasterPassword) {
+            this.masterPassword = masterPassword;
+        }
+    }
+
+    private void throwIfMasterPasswordNotCached() {
+        if (!isMasterPasswordCached()) {
+            throw new SecurityException("master password not cached but required");
+        }
+    }
+
+    private String getCachedMasterPasswordIfNull(String mpCandidate) {
+        if (mpCandidate == null) {
+            throwIfMasterPasswordNotCached();
+            return masterPassword;
+        }
+        return mpCandidate;
     }
 
     /**
@@ -88,33 +135,47 @@ public class SecureStorage {
     public void storeHttpsCredentials(String masterPW, UUID repoID,
                                          String httpsUsername, String httpsPassword) throws IOException {
 
+        masterPW = getCachedMasterPasswordIfNull(masterPW);
         CredentialWrapper allCredentials = readCredentials(masterPW);
         HttpsCredentials newCredentials = new HttpsCredentials(repoID, httpsUsername, httpsPassword);
         allCredentials.putCredentials(newCredentials);
         writeCredentials(allCredentials, masterPW);
+
+        cacheMasterPasswordIfEnabled(masterPW);
+    }
+
+    public void storeHttpsCredentials(UUID repoID, String httpsUsername, String httpsPassword) throws IOException {
+        throwIfMasterPasswordNotCached();
+        storeHttpsCredentials(masterPassword, repoID, httpsUsername, httpsPassword);
     }
 
     public HttpsCredentials getHttpsCredentials(String masterPW, UUID repoID) throws IOException {
+        masterPW = getCachedMasterPasswordIfNull(masterPW);
         CredentialWrapper allCredentials = readCredentials(masterPW);
-        return allCredentials.getCredentials(repoID);
+        HttpsCredentials credentials = allCredentials.getCredentials(repoID);
+        cacheMasterPasswordIfEnabled(masterPW);
+        return credentials;
+    }
+
+    public HttpsCredentials getHttpsCredentials(UUID repoID) throws IOException {
+        throwIfMasterPasswordNotCached();
+        return getHttpsCredentials(masterPassword, repoID);
     }
 
     public CredentialsProvider getHttpsCredentialProvider(String masterPW, UUID repoID) throws IOException {
         HttpsCredentials credentials = getHttpsCredentials(masterPW, repoID);
-        return new UsernamePasswordCredentialsProvider(credentials.getUsername(), credentials.getPassword());
+        CredentialsProvider cp = new UsernamePasswordCredentialsProvider(credentials.getUsername(), credentials.getPassword());
+        cacheMasterPasswordIfEnabled(masterPW);
+        return cp;
     }
 
-    public Map<UUID, CredentialsProvider> getHttpsCredentialProviders(String masterPW) throws IOException {
-        Map<UUID, CredentialsProvider> map = new HashMap<>();
-        CredentialWrapper allCredentials = readCredentials(masterPW);
-        for (HttpsCredentials credentials : allCredentials.getHttpsCredentials()) {
-            map.put(credentials.getRepoID(),
-                    new UsernamePasswordCredentialsProvider(credentials.getUsername(), credentials.getPassword()));
-        }
-        return map;
+    public CredentialsProvider getHttpsCredentialProvider(UUID repoID) throws IOException {
+        throwIfMasterPasswordNotCached();
+        return getHttpsCredentialProvider(masterPassword, repoID);
     }
 
     public Map<UUID, CredentialsProvider> getHttpsCredentialProviders(String masterPW, List<RepositoryInformation> repos) throws IOException {
+        masterPW = getCachedMasterPasswordIfNull(masterPW);
         Map<UUID, CredentialsProvider> map = new HashMap<>();
         CredentialWrapper allCredentials = readCredentials(masterPW);
         for (HttpsCredentials credentials : allCredentials.getHttpsCredentials()) {
@@ -126,8 +187,13 @@ public class SecureStorage {
                 map.remove(repo.getID());
             }
         }
-
+        cacheMasterPasswordIfEnabled(masterPW);
         return map;
+    }
+
+    public Map<UUID, CredentialsProvider> getHttpsCredentialProviders(List<RepositoryInformation> repos) throws IOException {
+        throwIfMasterPasswordNotCached();
+        return getHttpsCredentialProviders(masterPassword, repos);
     }
 
     protected CredentialWrapper readCredentials(String masterPW) throws IOException {
