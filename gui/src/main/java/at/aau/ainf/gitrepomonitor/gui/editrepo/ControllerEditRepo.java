@@ -299,11 +299,22 @@ public class ControllerEditRepo implements Initializable, ErrorDisplay, MasterPa
                 btnTestConnection.setDisable(false);
             }));
         } else if (radioBtnHttps.isSelected()) {
-            gitManager.testRepoConnectionAsync(repo, txtHttpsUsername.getText(), txtHttpsPasswordHidden.getText(),
-                    status -> Platform.runLater(() -> {
-                        setConnectionStatusDisplay(status);
-                        btnTestConnection.setDisable(false);
-                    }));
+            // if credentials are stored but not loaded, prompt the user to input Master Password and load them
+            // (if user aborts MP input, abort connection test)
+            // else use text from TextFields
+            boolean credentialsSet = true;
+            if (btnLoadCredentials.isVisible() && !httpsCredentialsChanged) {
+                credentialsSet = onBtnLoadCredentialsClick(actionEvent);
+            }
+            if (credentialsSet) {
+                gitManager.testRepoConnectionAsync(repo, txtHttpsUsername.getText(), txtHttpsPasswordHidden.getText(),
+                        status -> Platform.runLater(() -> {
+                            setConnectionStatusDisplay(status);
+                            btnTestConnection.setDisable(false);
+                        }));
+            } else {
+                btnTestConnection.setDisable(false);
+            }
         } else {
             btnTestConnection.setDisable(false);
         }
@@ -336,7 +347,8 @@ public class ControllerEditRepo implements Initializable, ErrorDisplay, MasterPa
         }
     }
 
-    public void onBtnLoadCredentialsClick(ActionEvent actionEvent) {
+    @FXML
+    public boolean onBtnLoadCredentialsClick(ActionEvent actionEvent) {
         try {
             String masterPW = showMasterPasswordInputDialog(false);
             if (masterPW != null) {
@@ -346,9 +358,17 @@ public class ControllerEditRepo implements Initializable, ErrorDisplay, MasterPa
                 btnLoadCredentials.setVisible(false);
                 // all previous changes are overwritten --> no changes made yet
                 httpsCredentialsChanged = false;
+                return true;
+            } else {
+                return false;
             }
-        } catch (Exception e) {
+        } catch (SecurityException e) {
+            showError("Wrong Master Password");
+            return false;
+        }
+        catch (Exception e) {
             showError(e.getMessage());
+            return false;
         }
     }
 }
