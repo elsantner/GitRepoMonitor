@@ -162,6 +162,15 @@ class RepoListWrapper {
         notifyRepoStatusChanged(repo);
     }
 
+    public void setNewChanges(String path, int newCommitCount) {
+        RepositoryInformation repo = getRepo(path);
+        if (repo == null) {
+            throw new NoSuchElementException();
+        }
+        repo.setNewChanges(newCommitCount);
+        notifyRepoStatusChanged(repo);
+    }
+
     public Set<RepositoryInformation> getList(RepoList list) {
         if (list == RepoList.FOUND)
             return getFoundRepos();

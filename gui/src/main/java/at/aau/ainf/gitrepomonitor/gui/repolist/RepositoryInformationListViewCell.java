@@ -21,6 +21,8 @@ public class RepositoryInformationListViewCell extends ListCell<RepositoryInform
     private ImageView iconAttention;
     @FXML
     private Label lblIcon;
+    @FXML
+    private Label lblNewChange;
 
     private FXMLLoader loader;
 
@@ -35,7 +37,10 @@ public class RepositoryInformationListViewCell extends ListCell<RepositoryInform
         } else {
             // load fxml if not loaded already
             if (loader == null) {
-                loader = new FXMLLoader(getClass().getResource("/at/aau/ainf/gitrepomonitor/gui/repo_list_item.fxml"));
+                loader = new FXMLLoader(
+                        getClass().getResource("/at/aau/ainf/gitrepomonitor/gui/repo_list_item.fxml"),
+                        ResourceStore.getResourceBundle()
+                );
                 loader.setController(this);
 
                 try {
@@ -48,8 +53,13 @@ public class RepositoryInformationListViewCell extends ListCell<RepositoryInform
             // fill display elements with data
             lblName.setText(item.toString());
             setIcon(item);
+            setNewChange(item);
             setGraphic(container);
         }
+    }
+
+    private void setNewChange(RepositoryInformation item) {
+        lblNewChange.setVisible(item.hasNewChanges());
     }
 
     private void setIcon(RepositoryInformation item) {

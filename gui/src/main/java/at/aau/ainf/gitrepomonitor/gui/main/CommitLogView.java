@@ -33,6 +33,7 @@ public class CommitLogView extends AnchorPane {
     private int currentCommitLogDisplayIndex;      // index up to which changes are currently displayed
     private ScheduledThreadPoolExecutor timer;
     private boolean isTimerTaskScheduled = false;
+    private int newCommitCount;
 
     public CommitLogView() {
         FXMLLoader loader = new FXMLLoader(getClass().
@@ -64,18 +65,19 @@ public class CommitLogView extends AnchorPane {
     }
 
     public void setCommitLog(List<CommitChange> currentCommitLog) {
+        setCommitLog(currentCommitLog, 0);
+    }
+
+    public void setCommitLog(List<CommitChange> currentCommitLog, int newCommitCount) {
         synchronized (lock) {       // avoid any problems with quickly switching between selected repos
             if (currentCommitLog == null) {
                 currentCommitLog = new ArrayList<>();
             }
 
+            this.newCommitCount = newCommitCount;
             this.currentCommitLog = currentCommitLog;
-            displayCommitChanges();
-            if (currentCommitLog.isEmpty()) {
-                emptyView.setVisible(true);
-            } else {
-                emptyView.setVisible(false);
-            }
+            displayCommitChanges(newCommitCount);
+            emptyView.setVisible(currentCommitLog.isEmpty());
         }
     }
 
@@ -83,7 +85,7 @@ public class CommitLogView extends AnchorPane {
         scrollPane.vvalueProperty().addListener((observable, oldValue, newValue) -> {
             // load 10 more commits if scrolled in the bottom 25% of the list
             if ((double)newValue > scrollPane.getVmax() * 0.75) {
-                loadMoreCommitChanges(currentCommitLogDisplayIndex, 10);
+                loadMoreCommitChanges(currentCommitLogDisplayIndex, 10, newCommitCount);
             }
         });
 
@@ -91,7 +93,7 @@ public class CommitLogView extends AnchorPane {
         this.heightProperty().addListener((observable, oldValue, newValue) -> {
             isTimerTaskScheduled = true;
             timer.schedule(() -> Platform.runLater(() -> {
-                displayCommitChanges();
+                displayCommitChanges(newCommitCount);
                 isTimerTaskScheduled = false;
             }), 1000, TimeUnit.MILLISECONDS);
         });
@@ -103,19 +105,21 @@ public class CommitLogView extends AnchorPane {
      * @param maxCount Maximum count of displayed changes (will be less if not enough currentCommitLogs are present)
      * @return Displayed commit changes.
      */
-    private int loadMoreCommitChanges(int startIndex, int maxCount) {
+    private int loadMoreCommitChanges(int startIndex, int maxCount, int newCommitCount) {
         synchronized (lock) {       // avoid any problems with quickly switching between selected repos
             int i = 0;
             for (; i < maxCount && startIndex + i < currentCommitLog.size(); i++) {
-                addCommitView(currentCommitLog.get(startIndex + i));
+                addCommitView(currentCommitLog.get(startIndex + i),
+                        (i+currentCommitLogDisplayIndex) < newCommitCount);
             }
             currentCommitLogDisplayIndex += i;
             return i;
         }
     }
 
-    private void addCommitView(CommitChange commitChange) {
+    private void addCommitView(CommitChange commitChange, boolean isNew) {
         CommitView commitView = new CommitView(commitChange);
+        commitView.setNew(isNew);
         containerCommitLog.getChildren().add(commitView);
     }
 
@@ -123,11 +127,12 @@ public class CommitLogView extends AnchorPane {
      * Clears the commit log display and displays first entries (residing in "currentCommitLog")
      * to fill up the visible portion of the log.
      * Use loadMoreCommitChanges() to load more entries.
+     * @param newCommitCount Number of commits to mark as new (starting from the top)
      */
-    private void displayCommitChanges() {
+    private void displayCommitChanges(int newCommitCount) {
         containerCommitLog.getChildren().clear();
         currentCommitLogDisplayIndex = 0;
         int numVisibleEntries = (int)(this.getHeight() / CommitView.MIN_HEIGHT) + 1;
-        loadMoreCommitChanges(0, Math.min(currentCommitLog.size(), numVisibleEntries));
+        loadMoreCommitChanges(0, Math.min(currentCommitLog.size(), numVisibleEntries), newCommitCount);
     }
 }

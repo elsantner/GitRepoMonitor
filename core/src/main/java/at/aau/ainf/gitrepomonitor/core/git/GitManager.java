@@ -99,6 +99,9 @@ public class GitManager {
             if (pullResult.isSuccessful()) {
                 updateRepoStatus(path, cp);
             }
+            // set new update count
+            fileManager.setNewChanges(path, pullResult.getFetchResult().getTrackingRefUpdates().size());
+
             notifyPullListener(path, pullResult.getMergeResult().getMergeStatus());
             return pullResult.getMergeResult().getMergeStatus();
         } catch (InvalidConfigurationException ex) {

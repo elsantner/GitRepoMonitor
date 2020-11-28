@@ -42,6 +42,8 @@ public class RepositoryInformation implements Comparable<RepositoryInformation>,
     private RepoStatus status;
     @JsonIgnore
     private boolean persistentValueChanged = false;
+    @JsonIgnore
+    private int newCommitCount;
 
     public RepositoryInformation() {
         // generate random UUID upon creation
@@ -125,6 +127,21 @@ public class RepositoryInformation implements Comparable<RepositoryInformation>,
     public void setDateAdded(Date dateAdded) {
         this.dateAdded = dateAdded;
         this.persistentValueChanged = true;
+    }
+
+    @JsonIgnore
+    public boolean hasNewChanges() {
+        return newCommitCount != 0;
+    }
+
+    @JsonIgnore
+    public int getNewCommitCount() {
+        return newCommitCount;
+    }
+
+    @JsonIgnore
+    public void setNewChanges(int newCommitCount) {
+        this.newCommitCount = newCommitCount;
     }
 
     @Override

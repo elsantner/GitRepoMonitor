@@ -49,15 +49,19 @@ public class CommitView extends Region {
     private Tooltip ttCommitMessage;
     @FXML
     private Tooltip ttUsername;
-
+    @FXML
     private Hyperlink linkShowAll;
+    @FXML
+    private Label lblNewChange;
 
     private FXMLLoader loader;
     private static DateFormat df = new SimpleDateFormat("dd.MM.yyyy HH:mm");
 
     public CommitView(CommitChange commitChange) {
         if (loader == null) {
-            loader = new FXMLLoader(getClass().getResource("/at/aau/ainf/gitrepomonitor/gui/main/commit_view.fxml"));
+            loader = new FXMLLoader(
+                    getClass().getResource("/at/aau/ainf/gitrepomonitor/gui/main/commit_view.fxml"),
+                    ResourceStore.getResourceBundle());
             loader.setController(this);
 
             try {
@@ -73,6 +77,8 @@ public class CommitView extends Region {
         lblDate.setText(df.format(new Date((long)commitChange.getCommit().getCommitTime() * 1000)));
         lblUsername.setText(commitChange.getCommit().getAuthorIdent().getName());
         ttUsername.setText(getFullAuthorName(commitChange.getCommit().getAuthorIdent()));
+        lblNewChange.managedProperty().bind(lblNewChange.visibleProperty());
+
         addFileChanges(commitChange.getFileChanges());
 
         this.getChildren().add(containerMain);
@@ -101,6 +107,10 @@ public class CommitView extends Region {
         }
     }
 
+    public void setNew(boolean isNew) {
+        lblNewChange.setVisible(isNew);
+    }
+
     private class FileChange extends Region {
 
         @FXML
@@ -114,7 +124,9 @@ public class CommitView extends Region {
 
         private FileChange(DiffEntry fileChange) {
             if (loader == null) {
-                loader = new FXMLLoader(getClass().getResource("/at/aau/ainf/gitrepomonitor/gui/main/file_change.fxml"));
+                loader = new FXMLLoader(
+                        getClass().getResource("/at/aau/ainf/gitrepomonitor/gui/main/file_change.fxml"),
+                        ResourceStore.getResourceBundle());
                 loader.setController(this);
 
                 try {

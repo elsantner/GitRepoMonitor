@@ -146,6 +146,10 @@ public class FileManager {
         repoListWrapper.updateRepoStatus(path, status);
     }
 
+    public void setNewChanges(String path, int newCommitCount) {
+        repoListWrapper.setNewChanges(path, newCommitCount);
+    }
+
     public synchronized void deleteRepo(RepositoryInformation repo) {
         RepoListWrapper.RepoList repoList = repoListWrapper.getListName(repo);
         if (repoList == null) {

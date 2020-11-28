@@ -92,8 +92,13 @@ public class ControllerMain extends StatusBarController implements Initializable
     }
 
     private void setupCommitLogDisplay() {
-        watchlist.getSelectionModel().selectedItemProperty().addListener((observable, oldValue, newValue) ->
-                updateCommitLog(newValue));
+        watchlist.getSelectionModel().selectedItemProperty().addListener((observable, oldValue, newValue) -> {
+            updateCommitLog(newValue);
+            // clear "New"-icon when deselecting
+            if (oldValue != null) {
+                fileManager.setNewChanges(oldValue.getPath(), 0);
+            }
+        });
     }
 
     private void updateCommitLog(RepositoryInformation repo) {
@@ -101,7 +106,7 @@ public class ControllerMain extends StatusBarController implements Initializable
             gitManager.getLogAsync(repo.getPath(), (success, changes, ex) -> Platform.runLater(() -> {
                 if (success) {
                     lblCommitLog.setText(ResourceStore.getString("commitlog.status", changes.size()));
-                    commitLogView.setCommitLog(changes);
+                    commitLogView.setCommitLog(changes, repo.getNewCommitCount());
                 } else {
                     lblCommitLog.setText(ResourceStore.getString("commitlog.no_commits"));
                     commitLogView.setCommitLog(null);
@@ -192,7 +197,7 @@ public class ControllerMain extends StatusBarController implements Initializable
                     displayStatus(ResourceStore.getString("status.pulled_n_of_m_repo_status",
                             results.size(), (results.size() + pullsFailed)));
                 }
-                updateCommitLog(watchlist.getSelectionModel().getSelectedItem());
+                //updateCommitLog(watchlist.getSelectionModel().getSelectedItem());
             }
         }, progessMonitor);
     }
