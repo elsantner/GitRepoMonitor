@@ -4,10 +4,7 @@ import at.aau.ainf.gitrepomonitor.core.files.FileManager;
 import at.aau.ainf.gitrepomonitor.core.files.RepositoryInformation;
 import at.aau.ainf.gitrepomonitor.core.git.GitManager;
 import at.aau.ainf.gitrepomonitor.core.git.PullListener;
-import at.aau.ainf.gitrepomonitor.gui.ErrorDisplay;
-import at.aau.ainf.gitrepomonitor.gui.ResourceStore;
-import at.aau.ainf.gitrepomonitor.gui.StatusBarController;
-import at.aau.ainf.gitrepomonitor.gui.StatusDisplay;
+import at.aau.ainf.gitrepomonitor.gui.*;
 import at.aau.ainf.gitrepomonitor.gui.repolist.RepositoryInformationCellFactory;
 import at.aau.ainf.gitrepomonitor.gui.reposcan.ControllerScan;
 import javafx.application.Platform;
@@ -29,13 +26,12 @@ import java.io.IOException;
 import java.net.URL;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.Optional;
 import java.util.ResourceBundle;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-public class ControllerMain extends StatusBarController implements Initializable, ErrorDisplay, StatusDisplay,
-        PropertyChangeListener, PullListener {
+public class ControllerMain extends StatusBarController implements Initializable, ErrorDisplay, MasterPasswordQuery,
+        StatusDisplay, PropertyChangeListener, PullListener {
 
     @FXML
     private ProgressIndicator indicatorScanRunning;
@@ -68,7 +64,15 @@ public class ControllerMain extends StatusBarController implements Initializable
         gitManager = GitManager.getInstance();
         gitManager.setPullListener(this);
         // check repo status
-        gitManager.updateWatchlistStatusAsync((success, reposChecked, ex) -> {});
+        gitManager.updateWatchlistStatusAsync((success, reposChecked, reposFailed, ex) -> {
+            if (!success) {
+                displayStatus(ResourceStore.getString("status.updated_n_of_m_repo_status_require_mp",
+                        reposChecked, reposChecked+reposFailed));
+            } else {
+                displayStatus(ResourceStore.getString("status.updated_n_repo_status",
+                        reposChecked));
+            }
+        });
         setupUI();
     }
 
@@ -83,25 +87,22 @@ public class ControllerMain extends StatusBarController implements Initializable
     }
 
     private void setupCommitLogDisplay() {
-        watchlist.getSelectionModel().selectedItemProperty().addListener((observable, oldValue, newValue) -> {
-            updateCommitLog(newValue);
-        });
+        watchlist.getSelectionModel().selectedItemProperty().addListener((observable, oldValue, newValue) ->
+                updateCommitLog(newValue));
     }
 
     private void updateCommitLog(RepositoryInformation repo) {
         if (repo != null) {
-            gitManager.getLogAsync(repo.getPath(), (success, changes, ex) -> {
-                Platform.runLater(() -> {
-                    if (success) {
-                        lblCommitLog.setText(ResourceStore.getString("commitlog.status", changes.size()));
-                        commitLogView.setCommitLog(changes);
-                    } else {
-                        lblCommitLog.setText(ResourceStore.getString("commitlog.no_commits"));
-                        commitLogView.setCommitLog(null);
-                        displayStatus(ex.getMessage());
-                    }
-                });
-            });
+            gitManager.getLogAsync(repo.getPath(), (success, changes, ex) -> Platform.runLater(() -> {
+                if (success) {
+                    lblCommitLog.setText(ResourceStore.getString("commitlog.status", changes.size()));
+                    commitLogView.setCommitLog(changes);
+                } else {
+                    lblCommitLog.setText(ResourceStore.getString("commitlog.no_commits"));
+                    commitLogView.setCommitLog(null);
+                    displayStatus(ex.getMessage());
+                }
+            }));
         }
     }
 
@@ -135,10 +136,20 @@ public class ControllerMain extends StatusBarController implements Initializable
 
     @FXML
     public void btnCheckStatusClicked(ActionEvent actionEvent) {
+        String masterPW = null;
+        if (fileManager.isWatchlistAuthenticationRequired()) {
+            masterPW = showMasterPasswordInputDialog(false);
+        }
+
         displayStatus(ResourceStore.getString("status.update_watchlist_status"));
         btnCheckStatus.setDisable(true);
-        gitManager.updateWatchlistStatusAsync((success, reposChecked, ex) -> {
-            displayStatus(ResourceStore.getString("status.updated_n_repo_status", reposChecked));
+        gitManager.updateWatchlistStatusAsync(masterPW, (success, reposChecked, reposFailed, ex) -> {
+            if (success) {
+                displayStatus(ResourceStore.getString("status.updated_n_repo_status", reposChecked));
+            } else {
+                displayStatus(ResourceStore.getString("status.updated_n_of_m_repo_status_wrong_mp",
+                        reposChecked, reposChecked+reposFailed));
+            }
             btnCheckStatus.setDisable(false);
         });
     }

@@ -162,6 +162,15 @@ class RepoListWrapper {
         notifyRepoStatusChanged(repo);
     }
 
+    public Set<RepositoryInformation> getList(RepoList list) {
+        if (list == RepoList.FOUND)
+            return getFoundRepos();
+        else if (list == RepoList.WATCH)
+            return getWatchlist();
+        else
+            return new HashSet<>();
+    }
+
     public enum RepoList {
         FOUND,
         WATCH,

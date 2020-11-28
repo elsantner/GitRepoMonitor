@@ -172,4 +172,16 @@ public class FileManager {
     public List<RepositoryInformation> getFoundRepos() {
         return List.copyOf(repoListWrapper.getFoundRepos());
     }
+
+    /**
+     * Enquires whether any repository on the watchlist has a authentication method (!= NONE) specified.
+     * @return True, if any repository on the watchlist has a authentication method specified
+     */
+    public boolean isWatchlistAuthenticationRequired() {
+        for (RepositoryInformation repo : repoListWrapper.getList(WATCH)) {
+            if (repo.isAuthenticated())
+                return true;
+        }
+        return false;
+    }
 }

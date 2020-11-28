@@ -77,9 +77,17 @@ public class RepositoryInformationListViewCell extends ListCell<RepositoryInform
                 imgPath = "icon_attention.png";
                 tooltipKey = "status.repo.no_auth_info";
                 break;
+            case WRONG_MASTER_PW:
+                imgPath = "icon_attention.png";
+                tooltipKey = "status.repo.wrong_master_password";
+                break;
             case MERGE_NEEDED:
                 imgPath = "icon_merge.png";
                 tooltipKey = "status.repo.merge_required";
+                break;
+            case UP_TO_DATE:
+                imgPath = "icon_check.png";
+                tooltipKey = "status.repo.up_to_date";
                 break;
         }
         if (imgPath != null) {

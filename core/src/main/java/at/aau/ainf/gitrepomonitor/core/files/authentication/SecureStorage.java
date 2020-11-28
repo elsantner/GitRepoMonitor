@@ -22,6 +22,8 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.security.spec.KeySpec;
 import java.util.Base64;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.UUID;
 
 
@@ -94,14 +96,24 @@ public class SecureStorage {
         writeCredentials(allCredentials, masterPW);
     }
 
-    public HttpsCredentials getHttpsCredentials(String masterPW, UUID repoID) throws Exception {
+    public HttpsCredentials getHttpsCredentials(String masterPW, UUID repoID) throws IOException {
         CredentialWrapper allCredentials = readCredentials(masterPW);
         return allCredentials.getCredentials(repoID);
     }
 
-    public CredentialsProvider getHttpsCredentialProvider(String masterPW, UUID repoID) throws Exception {
+    public CredentialsProvider getHttpsCredentialProvider(String masterPW, UUID repoID) throws IOException {
         HttpsCredentials credentials = getHttpsCredentials(masterPW, repoID);
         return new UsernamePasswordCredentialsProvider(credentials.getUsername(), credentials.getPassword());
+    }
+
+    public Map<UUID, CredentialsProvider> getHttpsCredentialProviders(String masterPW) throws IOException {
+        Map<UUID, CredentialsProvider> map = new HashMap<>();
+        CredentialWrapper allCredentials = readCredentials(masterPW);
+        for (HttpsCredentials credentials : allCredentials.getHttpsCredentials()) {
+            map.put(credentials.getRepoID(),
+                    new UsernamePasswordCredentialsProvider(credentials.getUsername(), credentials.getPassword()));
+        }
+        return map;
     }
 
     protected CredentialWrapper readCredentials(String masterPW) throws IOException {

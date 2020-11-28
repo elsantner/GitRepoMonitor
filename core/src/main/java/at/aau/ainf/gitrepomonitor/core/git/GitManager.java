@@ -2,6 +2,8 @@ package at.aau.ainf.gitrepomonitor.core.git;
 
 import at.aau.ainf.gitrepomonitor.core.files.FileManager;
 import at.aau.ainf.gitrepomonitor.core.files.RepositoryInformation;
+import at.aau.ainf.gitrepomonitor.core.files.authentication.HttpsCredentials;
+import at.aau.ainf.gitrepomonitor.core.files.authentication.SecureStorage;
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.api.MergeResult;
 import org.eclipse.jgit.api.PullResult;
@@ -22,10 +24,7 @@ import org.eclipse.jgit.util.MutableInteger;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadPoolExecutor;
 
@@ -43,12 +42,14 @@ public class GitManager {
 
     private final HashMap<String, Git> repoCache;
     private FileManager fileManager;
+    private SecureStorage secureStorage;
     private ThreadPoolExecutor executor;
     private PullListener pullListener;
 
     private GitManager() {
         this.repoCache = new HashMap<>();
         this.fileManager = FileManager.getInstance();
+        this.secureStorage = SecureStorage.getInstance();
         this.executor = (ThreadPoolExecutor) Executors.newFixedThreadPool(10, r -> {
             Thread t = Executors.defaultThreadFactory().newThread(r);
             t.setDaemon(true);
@@ -93,7 +94,7 @@ public class GitManager {
                 .setProgressMonitor(progressMonitor)
                 .call();
         if (pullResult.isSuccessful()) {
-            updateRepoStatus(path);
+            updateRepoStatus(path, (String) null);
         }
         notifyPullListener(path, pullResult.getMergeResult().getMergeStatus());
         return pullResult.getMergeResult().getMergeStatus();
@@ -127,34 +128,78 @@ public class GitManager {
         });
     }
 
-    public void updateWatchlistStatusAsync(UpdateStatusCallback cb) {
+    /**
+     * Updates the status of all repositories on the Watchlist.
+     * The master password is used to access stored credential information.
+     * @param masterPW Master Password
+     * @param cb Called when all repositories on the Watchlist have been checked.
+     *           If the master password was incorrect, success = false and repos checked
+     *           resembles the number of repos which could be checked without any credentials.
+     */
+    public void updateWatchlistStatusAsync(String masterPW, UpdateStatusCallback cb) {
         List<RepositoryInformation> watchlist = fileManager.getWatchlist();
         MutableInteger checksFinished = new MutableInteger();
         checksFinished.value = 0;
+        MutableInteger checksSuccessful = new MutableInteger();
+        checksSuccessful.value = 0;
+
+        // load credentials of all repos
+        Map<UUID, CredentialsProvider> credentials = new HashMap<>();
+        if (masterPW != null) {
+            try {
+                credentials = secureStorage.getHttpsCredentialProviders(masterPW);
+            } catch (Exception ex) {
+                // nothing since repos without need for authentication will still be checked
+            }
+        }
+
         for (RepositoryInformation repo : watchlist) {
-            updateRepoStatusAsync(repo.getPath(), (success, reposChecked, ex) -> {
-                checksFinished.value++;
-                // once all checks have finished, call callback
-                if (checksFinished.value == watchlist.size()) {
-                    cb.finished(true, checksFinished.value, ex);
-                }
-            });
+            updateRepoStatusAsync(repo.getPath(), credentials.get(repo.getID()),
+                    (success, reposChecked, reposFailed, ex) -> {
+                        checksFinished.value++;
+                        if (success) checksSuccessful.value++;
+                        // once all checks have finished, call callback
+                        if (checksFinished.value == watchlist.size()) {
+                            cb.finished(checksSuccessful.value == checksFinished.value,
+                                    checksSuccessful.value,
+                                    checksFinished.value - checksSuccessful.value,
+                                    ex);
+                        }
+                    });
         }
         if (watchlist.isEmpty()) {
-            cb.finished(false, 0, null);
+            cb.finished(true, 0, 0, null);
         }
     }
 
-    public void updateRepoStatusAsync(String path, UpdateStatusCallback cb) {
+    public void updateWatchlistStatusAsync(UpdateStatusCallback cb) {
+        updateWatchlistStatusAsync(null, cb);
+    }
+
+    public void updateRepoStatusAsync(String path, CredentialsProvider cp, UpdateStatusCallback cb) {
         executor.submit(() -> {
             try {
-                updateRepoStatus(path);
-                cb.finished(true, 1, null);
+                updateRepoStatus(path, cp);
+                cb.finished(true, 1, 0, null);
             } catch (Exception e) {
-                e.printStackTrace();
-                cb.finished(false, 1, e);
+                cb.finished(false, 0, 1, e);
             }
         });
+    }
+
+    public void updateRepoStatusAsync(String path, String masterPW, UpdateStatusCallback cb) {
+        executor.submit(() -> {
+            try {
+                updateRepoStatus(path, masterPW);
+                cb.finished(true, 1, 0,null);
+            } catch (Exception e) {
+                cb.finished(false, 0, 1, e);
+            }
+        });
+    }
+
+    public void updateRepoStatusAsync(String path, UpdateStatusCallback cb) {
+        updateRepoStatusAsync(path, (String) null, cb);
     }
 
     private void fetchRepo(Git repoGit, CredentialsProvider cp) throws GitAPIException {
@@ -164,12 +209,14 @@ public class GitManager {
                 .call();
     }
 
-    public void pullWatchlistAsync(PullCallback cb, ProgressMonitor progessMonitor) {
+    public void pullWatchlistAsync(String masterPW, PullCallback cb, ProgressMonitor progressMonitor) {
         List<RepositoryInformation> pullableRepos = getPullableRepos(fileManager.getWatchlist());
         MutableInteger pullsFinished = new MutableInteger();
         pullsFinished.value = 0;
         List<PullCallback.PullResult> pullResults = new ArrayList<>();
         for (RepositoryInformation repo : pullableRepos) {
+
+            // TODO: finish
             pullRepoAsync(repo.getPath(), results -> {
                 pullsFinished.value++;
                 pullResults.addAll(results);
@@ -177,11 +224,15 @@ public class GitManager {
                 if (pullsFinished.value == pullableRepos.size()) {
                     cb.finished(pullResults);
                 }
-            }, progessMonitor);
+            }, progressMonitor);
         }
         if (pullableRepos.isEmpty()) {
             cb.finished(new ArrayList<>());
         }
+    }
+
+    public void pullWatchlistAsync(PullCallback cb, ProgressMonitor progressMonitor) {
+        pullWatchlistAsync(null, cb, progressMonitor);
     }
 
     private List<RepositoryInformation> getPullableRepos(List<RepositoryInformation> list) {
@@ -196,14 +247,40 @@ public class GitManager {
 
     /**
      * Sets status of the Repo at the provided path.
+     * IF a master password != null is provided, the stored credentials of a repo are
+     * attempted to be loaded and (if load is successful, i.e. master password is correct)
+     * those credentials are used to access the repo.
      * @param path Path the repo is located at
+     * @param masterPW Master Password for stored credentials
      * @throws IOException If repo path is invalid
      */
-    private void updateRepoStatus(String path) throws IOException {
+    private void updateRepoStatus(String path, String masterPW) throws IOException {
         RepositoryInformation repoInfo = fileManager.getRepo(path);
-        // TODO: add stored credentials
-        repoInfo.setStatus(getRepoStatus(getRepoGit(path), null));
-        fileManager.updateRepoStatus(repoInfo.getPath(), repoInfo.getStatus());
+        // if master password is provided & repo has authentication method specified, use those credentials
+        try {
+            CredentialsProvider cp = null;
+            if (masterPW != null && repoInfo.isAuthenticated()) {
+                cp = secureStorage.getHttpsCredentialProvider(masterPW, repoInfo.getID());
+            }
+            updateRepoStatus(path, cp);
+        } catch (SecurityException ex) {
+            fileManager.updateRepoStatus(repoInfo.getPath(), WRONG_MASTER_PW);
+            throw ex;
+        }
+    }
+
+    private void updateRepoStatus(String path, CredentialsProvider cp) throws IOException {
+        RepositoryInformation repoInfo = fileManager.getRepo(path);
+        RepositoryInformation.RepoStatus status = WRONG_MASTER_PW;
+        try {
+            if (repoInfo.isAuthenticated() && cp == null) {
+                throw new SecurityException("wrong master password");
+            } else {
+                status = getRepoStatus(getRepoGit(path), cp);
+            }
+        } finally {
+            fileManager.updateRepoStatus(repoInfo.getPath(), status);
+        }
     }
 
     /**

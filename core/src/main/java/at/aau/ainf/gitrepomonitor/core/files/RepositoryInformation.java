@@ -20,14 +20,16 @@ public class RepositoryInformation implements Comparable<RepositoryInformation>,
     private Date dateAdded;
 
     public enum RepoStatus {
+        UNCHECKED,
         UP_TO_DATE,
         PATH_INVALID,
         NO_REMOTE,
         INACCESSIBLE_REMOTE,
+        WRONG_MASTER_PW,
         PULL_AVAILABLE,
         PUSH_AVAILABLE,
         MERGE_NEEDED,
-        UNKNOWN_ERROR
+        UNKNOWN_ERROR,
     }
 
     public enum AuthMethod {
@@ -45,7 +47,7 @@ public class RepositoryInformation implements Comparable<RepositoryInformation>,
         // generate random UUID upon creation
         // this value is overwritten during deserialization
         this.id = UUID.randomUUID();
-        this.status = RepoStatus.UP_TO_DATE;
+        this.status = RepoStatus.UNCHECKED;
         this.authMethod = AuthMethod.NONE;
     }
 
@@ -74,6 +76,11 @@ public class RepositoryInformation implements Comparable<RepositoryInformation>,
 
     public void setAuthMethod(AuthMethod authMethod) {
         this.authMethod = authMethod;
+    }
+
+    @JsonIgnore
+    public boolean isAuthenticated() {
+        return authMethod != AuthMethod.NONE;
     }
 
     @JsonIgnore
