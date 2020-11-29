@@ -180,6 +180,26 @@ class RepoListWrapper {
             return new HashSet<>();
     }
 
+    public List<RepositoryInformation> getAuthenticatedRepos() {
+        List<RepositoryInformation> authRepos = new ArrayList<>();
+        for (RepositoryInformation repo : Stream.concat(watchlist.values().stream(),
+                foundRepos.values().stream()).collect(Collectors.toList())) {
+
+            if (repo.isAuthenticated()) {
+                authRepos.add(repo);
+            }
+        }
+        return authRepos;
+    }
+
+    public void resetAuthMethodAll() {
+        for (RepositoryInformation repo : Stream.concat(watchlist.values().stream(),
+                foundRepos.values().stream()).collect(Collectors.toList())) {
+
+            repo.setAuthMethod(RepositoryInformation.AuthMethod.NONE);
+        }
+    }
+
     public enum RepoList {
         FOUND,
         WATCH,

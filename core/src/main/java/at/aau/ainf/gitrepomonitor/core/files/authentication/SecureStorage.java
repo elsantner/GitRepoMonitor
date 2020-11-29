@@ -22,7 +22,6 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.CharBuffer;
-import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.spec.KeySpec;
@@ -109,7 +108,7 @@ public class SecureStorage {
         }
     }
 
-    private char[] getCachedMasterPasswordHash(char[] mp) {
+    private char[] getCachedMasterPasswordHashIfPossible(char[] mp) {
         if (mp == null) {
             throwIfMasterPasswordNotCached();
             return masterPassword;
@@ -155,7 +154,7 @@ public class SecureStorage {
     public void storeHttpsCredentials(char[] masterPW, UUID repoID,
                                          String httpsUsername, char[] httpsPassword) throws IOException {
 
-        masterPW = getCachedMasterPasswordHash(masterPW);
+        masterPW = getCachedMasterPasswordHashIfPossible(masterPW);
         CredentialWrapper allCredentials = readCredentials(masterPW);
         HttpsCredentials newCredentials = new HttpsCredentials(repoID, httpsUsername, httpsPassword);
         allCredentials.putCredentials(newCredentials);
@@ -168,11 +167,27 @@ public class SecureStorage {
 
     public void storeHttpsCredentials(UUID repoID, String httpsUsername, char[] httpsPassword) throws IOException {
         throwIfMasterPasswordNotCached();
-        storeHttpsCredentials(masterPassword, repoID, httpsUsername, httpsPassword);
+        storeHttpsCredentials(null, repoID, httpsUsername, httpsPassword);
     }
 
+    public void deleteHttpsCredentials(char[] masterPW, UUID repoID) throws IOException {
+        masterPW = getCachedMasterPasswordHashIfPossible(masterPW);
+        CredentialWrapper allCredentials = readCredentials(masterPW);
+        allCredentials.removeCredentials(repoID);
+        writeCredentials(allCredentials, masterPW);
+
+        cacheMasterPasswordIfEnabled(masterPW);
+        clearCharArray(masterPW);
+    }
+
+    public void deleteHttpsCredentials(UUID repoID) throws IOException {
+        throwIfMasterPasswordNotCached();
+        deleteHttpsCredentials(null, repoID);
+    }
+
+
     public HttpsCredentials getHttpsCredentials(char[] masterPW, UUID repoID) throws IOException {
-        masterPW = getCachedMasterPasswordHash(masterPW);
+        masterPW = getCachedMasterPasswordHashIfPossible(masterPW);
         return getHttpsCredentialsHashed(masterPW, repoID);
     }
 
@@ -186,11 +201,11 @@ public class SecureStorage {
 
     public HttpsCredentials getHttpsCredentials(UUID repoID) throws IOException {
         throwIfMasterPasswordNotCached();
-        return getHttpsCredentials(masterPassword, repoID);
+        return getHttpsCredentials(null, repoID);
     }
 
     public CredentialsProvider getHttpsCredentialProvider(char[] masterPW, UUID repoID) throws IOException {
-        masterPW = getCachedMasterPasswordHash(masterPW);
+        masterPW = getCachedMasterPasswordHashIfPossible(masterPW);
         char[] masterPwCopy = Arrays.copyOf(masterPW, masterPW.length);
         HttpsCredentials credentials = getHttpsCredentialsHashed(masterPW, repoID);
         CredentialsProvider cp = new UsernamePasswordCredentialsProvider(credentials.getUsername(), credentials.getPassword());
@@ -201,11 +216,11 @@ public class SecureStorage {
 
     public CredentialsProvider getHttpsCredentialProvider(UUID repoID) throws IOException {
         throwIfMasterPasswordNotCached();
-        return getHttpsCredentialProvider(masterPassword, repoID);
+        return getHttpsCredentialProvider(null, repoID);
     }
 
     public Map<UUID, CredentialsProvider> getHttpsCredentialProviders(char[] masterPW, List<RepositoryInformation> repos) throws IOException {
-        masterPW = getCachedMasterPasswordHash(masterPW);
+        masterPW = getCachedMasterPasswordHashIfPossible(masterPW);
         Map<UUID, CredentialsProvider> map = new HashMap<>();
         CredentialWrapper allCredentials = readCredentials(masterPW);
         for (HttpsCredentials credentials : allCredentials.getHttpsCredentials()) {
@@ -224,7 +239,7 @@ public class SecureStorage {
 
     public Map<UUID, CredentialsProvider> getHttpsCredentialProviders(List<RepositoryInformation> repos) throws IOException {
         throwIfMasterPasswordNotCached();
-        return getHttpsCredentialProviders(masterPassword, repos);
+        return getHttpsCredentialProviders(null, repos);
     }
 
     protected CredentialWrapper readCredentials(char[] masterPW) throws IOException {

@@ -211,26 +211,30 @@ public class ControllerEditRepo implements Initializable, ErrorDisplay, MasterPa
 
             // only require master pw if credentials wre actually changed
             if (wasAuthChanged()) {
-                // TODO: remove credentials if none was selected (or only delete when explicitly requested?)
-                if (radioBtnHttps.isSelected()) {
+                // master password is required whenever auth information is changed
+                // This also applies to selecting NONE (removing auth information)
+                // since the credentials previously stored must be erased
+                String masterPW = null;
+                if (secureStorage.isMasterPasswordSet()) {
+                    if (secureStorage.isMasterPasswordCached()) {
+                        masterPW = showMasterPasswordInputDialog(false);
+                    }
+                } else {
+                    masterPW = showMasterPasswordInputDialog(true);
+                    if (masterPW != null) {
+                        secureStorage.setMasterPassword(Utils.toCharOrNull(masterPW));
+                    }
+                }
+                // if master password dialog was aborted, abort method
+                if (masterPW == null) {
+                    return;
+                }
+
+                if (radioBtnNone.isSelected()) {
+                    secureStorage.deleteHttpsCredentials(Utils.toCharOrNull(masterPW), repo.getID());
+                } else if (radioBtnHttps.isSelected()) {
                     if (!validateHttpsCredentials()) {
                         throw new IllegalArgumentException("HTTPS username must not be empty");
-                    }
-
-                    String masterPW = null;
-                    if (secureStorage.isMasterPasswordSet()) {
-                        if (secureStorage.isMasterPasswordCached()) {
-                            masterPW = showMasterPasswordInputDialog(false);
-                        }
-                    } else {
-                        masterPW = showMasterPasswordInputDialog(true);
-                        if (masterPW != null) {
-                            secureStorage.setMasterPassword(Utils.toCharOrNull(masterPW));
-                        }
-                    }
-                    // if master password dialog was aborted, abort method
-                    if (masterPW == null) {
-                        return;
                     }
                     secureStorage.storeHttpsCredentials(Utils.toCharOrNull(masterPW), repo.getID(),
                             txtHttpsUsername.getText(), txtHttpsPasswordHidden.getText().toCharArray());

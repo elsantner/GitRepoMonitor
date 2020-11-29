@@ -30,4 +30,8 @@ public class CredentialWrapper {
     public void putCredentials(HttpsCredentials newCredentials) {
         httpsCredentials.put(newCredentials.getRepoID(), newCredentials);
     }
+
+    public void removeCredentials(UUID repoID) {
+        httpsCredentials.remove(repoID);
+    }
 }

@@ -57,7 +57,9 @@ public class ControllerMain extends StatusBarController implements Initializable
         super.initialize(url, resourceBundle);
         fileManager = FileManager.getInstance();
         try {
-            fileManager.init();
+            if (fileManager.init()) {
+                showWarning("Authentication was reset on all repos (missing credentials file)");
+            }
         } catch (IOException e) {
            Logger.getLogger(getClass().getName()).log(Level.SEVERE, "error occurred during file manager init", e);
            showError(ResourceStore.getString("errormsg.file_access_denied"));
@@ -198,7 +200,6 @@ public class ControllerMain extends StatusBarController implements Initializable
                     displayStatus(ResourceStore.getString("status.pulled_n_of_m_repo_status",
                             results.size(), (results.size() + pullsFailed)));
                 }
-                //updateCommitLog(watchlist.getSelectionModel().getSelectedItem());
             }
         }, progessMonitor);
     }
