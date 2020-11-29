@@ -6,26 +6,32 @@ import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-public class RepoListWrapper {
+class RepoListWrapper {
     private Map<String, RepositoryInformation> watchlist;
     private Map<String, RepositoryInformation> foundRepos;
     private List<PropertyChangeListener> listenersWatchlist;
     private List<PropertyChangeListener> listenersFoundRepos;
+    private List<PropertyChangeListener> listenersRepoStatus;
 
     public RepoListWrapper() {
         this.watchlist = new HashMap<>();
         this.foundRepos = new HashMap<>();
         this.listenersWatchlist = new ArrayList<>();
         this.listenersFoundRepos = new ArrayList<>();
+        this.listenersRepoStatus = new ArrayList<>();
     }
 
     public void addWatchlistListener(PropertyChangeListener l) { listenersWatchlist.add(l); }
 
     public void addFoundReposListener(PropertyChangeListener l) { listenersFoundRepos.add(l); }
 
+    public void addRepoStatusListener(PropertyChangeListener l) { listenersRepoStatus.add(l); }
+
     public boolean removeWatchlistListener(PropertyChangeListener l) { return listenersWatchlist.remove(l); }
 
     public boolean removeFoundReposListener(PropertyChangeListener l) { return listenersFoundRepos.remove(l); }
+
+    public boolean removeRepoStatusListener(PropertyChangeListener l) { return listenersRepoStatus.remove(l); }
 
     private void notifyWatchlistChanged() {
         listenersWatchlist.forEach(propertyChangeListener ->
@@ -35,6 +41,11 @@ public class RepoListWrapper {
     private void notifyFoundReposChanged() {
         listenersFoundRepos.forEach(propertyChangeListener ->
                 propertyChangeListener.propertyChange(new PropertyChangeEvent(this, "foundRepos", null, getFoundRepos())));
+    }
+
+    private void notifyRepoStatusChanged(RepositoryInformation repo) {
+        listenersRepoStatus.forEach(propertyChangeListener ->
+                propertyChangeListener.propertyChange(new PropertyChangeEvent(this, "repoStatus", null, repo)));
     }
 
     public Set<RepositoryInformation> getWatchlist() {
@@ -140,6 +151,15 @@ public class RepoListWrapper {
             repo = foundRepos.get(path);
         }
         return repo;
+    }
+
+    public void updateRepoStatus(String path, RepositoryInformation.RepoStatus status) {
+        RepositoryInformation repo = getRepo(path);
+        if (repo == null) {
+            throw new NoSuchElementException();
+        }
+        repo.setStatus(status);
+        notifyRepoStatusChanged(repo);
     }
 
     public enum RepoList {

@@ -65,12 +65,20 @@ public class FileManager {
         getRepoListWrapper().addFoundReposListener(l);
     }
 
+    public synchronized void addRepoStatusListener(PropertyChangeListener l) {
+        getRepoListWrapper().addRepoStatusListener(l);
+    }
+
     public synchronized boolean removeWatchlistListener(PropertyChangeListener l) {
         return getRepoListWrapper().removeWatchlistListener(l);
     }
 
     public synchronized boolean removeFoundReposListener(PropertyChangeListener l) {
         return getRepoListWrapper().removeFoundReposListener(l);
+    }
+
+    public synchronized boolean removeRepoStatusListener(PropertyChangeListener l) {
+        return getRepoListWrapper().removeRepoStatusListener(l);
     }
 
     public synchronized void addToFoundRepos(RepositoryInformation repo) {
@@ -131,6 +139,10 @@ public class FileManager {
             persistRepoLists();
             updatedInfo.setPersistentValueChanged(false);
         }
+    }
+
+    public void updateRepoStatus(String path, RepositoryInformation.RepoStatus status) {
+        repoListWrapper.updateRepoStatus(path, status);
     }
 
     public synchronized void deleteRepo(RepositoryInformation repo) {
