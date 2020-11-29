@@ -42,4 +42,8 @@ public class SecureStorageTestable extends SecureStorage {
     public void removeCredentialTestFile() {
         new File(Utils.getProgramHomeDir() + getCredentialsFilename()).delete();
     }
+
+    public synchronized char[] sha3_256(char[] m) {
+        return super.sha3_256(m);
+    }
 }

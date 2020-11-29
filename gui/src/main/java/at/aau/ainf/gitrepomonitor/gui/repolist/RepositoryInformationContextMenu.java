@@ -57,6 +57,7 @@ public class RepositoryInformationContextMenu extends ContextMenu implements Err
             setStatus(ResourceStore.getString("status.update_repo_status"));
             gitManager.updateRepoStatusAsync(item.getPath(), Utils.toCharOrNull(masterPW), (success, reposChecked, reposFailed, ex) -> {
                 if (!success) {
+                    ex.printStackTrace();
                     setStatus(ResourceStore.getString("status.wrong_master_password", reposChecked));
                 } else {
                     setStatus(ResourceStore.getString("status.updated_n_repo_status", reposChecked));

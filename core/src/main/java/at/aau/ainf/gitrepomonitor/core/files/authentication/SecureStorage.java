@@ -20,7 +20,11 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.nio.ByteBuffer;
+import java.nio.CharBuffer;
+import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
 import java.security.spec.KeySpec;
 import java.util.*;
 
@@ -105,12 +109,14 @@ public class SecureStorage {
         }
     }
 
-    private char[] getCachedMasterPasswordIfNull(char[] mpCandidate) {
-        if (mpCandidate == null) {
+    private char[] getCachedMasterPasswordHash(char[] mp) {
+        if (mp == null) {
             throwIfMasterPasswordNotCached();
             return masterPassword;
         }
-        return mpCandidate;
+        char[] hashedPW = sha3_256(mp);
+        clearCharArray(mp);
+        return hashedPW;
     }
 
     /**
@@ -126,24 +132,30 @@ public class SecureStorage {
         if (isMasterPasswordSet()) {
             throw new AuthenticationException("master password was already set");
         }
-        writeCredentials(new CredentialWrapper(), masterPW);
+        char[] hashedPW = sha3_256(masterPW);
+        writeCredentials(new CredentialWrapper(), hashedPW);
         clearCharArray(masterPW);
+        clearCharArray(hashedPW);
     }
 
     public void updateMasterPassword(char[] currentMasterPW, char[] newMasterPW) throws AuthenticationException, IOException {
         if (!isMasterPasswordSet()) {
             throw new AuthenticationException("master password was not set before");
         }
-        CredentialWrapper wrapper = readCredentials(currentMasterPW);
-        writeCredentials(wrapper, newMasterPW);
+        char[] hashedCurrentPW = sha3_256(currentMasterPW);
+        char[] hashedNewPW = sha3_256(newMasterPW);
+        CredentialWrapper wrapper = readCredentials(hashedCurrentPW);
+        writeCredentials(wrapper, hashedNewPW);
         clearCharArray(currentMasterPW);
         clearCharArray(newMasterPW);
+        clearCharArray(hashedCurrentPW);
+        clearCharArray(hashedNewPW);
     }
 
     public void storeHttpsCredentials(char[] masterPW, UUID repoID,
                                          String httpsUsername, char[] httpsPassword) throws IOException {
 
-        masterPW = getCachedMasterPasswordIfNull(masterPW);
+        masterPW = getCachedMasterPasswordHash(masterPW);
         CredentialWrapper allCredentials = readCredentials(masterPW);
         HttpsCredentials newCredentials = new HttpsCredentials(repoID, httpsUsername, httpsPassword);
         allCredentials.putCredentials(newCredentials);
@@ -160,11 +172,15 @@ public class SecureStorage {
     }
 
     public HttpsCredentials getHttpsCredentials(char[] masterPW, UUID repoID) throws IOException {
-        masterPW = getCachedMasterPasswordIfNull(masterPW);
-        CredentialWrapper allCredentials = readCredentials(masterPW);
+        masterPW = getCachedMasterPasswordHash(masterPW);
+        return getHttpsCredentialsHashed(masterPW, repoID);
+    }
+
+    private HttpsCredentials getHttpsCredentialsHashed(char[] masterPWHash, UUID repoID) throws IOException {
+        CredentialWrapper allCredentials = readCredentials(masterPWHash);
         HttpsCredentials credentials = allCredentials.getCredentials(repoID);
-        cacheMasterPasswordIfEnabled(masterPW);
-        clearCharArray(masterPW);
+        cacheMasterPasswordIfEnabled(masterPWHash);
+        clearCharArray(masterPWHash);
         return credentials;
     }
 
@@ -174,9 +190,9 @@ public class SecureStorage {
     }
 
     public CredentialsProvider getHttpsCredentialProvider(char[] masterPW, UUID repoID) throws IOException {
-        masterPW = getCachedMasterPasswordIfNull(masterPW);
+        masterPW = getCachedMasterPasswordHash(masterPW);
         char[] masterPwCopy = Arrays.copyOf(masterPW, masterPW.length);
-        HttpsCredentials credentials = getHttpsCredentials(masterPW, repoID);
+        HttpsCredentials credentials = getHttpsCredentialsHashed(masterPW, repoID);
         CredentialsProvider cp = new UsernamePasswordCredentialsProvider(credentials.getUsername(), credentials.getPassword());
         cacheMasterPasswordIfEnabled(masterPwCopy);
         clearCharArray(masterPwCopy);
@@ -189,7 +205,7 @@ public class SecureStorage {
     }
 
     public Map<UUID, CredentialsProvider> getHttpsCredentialProviders(char[] masterPW, List<RepositoryInformation> repos) throws IOException {
-        masterPW = getCachedMasterPasswordIfNull(masterPW);
+        masterPW = getCachedMasterPasswordHash(masterPW);
         Map<UUID, CredentialsProvider> map = new HashMap<>();
         CredentialWrapper allCredentials = readCredentials(masterPW);
         for (HttpsCredentials credentials : allCredentials.getHttpsCredentials()) {
@@ -294,5 +310,36 @@ public class SecureStorage {
             // possible exceptions are all related to missing algorithms
             throw new RuntimeException(ex);
         }
+    }
+
+    protected synchronized char[] sha3_256(char[] m) {
+        try {
+            MessageDigest digest = MessageDigest.getInstance("SHA3-256");
+            byte[] hash = digest.digest(toBytes(m));
+            return bytesToHex(hash).toCharArray();
+        } catch (Exception ex) {
+            throw new RuntimeException(ex);
+        }
+    }
+
+    private String bytesToHex(byte[] bytes) {
+        StringBuilder hexStr = new StringBuilder(2 * bytes.length);
+        for (byte b : bytes) {
+            String hex = Integer.toHexString(0xff & b);
+            if (hex.length() == 1) {
+                hexStr.append('0');
+            }
+            hexStr.append(hex);
+        }
+        return hexStr.toString();
+    }
+
+    private byte[] toBytes(char[] chars) {
+        CharBuffer bufChar = CharBuffer.wrap(chars);
+        ByteBuffer bufByte = StandardCharsets.UTF_8.encode(bufChar);
+        byte[] bytes = Arrays.copyOfRange(bufByte.array(),
+                bufByte.position(), bufByte.limit());
+        Arrays.fill(bufByte.array(), (byte) 0);
+        return bytes;
     }
 }

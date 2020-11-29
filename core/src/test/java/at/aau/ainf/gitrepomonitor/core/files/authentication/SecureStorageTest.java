@@ -36,8 +36,8 @@ public class SecureStorageTest {
         CredentialWrapper originalWrapper = new CredentialWrapper();
         originalWrapper.putCredentials(new HttpsCredentials(new UUID(0, 0), "username1", "pw1".toCharArray()));
         originalWrapper.putCredentials(new HttpsCredentials(new UUID(0, 0), "user2", "pw2".toCharArray()));
-        secStorage.writeCredentials(originalWrapper, "someMasterSecret".toCharArray());
-        CredentialWrapper loadedWrapper = secStorage.readCredentials("someMasterSecret".toCharArray());
+        secStorage.writeCredentials(originalWrapper, secStorage.sha3_256("someMasterSecret".toCharArray()));
+        CredentialWrapper loadedWrapper = secStorage.readCredentials(secStorage.sha3_256("someMasterSecret".toCharArray()));
 
         assertEquals(originalWrapper.getHttpsCredentials().size(), loadedWrapper.getHttpsCredentials().size());
     }
@@ -49,8 +49,8 @@ public class SecureStorageTest {
         originalWrapper.putCredentials(new HttpsCredentials(new UUID(0, 0),
                 "username1", "pw1".toCharArray()));
 
-        secStorage.writeCredentials(originalWrapper, "someMasterSecret".toCharArray());
-        secStorage.readCredentials("wrongMasterSecret".toCharArray());
+        secStorage.writeCredentials(originalWrapper, secStorage.sha3_256("someMasterSecret".toCharArray()));
+        secStorage.readCredentials(secStorage.sha3_256("wrongMasterSecret".toCharArray()));
     }
 
     @Test
@@ -61,6 +61,13 @@ public class SecureStorageTest {
         assertTrue(secStorage.isMasterPasswordSet());
         secStorage.updateMasterPassword("someMasterPW".toCharArray(), "newPW".toCharArray());
         assertTrue(secStorage.isMasterPasswordSet());
+    }
+
+    @Test
+    public void testSHA() {
+        SecureStorageTestable secStorage = new SecureStorageTestable();
+        char[] hash = secStorage.sha3_256("test".toCharArray());
+        assertEquals("36f028580bb02cc8272a9a020f4200e346e276ae664e45ee80745574e2f5ab80", String.valueOf(hash));
     }
 
     @After
