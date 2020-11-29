@@ -2,14 +2,19 @@ package at.aau.ainf.gitrepomonitor.core.git;
 
 import org.eclipse.jgit.api.MergeResult;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
 public interface PullCallback {
-    void finished(List<PullResult> results);
+    void finished(List<PullResult> results, int pullsFailed, boolean wrongMasterPW);
 
     default void finished(String repoPath, MergeResult.MergeStatus status, Exception ex) {
-        finished(Collections.singletonList(new PullResult(repoPath, status, ex)));
+        finished(Collections.singletonList(new PullResult(repoPath, status, ex)), 0, false);
+    }
+
+    default void failed(boolean wrongMasterPW) {
+        finished(new ArrayList<>(), 1, wrongMasterPW);
     }
 
     class PullResult {

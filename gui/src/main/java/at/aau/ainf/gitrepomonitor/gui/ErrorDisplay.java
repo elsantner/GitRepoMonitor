@@ -13,4 +13,13 @@ public interface ErrorDisplay {
             a.showAndWait();
         });
     }
+
+    default void showWarning(String msg) {
+        Platform.runLater(() -> {
+            Alert a = new Alert(Alert.AlertType.WARNING);
+            a.setTitle(ResourceStore.getString("warndialog.title"));
+            a.setContentText(msg);
+            a.showAndWait();
+        });
+    }
 }

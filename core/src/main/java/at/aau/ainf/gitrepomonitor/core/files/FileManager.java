@@ -1,5 +1,6 @@
 package at.aau.ainf.gitrepomonitor.core.files;
 
+import at.aau.ainf.gitrepomonitor.core.files.authentication.SecureStorage;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.dataformat.xml.XmlMapper;
 
@@ -9,6 +10,7 @@ import java.io.IOException;
 import java.util.Calendar;
 import java.util.List;
 import java.util.NoSuchElementException;
+import java.util.UUID;
 import java.util.logging.Logger;
 import static at.aau.ainf.gitrepomonitor.core.files.RepoListWrapper.RepoList.*;
 
@@ -19,6 +21,7 @@ public class FileManager {
     private File fileRepoLists;
     private RepoListWrapper repoListWrapper;
     private boolean repoListInitialized = false;
+    private SecureStorage secureStorage;
 
     public static synchronized FileManager getInstance() {
         if (instance == null) {
@@ -28,15 +31,20 @@ public class FileManager {
     }
 
     private FileManager() {
+        this.secureStorage = SecureStorage.getInstance();
         this.mapper = XmlMapper.xmlBuilder().build();
-        this.fileRepoLists = new File(System.getenv("APPDATA") + "/GitRepoMonitor/repolists.xml");
+        this.fileRepoLists = new File(Utils.getProgramHomeDir() + "repolists.xml");
     }
 
     public boolean isInitialized() {
         return repoListInitialized;
     }
 
-    public synchronized void init() throws IOException {
+    /**
+     * Loads all stored repos.
+     * @return True, if repo auth method was reset to NONE as a consequece of missing credentials file
+     */
+    public synchronized boolean init() throws IOException {
         try {
             repoListWrapper = mapper.readValue(fileRepoLists, new TypeReference<RepoListWrapper>(){});
         } catch (IOException e) {
@@ -44,10 +52,26 @@ public class FileManager {
             fileRepoLists.createNewFile();
             repoListWrapper = new RepoListWrapper();
             persistRepoLists();
-            e.printStackTrace();
         }
         repoListWrapper.checkRepoPathValidity();
         repoListInitialized = true;
+        return !checkCredentialsFile();
+    }
+
+    /**
+     * Check if the credentials file is present if authenticated repos exist.
+     * @return False, if credentials are required but no credentials file exists (was deleted).
+     */
+    private boolean checkCredentialsFile() {
+        List<RepositoryInformation> authRequiredRepos = repoListWrapper.getAuthenticatedRepos();
+        boolean authExists = secureStorage.isMasterPasswordSet();
+        if (!authRequiredRepos.isEmpty() && !authExists) {
+            repoListWrapper.resetAuthMethodAll();
+            persistRepoLists();
+            return false;
+        } else {
+            return true;
+        }
     }
 
     private RepoListWrapper getRepoListWrapper() {
@@ -145,6 +169,10 @@ public class FileManager {
         repoListWrapper.updateRepoStatus(path, status);
     }
 
+    public void setNewChanges(String path, int newCommitCount) {
+        repoListWrapper.setNewChanges(path, newCommitCount);
+    }
+
     public synchronized void deleteRepo(RepositoryInformation repo) {
         RepoListWrapper.RepoList repoList = repoListWrapper.getListName(repo);
         if (repoList == null) {
@@ -170,5 +198,17 @@ public class FileManager {
 
     public List<RepositoryInformation> getFoundRepos() {
         return List.copyOf(repoListWrapper.getFoundRepos());
+    }
+
+    /**
+     * Enquires whether any repository on the watchlist has a authentication method (!= NONE) specified.
+     * @return True, if any repository on the watchlist has a authentication method specified
+     */
+    public boolean isWatchlistAuthenticationRequired() {
+        for (RepositoryInformation repo : repoListWrapper.getList(WATCH)) {
+            if (repo.isAuthenticated())
+                return true;
+        }
+        return false;
     }
 }

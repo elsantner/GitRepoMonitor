@@ -5,32 +5,52 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 
 import java.util.Date;
 import java.util.Objects;
+import java.util.UUID;
 
 @JsonAutoDetect(fieldVisibility = JsonAutoDetect.Visibility.ANY,
         getterVisibility = JsonAutoDetect.Visibility.NONE,
         setterVisibility = JsonAutoDetect.Visibility.NONE,
         creatorVisibility = JsonAutoDetect.Visibility.NONE)
 public class RepositoryInformation implements Comparable<RepositoryInformation>, Cloneable {
+
+    private final UUID id;
+    private AuthMethod authMethod;
     private String path;
     private String name;
     private Date dateAdded;
 
     public enum RepoStatus {
+        UNCHECKED,
         UP_TO_DATE,
         PATH_INVALID,
         NO_REMOTE,
         INACCESSIBLE_REMOTE,
+        WRONG_MASTER_PW,
         PULL_AVAILABLE,
         PUSH_AVAILABLE,
-        MERGE_NEEDED
+        MERGE_NEEDED,
+        UNKNOWN_ERROR,
     }
+
+    public enum AuthMethod {
+        NONE,
+        HTTPS,
+        SSH
+    }
+
     @JsonIgnore
     private RepoStatus status;
     @JsonIgnore
     private boolean persistentValueChanged = false;
+    @JsonIgnore
+    private int newCommitCount;
 
     public RepositoryInformation() {
-        this.status = RepoStatus.UP_TO_DATE;
+        // generate random UUID upon creation
+        // this value is overwritten during deserialization
+        this.id = UUID.randomUUID();
+        this.status = RepoStatus.UNCHECKED;
+        this.authMethod = AuthMethod.NONE;
     }
 
     public RepositoryInformation(String path) {
@@ -46,6 +66,23 @@ public class RepositoryInformation implements Comparable<RepositoryInformation>,
     public RepositoryInformation(String path, String name, Date dateAdded) {
         this(path, name);
         this.dateAdded = dateAdded;
+    }
+
+    public UUID getID() {
+        return id;
+    }
+
+    public AuthMethod getAuthMethod() {
+        return authMethod;
+    }
+
+    public void setAuthMethod(AuthMethod authMethod) {
+        this.authMethod = authMethod;
+    }
+
+    @JsonIgnore
+    public boolean isAuthenticated() {
+        return authMethod != AuthMethod.NONE;
     }
 
     @JsonIgnore
@@ -90,6 +127,21 @@ public class RepositoryInformation implements Comparable<RepositoryInformation>,
     public void setDateAdded(Date dateAdded) {
         this.dateAdded = dateAdded;
         this.persistentValueChanged = true;
+    }
+
+    @JsonIgnore
+    public boolean hasNewChanges() {
+        return newCommitCount != 0;
+    }
+
+    @JsonIgnore
+    public int getNewCommitCount() {
+        return newCommitCount;
+    }
+
+    @JsonIgnore
+    public void setNewChanges(int newCommitCount) {
+        this.newCommitCount = newCommitCount;
     }
 
     @Override

@@ -7,7 +7,6 @@ import javafx.fxml.FXMLLoader;
 import javafx.scene.control.Label;
 import javafx.scene.control.ListCell;
 import javafx.scene.control.Tooltip;
-import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.HBox;
 
@@ -22,6 +21,8 @@ public class RepositoryInformationListViewCell extends ListCell<RepositoryInform
     private ImageView iconAttention;
     @FXML
     private Label lblIcon;
+    @FXML
+    private Label lblNewChange;
 
     private FXMLLoader loader;
 
@@ -36,7 +37,10 @@ public class RepositoryInformationListViewCell extends ListCell<RepositoryInform
         } else {
             // load fxml if not loaded already
             if (loader == null) {
-                loader = new FXMLLoader(getClass().getResource("/at/aau/ainf/gitrepomonitor/gui/repo_list_item.fxml"));
+                loader = new FXMLLoader(
+                        getClass().getResource("/at/aau/ainf/gitrepomonitor/gui/repo_list_item.fxml"),
+                        ResourceStore.getResourceBundle()
+                );
                 loader.setController(this);
 
                 try {
@@ -49,8 +53,13 @@ public class RepositoryInformationListViewCell extends ListCell<RepositoryInform
             // fill display elements with data
             lblName.setText(item.toString());
             setIcon(item);
+            setNewChange(item);
             setGraphic(container);
         }
+    }
+
+    private void setNewChange(RepositoryInformation item) {
+        lblNewChange.setVisible(item.hasNewChanges());
     }
 
     private void setIcon(RepositoryInformation item) {
@@ -78,21 +87,25 @@ public class RepositoryInformationListViewCell extends ListCell<RepositoryInform
                 imgPath = "icon_attention.png";
                 tooltipKey = "status.repo.no_auth_info";
                 break;
+            case WRONG_MASTER_PW:
+                imgPath = "icon_attention.png";
+                tooltipKey = "status.repo.wrong_master_password";
+                break;
             case MERGE_NEEDED:
                 imgPath = "icon_merge.png";
                 tooltipKey = "status.repo.merge_required";
                 break;
+            case UP_TO_DATE:
+                imgPath = "icon_check.png";
+                tooltipKey = "status.repo.up_to_date";
+                break;
         }
         if (imgPath != null) {
-            iconAttention.setImage(getImage(imgPath));
+            iconAttention.setImage(ResourceStore.getImage(imgPath));
             lblIcon.setTooltip(new Tooltip(ResourceStore.getString(tooltipKey)));
         } else {
             iconAttention.setVisible(false);
             lblIcon.setTooltip(null);
         }
-    }
-
-    private Image getImage(String path) {
-        return new Image("/at/aau/ainf/gitrepomonitor/gui/icons/" + path);
     }
 }

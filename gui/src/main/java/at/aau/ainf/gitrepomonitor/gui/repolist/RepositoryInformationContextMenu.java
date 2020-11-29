@@ -2,14 +2,15 @@ package at.aau.ainf.gitrepomonitor.gui.repolist;
 
 import at.aau.ainf.gitrepomonitor.core.files.FileManager;
 import at.aau.ainf.gitrepomonitor.core.files.RepositoryInformation;
+import at.aau.ainf.gitrepomonitor.core.files.Utils;
+import at.aau.ainf.gitrepomonitor.core.files.authentication.SecureStorage;
 import at.aau.ainf.gitrepomonitor.core.git.GitManager;
 import at.aau.ainf.gitrepomonitor.core.git.PullCallback;
 import at.aau.ainf.gitrepomonitor.gui.ErrorDisplay;
-import at.aau.ainf.gitrepomonitor.gui.LoginDialog;
+import at.aau.ainf.gitrepomonitor.gui.MasterPasswordQuery;
 import at.aau.ainf.gitrepomonitor.gui.ResourceStore;
 import at.aau.ainf.gitrepomonitor.gui.StatusDisplay;
 import at.aau.ainf.gitrepomonitor.gui.editrepo.ControllerEditRepo;
-import javafx.application.Platform;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
@@ -19,24 +20,24 @@ import javafx.scene.control.MenuItem;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
 import javafx.stage.StageStyle;
-import javafx.util.Pair;
 import org.eclipse.jgit.api.MergeResult;
-import org.eclipse.jgit.api.errors.TransportException;
+import org.eclipse.jgit.api.errors.InvalidConfigurationException;
 import org.eclipse.jgit.lib.ProgressMonitor;
 
 import java.awt.*;
 import java.io.File;
 import java.io.IOException;
-import java.util.Optional;
 
-public class RepositoryInformationContextMenu extends ContextMenu implements ErrorDisplay {
+public class RepositoryInformationContextMenu extends ContextMenu implements ErrorDisplay, MasterPasswordQuery {
 
     private GitManager gitManager;
     private RepositoryInformation item;
     private StatusDisplay statusDisplay;
     private ProgressMonitor progressMonitor;
+    private SecureStorage secureStorage;
 
     public RepositoryInformationContextMenu(ListCell<RepositoryInformation> cell, StatusDisplay statusDisplay, ProgressMonitor progressMonitor) {
+        this.secureStorage = SecureStorage.getInstance();
         this.gitManager = GitManager.getInstance();
         this.item = cell.getItem();
         this.statusDisplay = statusDisplay;
@@ -48,10 +49,16 @@ public class RepositoryInformationContextMenu extends ContextMenu implements Err
         MenuItem checkStatusItem = new MenuItem();
         checkStatusItem.setText(ResourceStore.getString("ctxmenu.check_status"));
         checkStatusItem.setOnAction(event -> {
+            String masterPW = null;
+            if (item.isAuthenticated() && !secureStorage.isMasterPasswordCached()) {
+                masterPW = showMasterPasswordInputDialog(false);
+            }
+
             setStatus(ResourceStore.getString("status.update_repo_status"));
-            gitManager.updateRepoStatusAsync(item.getPath(), (success, reposChecked, ex) -> {
+            gitManager.updateRepoStatusAsync(item.getPath(), Utils.toCharOrNull(masterPW), (success, reposChecked, reposFailed, ex) -> {
                 if (!success) {
-                    setStatus(ex.getMessage());
+                    ex.printStackTrace();
+                    setStatus(ResourceStore.getString("status.wrong_master_password", reposChecked));
                 } else {
                     setStatus(ResourceStore.getString("status.updated_n_repo_status", reposChecked));
                 }
@@ -61,31 +68,19 @@ public class RepositoryInformationContextMenu extends ContextMenu implements Err
         MenuItem pullItem = new MenuItem();
         pullItem.setText(ResourceStore.getString("ctxmenu.pull"));
         pullItem.setOnAction(event -> {
-            // TODO: use stored credentials when implemented
-            gitManager.pullRepoAsync(item.getPath(), (results) -> {
-                String statusMsg = getStatusMessage(results.get(0).getStatus());
+            String masterPW = null;
+            if (item.isAuthenticated() && !secureStorage.isMasterPasswordCached()) {
+                masterPW = showMasterPasswordInputDialog(false);
+            }
+            gitManager.pullRepoAsync(item.getPath(), Utils.toCharOrNull(masterPW), (results, pullsFailed, wrongMP) -> {
+                PullCallback.PullResult result = results.get(0);
+                String statusMsg = getStatusMessage(result.getStatus());
                 if (statusMsg != null) {
                     setStatus(statusMsg);
-                } else {
-                    if (results.get(0).getEx() instanceof TransportException) {
-                        Platform.runLater(() -> {
-                            LoginDialog loginDialog = new LoginDialog(item.toString());
-                            Optional<Pair<Pair<String, String>, Boolean>> credentials = loginDialog.showAndWait();
-
-                            credentials.ifPresent(pairBooleanPair -> gitManager.pullRepoAsync(item.getPath(),
-                                    pairBooleanPair.getKey().getKey(),
-                                    pairBooleanPair.getKey().getValue(), (results1) -> {
-                                        String statusMsg1 = getStatusMessage(results1.get(0).getStatus());
-                                        if (statusMsg1 != null) {
-                                            setStatus(statusMsg1);
-                                        } else {
-                                            showError(results.get(0).getEx().getMessage());
-                                        }
-                                    }));
-                        });
-                    } else {
-                        showError(results.get(0).getEx().getMessage());
-                    }
+                } else if (wrongMP) {
+                    showError("Wrong Master Password");
+                } else if (result.getEx() instanceof InvalidConfigurationException) {
+                    showError("Repository has no remote");
                 }
             }, progressMonitor);
         });

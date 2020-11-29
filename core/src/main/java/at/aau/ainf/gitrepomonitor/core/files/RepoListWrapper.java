@@ -139,7 +139,7 @@ class RepoListWrapper {
 
     private void checkRepoPathValidity(Collection<RepositoryInformation> reposToCheck) {
         for (RepositoryInformation repo : reposToCheck) {
-            if (!GitRepoHelper.validateRepositoryPath(repo.getPath())) {
+            if (!Utils.validateRepositoryPath(repo.getPath())) {
                 repo.setStatus(RepositoryInformation.RepoStatus.PATH_INVALID);
             }
         }
@@ -160,6 +160,44 @@ class RepoListWrapper {
         }
         repo.setStatus(status);
         notifyRepoStatusChanged(repo);
+    }
+
+    public void setNewChanges(String path, int newCommitCount) {
+        RepositoryInformation repo = getRepo(path);
+        if (repo == null) {
+            throw new NoSuchElementException();
+        }
+        repo.setNewChanges(newCommitCount);
+        notifyRepoStatusChanged(repo);
+    }
+
+    public Set<RepositoryInformation> getList(RepoList list) {
+        if (list == RepoList.FOUND)
+            return getFoundRepos();
+        else if (list == RepoList.WATCH)
+            return getWatchlist();
+        else
+            return new HashSet<>();
+    }
+
+    public List<RepositoryInformation> getAuthenticatedRepos() {
+        List<RepositoryInformation> authRepos = new ArrayList<>();
+        for (RepositoryInformation repo : Stream.concat(watchlist.values().stream(),
+                foundRepos.values().stream()).collect(Collectors.toList())) {
+
+            if (repo.isAuthenticated()) {
+                authRepos.add(repo);
+            }
+        }
+        return authRepos;
+    }
+
+    public void resetAuthMethodAll() {
+        for (RepositoryInformation repo : Stream.concat(watchlist.values().stream(),
+                foundRepos.values().stream()).collect(Collectors.toList())) {
+
+            repo.setAuthMethod(RepositoryInformation.AuthMethod.NONE);
+        }
     }
 
     public enum RepoList {

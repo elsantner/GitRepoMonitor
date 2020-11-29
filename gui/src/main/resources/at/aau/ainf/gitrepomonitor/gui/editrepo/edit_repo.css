@@ -3,3 +3,15 @@
     -fx-focus-color: red;
     -fx-focus-color: red;
 }
+
+.failure {
+    -fx-text-fill: red;
+}
+
+.success {
+    -fx-text-fill: green;
+}
+
+RadioButton:selected {
+    -fx-font-weight: bold;
+}
