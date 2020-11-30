@@ -6,6 +6,8 @@ import javafx.beans.value.ObservableValue;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.control.*;
+import javafx.scene.image.Image;
+import javafx.scene.image.ImageView;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.VBox;
@@ -22,6 +24,10 @@ public interface MasterPasswordQuery {
     default String showMasterPasswordInputDialog(boolean requireConfirmInput) {
         Dialog<String> dialog = new Dialog<>();
         dialog.setTitle("Enter Master Password");
+        ImageView icon = new ImageView(ResourceStore.getImage("icon_key.png"));
+        icon.setPreserveRatio(true);
+        icon.setFitHeight(50);
+        dialog.setGraphic(icon);
         dialog.getDialogPane().getButtonTypes().addAll(ButtonType.OK, ButtonType.CANCEL);
         if (requireConfirmInput) {
             setupDialogConfirmInput(dialog);

@@ -68,7 +68,7 @@ public class RepositoryInformationListViewCell extends ListCell<RepositoryInform
         String tooltipKey = null;
         switch (item.getStatus()) {
             case PATH_INVALID:
-                imgPath = "icon_attention.png";
+                imgPath = "icon_missing_folder.png";
                 tooltipKey = "status.repo.invalid_path";
                 break;
             case PULL_AVAILABLE:
@@ -80,11 +80,11 @@ public class RepositoryInformationListViewCell extends ListCell<RepositoryInform
                 tooltipKey = "status.repo.push_available";
                 break;
             case NO_REMOTE:
-                imgPath = "icon_attention.png";
+                imgPath = "icon_missing_remote.png";
                 tooltipKey = "status.repo.no_remote";
                 break;
             case INACCESSIBLE_REMOTE:
-                imgPath = "icon_attention.png";
+                imgPath = "icon_lock.png";
                 tooltipKey = "status.repo.no_auth_info";
                 break;
             case WRONG_MASTER_PW:

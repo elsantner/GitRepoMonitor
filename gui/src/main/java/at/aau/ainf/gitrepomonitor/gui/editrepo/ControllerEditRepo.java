@@ -217,7 +217,7 @@ public class ControllerEditRepo implements Initializable, ErrorDisplay, MasterPa
                 // since the credentials previously stored must be erased
                 String masterPW = null;
                 if (secureStorage.isMasterPasswordSet()) {
-                    if (secureStorage.isMasterPasswordCached()) {
+                    if (!secureStorage.isMasterPasswordCached()) {
                         masterPW = showMasterPasswordInputDialog(false);
                         // if master password dialog was aborted, abort method
                         if (masterPW == null) {
