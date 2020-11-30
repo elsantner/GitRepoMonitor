@@ -58,8 +58,8 @@ public class RepositoryInformationContextMenu extends ContextMenu implements Err
             setStatus(ResourceStore.getString("status.update_repo_status"));
             gitManager.updateRepoStatusAsync(item.getPath(), Utils.toCharOrNull(masterPW), (success, reposChecked, reposFailed, ex) -> {
                 if (!success) {
-                    ex.printStackTrace();
-                    setStatus(ResourceStore.getString("status.wrong_master_password", reposChecked));
+                    setStatus(ResourceStore.getString("status.wrong_master_password"));
+                    showError(ResourceStore.getString("status.wrong_master_password"));
                 } else {
                     setStatus(ResourceStore.getString("status.updated_n_repo_status", reposChecked));
                 }
@@ -74,14 +74,21 @@ public class RepositoryInformationContextMenu extends ContextMenu implements Err
                 masterPW = showMasterPasswordInputDialog(false);
             }
             gitManager.pullRepoAsync(item.getPath(), Utils.toCharOrNull(masterPW), (results, pullsFailed, wrongMP) -> {
-                PullCallback.PullResult result = results.get(0);
-                String statusMsg = getStatusMessage(result.getStatus());
-                if (statusMsg != null) {
-                    setStatus(statusMsg);
-                } else if (wrongMP) {
-                    showError("Wrong Master Password");
-                } else if (result.getEx() instanceof InvalidConfigurationException) {
-                    showError("Repository has no remote");
+                if (pullsFailed == 1) {
+                    if (!wrongMP) {
+                        setStatus("Repository not accessible (wrong credentials?)");
+                    } else {
+                        setStatus(ResourceStore.getString("status.wrong_master_password"));
+                        showError(ResourceStore.getString("status.wrong_master_password"));
+                    }
+                } else {
+                    PullCallback.PullResult result = results.get(0);
+                    String statusMsg = getStatusMessage(result.getStatus());
+                    if (statusMsg != null) {
+                        setStatus(statusMsg);
+                    } else if (result.getEx() instanceof InvalidConfigurationException) {
+                        showError("Repository has no remote");
+                    }
                 }
             }, progressMonitor);
         });

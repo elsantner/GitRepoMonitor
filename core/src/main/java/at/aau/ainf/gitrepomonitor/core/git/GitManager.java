@@ -23,8 +23,10 @@ import org.eclipse.jgit.treewalk.CanonicalTreeParser;
 import org.eclipse.jgit.treewalk.EmptyTreeIterator;
 import org.eclipse.jgit.util.MutableInteger;
 
+import javax.security.auth.login.CredentialException;
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.AccessDeniedException;
 import java.util.*;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadPoolExecutor;
@@ -87,7 +89,7 @@ public class GitManager {
         return repoGit;
     }
 
-    private MergeResult.MergeStatus pullRepo(String path, CredentialsProvider cp, ProgressMonitor progressMonitor) throws IOException, InvalidConfigurationException {
+    private MergeResult.MergeStatus pullRepo(String path, CredentialsProvider cp, ProgressMonitor progressMonitor) throws IOException, CredentialException, NoRemoteRepositoryException {
         Git git = getRepoGit(path);
 
         try {
@@ -96,28 +98,30 @@ public class GitManager {
                     .setRemote("origin")
                     .setProgressMonitor(progressMonitor)
                     .call();
-            if (pullResult.isSuccessful()) {
-                updateRepoStatus(path, cp);
-            }
+
             // set new update count
             fileManager.setNewChanges(path, pullResult.getFetchResult().getTrackingRefUpdates().size());
 
             notifyPullListener(path, pullResult.getMergeResult().getMergeStatus());
             return pullResult.getMergeResult().getMergeStatus();
         } catch (InvalidConfigurationException ex) {
-            throw ex;
+            throw new NoRemoteRepositoryException(null, "no remote");
+        } catch (TransportException ex) {
+            throw new CredentialException("invalid https credentials");
         } catch (GitAPIException ex) {
             throw new SecurityException("authentication failed");
+        } finally {
+            updateRepoStatus(path, cp);
         }
     }
 
-    private MergeResult.MergeStatus pullRepo(String path, char[] masterPW, ProgressMonitor progressMonitor) throws IOException, GitAPIException {
+    private MergeResult.MergeStatus pullRepo(String path, char[] masterPW, ProgressMonitor progressMonitor) throws IOException, GitAPIException, CredentialException {
         RepositoryInformation repoInfo = fileManager.getRepo(path);
-        CredentialsProvider credProvider = null;
+        CredentialsProvider cp = null;
         if (repoInfo.isAuthenticated()) {
-            credProvider = secureStorage.getHttpsCredentialProvider(masterPW, repoInfo.getID());
+            cp = secureStorage.getHttpsCredentialProvider(masterPW, repoInfo.getID());
         }
-        return pullRepo(path, credProvider, progressMonitor);
+        return pullRepo(path, cp, progressMonitor);
     }
 
     public void pullRepoAsync(String path, PullCallback cb) {
@@ -136,7 +140,7 @@ public class GitManager {
                 cb.finished(path, status, null);
             } catch (SecurityException e) {
                 cb.failed(true);
-            } catch (InvalidConfigurationException e) {
+            } catch (CredentialException | NoRemoteRepositoryException e) {
                 cb.failed(false);
             } catch (Exception e) {
                 cb.finished(path, MergeResult.MergeStatus.FAILED, e);
@@ -150,6 +154,10 @@ public class GitManager {
             try {
                 status = pullRepo(path, masterPW, progressMonitor);
                 cb.finished(path, status, null);
+            } catch (SecurityException e) {
+                cb.failed(true);
+            } catch (CredentialException | NoRemoteRepositoryException e) {
+                cb.failed(false);
             } catch (Exception e) {
                 cb.finished(path, MergeResult.MergeStatus.FAILED, e);
             }
