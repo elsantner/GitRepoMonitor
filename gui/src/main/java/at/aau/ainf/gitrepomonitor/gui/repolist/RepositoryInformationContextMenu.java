@@ -3,6 +3,7 @@ package at.aau.ainf.gitrepomonitor.gui.repolist;
 import at.aau.ainf.gitrepomonitor.core.files.FileManager;
 import at.aau.ainf.gitrepomonitor.core.files.RepositoryInformation;
 import at.aau.ainf.gitrepomonitor.core.files.Utils;
+import at.aau.ainf.gitrepomonitor.core.files.authentication.SecureFileStorage;
 import at.aau.ainf.gitrepomonitor.core.files.authentication.SecureStorage;
 import at.aau.ainf.gitrepomonitor.core.git.GitManager;
 import at.aau.ainf.gitrepomonitor.core.git.PullCallback;
@@ -37,7 +38,7 @@ public class RepositoryInformationContextMenu extends ContextMenu implements Err
     private SecureStorage secureStorage;
 
     public RepositoryInformationContextMenu(ListCell<RepositoryInformation> cell, StatusDisplay statusDisplay, ProgressMonitor progressMonitor) {
-        this.secureStorage = SecureStorage.getInstance();
+        this.secureStorage = SecureStorage.getImplementation();
         this.gitManager = GitManager.getInstance();
         this.item = cell.getItem();
         this.statusDisplay = statusDisplay;

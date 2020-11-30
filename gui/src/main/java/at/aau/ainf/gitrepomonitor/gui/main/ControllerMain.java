@@ -3,6 +3,7 @@ package at.aau.ainf.gitrepomonitor.gui.main;
 import at.aau.ainf.gitrepomonitor.core.files.FileManager;
 import at.aau.ainf.gitrepomonitor.core.files.RepositoryInformation;
 import at.aau.ainf.gitrepomonitor.core.files.Utils;
+import at.aau.ainf.gitrepomonitor.core.files.authentication.SecureFileStorage;
 import at.aau.ainf.gitrepomonitor.core.files.authentication.SecureStorage;
 import at.aau.ainf.gitrepomonitor.core.git.GitManager;
 import at.aau.ainf.gitrepomonitor.core.git.PullListener;
@@ -78,10 +79,10 @@ public class ControllerMain extends StatusBarController implements Initializable
                         reposChecked));
             }
         });
-        secureStorage = SecureStorage.getInstance();
+        secureStorage = SecureStorage.getImplementation();
         setupUI();
         // TODO: let user choose to cache mp or not
-        SecureStorage.getInstance().setCacheMasterPassword(true);
+        secureStorage.setCacheMasterPassword(true);
     }
 
     private void setupUI() {

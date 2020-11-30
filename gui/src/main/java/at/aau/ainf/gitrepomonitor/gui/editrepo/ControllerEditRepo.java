@@ -4,6 +4,7 @@ import at.aau.ainf.gitrepomonitor.core.files.FileManager;
 import at.aau.ainf.gitrepomonitor.core.files.Utils;
 import at.aau.ainf.gitrepomonitor.core.files.RepositoryInformation;
 import at.aau.ainf.gitrepomonitor.core.files.authentication.HttpsCredentials;
+import at.aau.ainf.gitrepomonitor.core.files.authentication.SecureFileStorage;
 import at.aau.ainf.gitrepomonitor.core.files.authentication.SecureStorage;
 import at.aau.ainf.gitrepomonitor.core.git.GitManager;
 import at.aau.ainf.gitrepomonitor.gui.ErrorDisplay;
@@ -71,7 +72,7 @@ public class ControllerEditRepo implements Initializable, ErrorDisplay, MasterPa
     public void initialize(URL location, ResourceBundle resources) {
         this.fileManager = FileManager.getInstance();
         this.gitManager = GitManager.getInstance();
-        this.secureStorage = SecureStorage.getInstance();
+        this.secureStorage = SecureStorage.getImplementation();
         setupUI();
     }
 
@@ -218,16 +219,18 @@ public class ControllerEditRepo implements Initializable, ErrorDisplay, MasterPa
                 if (secureStorage.isMasterPasswordSet()) {
                     if (secureStorage.isMasterPasswordCached()) {
                         masterPW = showMasterPasswordInputDialog(false);
+                        // if master password dialog was aborted, abort method
+                        if (masterPW == null) {
+                            return;
+                        }
                     }
                 } else {
                     masterPW = showMasterPasswordInputDialog(true);
                     if (masterPW != null) {
                         secureStorage.setMasterPassword(Utils.toCharOrNull(masterPW));
+                    } else {
+                        return; // if master password dialog was aborted, abort method
                     }
-                }
-                // if master password dialog was aborted, abort method
-                if (masterPW == null) {
-                    return;
                 }
 
                 if (radioBtnNone.isSelected()) {

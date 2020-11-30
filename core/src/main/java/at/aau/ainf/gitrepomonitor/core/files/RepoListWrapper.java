@@ -195,7 +195,6 @@ class RepoListWrapper {
     public void resetAuthMethodAll() {
         for (RepositoryInformation repo : Stream.concat(watchlist.values().stream(),
                 foundRepos.values().stream()).collect(Collectors.toList())) {
-
             repo.setAuthMethod(RepositoryInformation.AuthMethod.NONE);
         }
     }

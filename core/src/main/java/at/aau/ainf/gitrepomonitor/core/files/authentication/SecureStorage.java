@@ -28,43 +28,28 @@ import java.security.spec.KeySpec;
 import java.util.*;
 
 
-/**
- * The idea of this credential storage system is as follows:
- * - The user can store repo credentials by inputting a master password
- * - The repository carries information whether it has associated credentials or not (in plaintext)
- * - Every repos credentials are stored in a separate file
- *    - The filename is derived from the ID of a repo and the master password
- *    - If the repo has associated credentials but there is no such file, master password was wrong
- *
- * PROBLEM: How to ensure the master pw is always the same?
- *    - Maybe hashed and stored in master file?
- *    - Or use just one single file --> less secure...
- */
-public class SecureStorage {
+public abstract class SecureStorage {
 
-    private static SecureStorage instance;
     // salt for AES ciphers
-    private static final String SALT = "3JN3DXVqcVxzxtZK";
-    private static final String CREDENTIALS_FILENAME = "creds";
+    protected static final String SALT = "3JN3DXVqcVxzxtZK";
 
-    private XmlMapper mapper;
-    private char[] masterPassword;
-    private boolean cacheMasterPassword = false;
-
-    public static synchronized SecureStorage getInstance() {
-        if (instance == null) {
-            instance = new SecureStorage();
-        }
-        return instance;
-    }
+    protected XmlMapper mapper;
+    protected char[] masterPassword;
+    protected boolean cacheMasterPassword = false;
 
     protected SecureStorage() {
         this.mapper = XmlMapper.xmlBuilder().build();
     }
 
-    protected String getCredentialsFilename() {
-        return CREDENTIALS_FILENAME;
+    public static SecureStorage getImplementation() {
+        return SecureKeyringStorage.getInstance();
     }
+
+    /**
+     * Returns whether the SecureStorage implementation is supported in the user's environment or not.
+     * @return True, if supported.
+     */
+    public abstract boolean isSupported();
 
     /**
      * Set whether to cache the master password.
@@ -92,26 +77,26 @@ public class SecureStorage {
         masterPassword = null;
     }
 
-    private void clearCharArray(char[] a) {
+    protected void clearCharArray(char[] a) {
         Arrays.fill(a, (char) 0);
     }
 
-    private synchronized void cacheMasterPasswordIfEnabled(char[] masterPassword) {
+    protected synchronized void cacheMasterPasswordIfEnabled(char[] masterPassword) {
         if (cacheMasterPassword) {
             this.masterPassword = Arrays.copyOf(masterPassword, masterPassword.length);
         }
     }
 
-    private void throwIfMasterPasswordNotCached() {
+    protected void throwIfMasterPasswordNotCached() {
         if (!isMasterPasswordCached()) {
             throw new SecurityException("master password not cached but required");
         }
     }
 
-    private char[] getCachedMasterPasswordHashIfPossible(char[] mp) {
-        if (mp == null) {
+    protected char[] getCachedMasterPasswordHashIfPossible(char[] mp) {
+        if (mp == null || isMasterPasswordCached()) {
             throwIfMasterPasswordNotCached();
-            return masterPassword;
+            return Arrays.copyOf(masterPassword, masterPassword.length);
         }
         char[] hashedPW = sha3_256(mp);
         clearCharArray(mp);
@@ -122,164 +107,32 @@ public class SecureStorage {
      * Checks whether or not a master password was set by the user.
      * @return True, if a master password was already set
      */
-    public boolean isMasterPasswordSet() {
-        File credentialsFile = new File(Utils.getProgramHomeDir() + getCredentialsFilename());
-        return (credentialsFile.exists() && !credentialsFile.isDirectory());
-    }
+    public abstract boolean isMasterPasswordSet();
 
-    public void setMasterPassword(char[] masterPW) throws AuthenticationException, IOException {
-        if (isMasterPasswordSet()) {
-            throw new AuthenticationException("master password was already set");
-        }
-        char[] hashedPW = sha3_256(masterPW);
-        writeCredentials(new CredentialWrapper(), hashedPW);
-        clearCharArray(masterPW);
-        clearCharArray(hashedPW);
-    }
+    public abstract void setMasterPassword(char[] masterPW) throws AuthenticationException, IOException;
 
-    public void updateMasterPassword(char[] currentMasterPW, char[] newMasterPW) throws AuthenticationException, IOException {
-        if (!isMasterPasswordSet()) {
-            throw new AuthenticationException("master password was not set before");
-        }
-        char[] hashedCurrentPW = sha3_256(currentMasterPW);
-        char[] hashedNewPW = sha3_256(newMasterPW);
-        CredentialWrapper wrapper = readCredentials(hashedCurrentPW);
-        writeCredentials(wrapper, hashedNewPW);
-        clearCharArray(currentMasterPW);
-        clearCharArray(newMasterPW);
-        clearCharArray(hashedCurrentPW);
-        clearCharArray(hashedNewPW);
-    }
+    public abstract void updateMasterPassword(char[] currentMasterPW, char[] newMasterPW) throws AuthenticationException, IOException;
 
-    public void storeHttpsCredentials(char[] masterPW, UUID repoID,
-                                         String httpsUsername, char[] httpsPassword) throws IOException {
+    public abstract void storeHttpsCredentials(char[] masterPW, UUID repoID,
+                                         String httpsUsername, char[] httpsPassword) throws IOException;
 
-        masterPW = getCachedMasterPasswordHashIfPossible(masterPW);
-        CredentialWrapper allCredentials = readCredentials(masterPW);
-        HttpsCredentials newCredentials = new HttpsCredentials(repoID, httpsUsername, httpsPassword);
-        allCredentials.putCredentials(newCredentials);
-        writeCredentials(allCredentials, masterPW);
+    public abstract void storeHttpsCredentials(UUID repoID, String httpsUsername, char[] httpsPassword) throws IOException;
 
-        cacheMasterPasswordIfEnabled(masterPW);
-        clearCharArray(masterPW);
-        clearCharArray(httpsPassword);
-    }
+    public abstract void deleteHttpsCredentials(char[] masterPW, UUID repoID) throws IOException;
 
-    public void storeHttpsCredentials(UUID repoID, String httpsUsername, char[] httpsPassword) throws IOException {
-        throwIfMasterPasswordNotCached();
-        storeHttpsCredentials(null, repoID, httpsUsername, httpsPassword);
-    }
+    public abstract void deleteHttpsCredentials(UUID repoID) throws IOException;
 
-    public void deleteHttpsCredentials(char[] masterPW, UUID repoID) throws IOException {
-        masterPW = getCachedMasterPasswordHashIfPossible(masterPW);
-        CredentialWrapper allCredentials = readCredentials(masterPW);
-        allCredentials.removeCredentials(repoID);
-        writeCredentials(allCredentials, masterPW);
+    public abstract HttpsCredentials getHttpsCredentials(char[] masterPW, UUID repoID) throws IOException;
 
-        cacheMasterPasswordIfEnabled(masterPW);
-        clearCharArray(masterPW);
-    }
+    public abstract HttpsCredentials getHttpsCredentials(UUID repoID) throws IOException;
 
-    public void deleteHttpsCredentials(UUID repoID) throws IOException {
-        throwIfMasterPasswordNotCached();
-        deleteHttpsCredentials(null, repoID);
-    }
+    public abstract CredentialsProvider getHttpsCredentialProvider(char[] masterPW, UUID repoID) throws IOException;
 
+    public abstract CredentialsProvider getHttpsCredentialProvider(UUID repoID) throws IOException;
 
-    public HttpsCredentials getHttpsCredentials(char[] masterPW, UUID repoID) throws IOException {
-        masterPW = getCachedMasterPasswordHashIfPossible(masterPW);
-        return getHttpsCredentialsHashed(masterPW, repoID);
-    }
+    public abstract Map<UUID, CredentialsProvider> getHttpsCredentialProviders(char[] masterPW, List<RepositoryInformation> repos) throws IOException;
 
-    private HttpsCredentials getHttpsCredentialsHashed(char[] masterPWHash, UUID repoID) throws IOException {
-        CredentialWrapper allCredentials = readCredentials(masterPWHash);
-        HttpsCredentials credentials = allCredentials.getCredentials(repoID);
-        cacheMasterPasswordIfEnabled(masterPWHash);
-        clearCharArray(masterPWHash);
-        return credentials;
-    }
-
-    public HttpsCredentials getHttpsCredentials(UUID repoID) throws IOException {
-        throwIfMasterPasswordNotCached();
-        return getHttpsCredentials(null, repoID);
-    }
-
-    public CredentialsProvider getHttpsCredentialProvider(char[] masterPW, UUID repoID) throws IOException {
-        masterPW = getCachedMasterPasswordHashIfPossible(masterPW);
-        char[] masterPwCopy = Arrays.copyOf(masterPW, masterPW.length);
-        HttpsCredentials credentials = getHttpsCredentialsHashed(masterPW, repoID);
-        CredentialsProvider cp = new UsernamePasswordCredentialsProvider(credentials.getUsername(), credentials.getPassword());
-        cacheMasterPasswordIfEnabled(masterPwCopy);
-        clearCharArray(masterPwCopy);
-        return cp;
-    }
-
-    public CredentialsProvider getHttpsCredentialProvider(UUID repoID) throws IOException {
-        throwIfMasterPasswordNotCached();
-        return getHttpsCredentialProvider(null, repoID);
-    }
-
-    public Map<UUID, CredentialsProvider> getHttpsCredentialProviders(char[] masterPW, List<RepositoryInformation> repos) throws IOException {
-        masterPW = getCachedMasterPasswordHashIfPossible(masterPW);
-        Map<UUID, CredentialsProvider> map = new HashMap<>();
-        CredentialWrapper allCredentials = readCredentials(masterPW);
-        for (HttpsCredentials credentials : allCredentials.getHttpsCredentials()) {
-            map.put(credentials.getRepoID(),
-                    new UsernamePasswordCredentialsProvider(credentials.getUsername(), credentials.getPassword()));
-        }
-        for (RepositoryInformation repo : repos) {
-            if (!repo.isAuthenticated()) {
-                map.remove(repo.getID());
-            }
-        }
-        cacheMasterPasswordIfEnabled(masterPW);
-        clearCharArray(masterPW);
-        return map;
-    }
-
-    public Map<UUID, CredentialsProvider> getHttpsCredentialProviders(List<RepositoryInformation> repos) throws IOException {
-        throwIfMasterPasswordNotCached();
-        return getHttpsCredentialProviders(null, repos);
-    }
-
-    protected CredentialWrapper readCredentials(char[] masterPW) throws IOException {
-        File credsFile = openCredentialsFile();
-        byte[] bytes;
-        String credentialsXml;
-
-        try (FileInputStream fis = new FileInputStream(credsFile)) {
-            bytes = fis.readAllBytes();
-            credentialsXml = decryptFromBytes(bytes, masterPW);
-            return mapper.readValue(credentialsXml, new TypeReference<CredentialWrapper>(){});
-        } catch (BadPaddingException | IllegalBlockSizeException | JsonParseException e) {
-            throw new SecurityException("authentication failed");
-        }
-    }
-
-    protected void writeCredentials(CredentialWrapper credentials, char[] masterPW) throws IOException {
-        File credsFile = openCredentialsFile();
-        byte[] bytes;
-        String credentialsXml;
-
-        try (FileOutputStream fos = new FileOutputStream(credsFile)) {
-            credentialsXml = mapper.writeValueAsString(credentials);
-            bytes = encryptToBytes(credentialsXml, masterPW);
-            fos.write(bytes);
-            fos.flush();
-        }
-    }
-
-    private File openCredentialsFile() throws IOException {
-        File credentialsFile = new File(Utils.getProgramHomeDir() + getCredentialsFilename());
-        if (credentialsFile.exists() && credentialsFile.isDirectory()) {
-            throw new IOException("could not locate credentials file");
-        } else if (!credentialsFile.exists()) {
-            if (!credentialsFile.createNewFile()) {
-                throw new IOException("could create credentials file");
-            }
-        }
-        return credentialsFile;
-    }
+    public abstract Map<UUID, CredentialsProvider> getHttpsCredentialProviders(List<RepositoryInformation> repos) throws IOException;
 
     protected byte[] encryptToBytes(String plaintext, char[] key) {
         try {

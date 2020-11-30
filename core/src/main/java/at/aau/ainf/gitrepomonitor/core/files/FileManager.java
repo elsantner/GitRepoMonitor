@@ -1,5 +1,6 @@
 package at.aau.ainf.gitrepomonitor.core.files;
 
+import at.aau.ainf.gitrepomonitor.core.files.authentication.SecureFileStorage;
 import at.aau.ainf.gitrepomonitor.core.files.authentication.SecureStorage;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.dataformat.xml.XmlMapper;
@@ -10,8 +11,8 @@ import java.io.IOException;
 import java.util.Calendar;
 import java.util.List;
 import java.util.NoSuchElementException;
-import java.util.UUID;
 import java.util.logging.Logger;
+
 import static at.aau.ainf.gitrepomonitor.core.files.RepoListWrapper.RepoList.*;
 
 public class FileManager {
@@ -31,7 +32,7 @@ public class FileManager {
     }
 
     private FileManager() {
-        this.secureStorage = SecureStorage.getInstance();
+        this.secureStorage = SecureStorage.getImplementation();
         this.mapper = XmlMapper.xmlBuilder().build();
         this.fileRepoLists = new File(Utils.getProgramHomeDir() + "repolists.xml");
     }
@@ -42,7 +43,7 @@ public class FileManager {
 
     /**
      * Loads all stored repos.
-     * @return True, if repo auth method was reset to NONE as a consequece of missing credentials file
+     * @return True, if repo auth method was reset to NONE as a consequence of missing credentials file
      */
     public synchronized boolean init() throws IOException {
         try {
@@ -55,7 +56,13 @@ public class FileManager {
         }
         repoListWrapper.checkRepoPathValidity();
         repoListInitialized = true;
-        return !checkCredentialsFile();
+
+        // if using SecureFileStorage, check if file exists if required
+        if(SecureStorage.getImplementation() instanceof SecureFileStorage) {
+            return !checkCredentialsFile();
+        } else {
+            return false;
+        }
     }
 
     /**
@@ -210,5 +217,9 @@ public class FileManager {
                 return true;
         }
         return false;
+    }
+
+    public List<RepositoryInformation> getAllAuthenticatedRepos() {
+        return repoListWrapper.getAuthenticatedRepos();
     }
 }

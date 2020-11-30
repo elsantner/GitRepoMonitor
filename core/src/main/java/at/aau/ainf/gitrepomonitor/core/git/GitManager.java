@@ -2,7 +2,7 @@ package at.aau.ainf.gitrepomonitor.core.git;
 
 import at.aau.ainf.gitrepomonitor.core.files.FileManager;
 import at.aau.ainf.gitrepomonitor.core.files.RepositoryInformation;
-import at.aau.ainf.gitrepomonitor.core.files.authentication.HttpsCredentials;
+import at.aau.ainf.gitrepomonitor.core.files.authentication.SecureFileStorage;
 import at.aau.ainf.gitrepomonitor.core.files.authentication.SecureStorage;
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.api.MergeResult;
@@ -51,7 +51,7 @@ public class GitManager {
     private GitManager() {
         this.repoCache = new HashMap<>();
         this.fileManager = FileManager.getInstance();
-        this.secureStorage = SecureStorage.getInstance();
+        this.secureStorage = SecureStorage.getImplementation();
         this.executor = (ThreadPoolExecutor) Executors.newFixedThreadPool(10, r -> {
             Thread t = Executors.defaultThreadFactory().newThread(r);
             t.setDaemon(true);
