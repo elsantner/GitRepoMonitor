@@ -23,6 +23,7 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.CharBuffer;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.security.MessageDigest;
 import java.security.spec.KeySpec;
 import java.util.*;
@@ -91,7 +92,7 @@ public class SecureFileStorage extends SecureStorage {
         clearCharArray(currentMasterPW);
         clearCharArray(newMasterPW);
         clearCharArray(hashedCurrentPW);
-        clearCharArray(hashedNewPW);
+        cacheMasterPasswordIfEnabled(hashedNewPW);
     }
 
     public void storeHttpsCredentials(char[] masterPW, UUID repoID,
