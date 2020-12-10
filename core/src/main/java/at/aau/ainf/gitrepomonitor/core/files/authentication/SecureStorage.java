@@ -210,4 +210,6 @@ public abstract class SecureStorage {
         Arrays.fill(bufByte.array(), (byte) 0);
         return bytes;
     }
+
+    public abstract boolean isIntact(List<RepositoryInformation> authRequiredRepos);
 }

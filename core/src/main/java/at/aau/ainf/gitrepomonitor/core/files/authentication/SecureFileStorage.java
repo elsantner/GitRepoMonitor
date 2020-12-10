@@ -186,6 +186,15 @@ public class SecureFileStorage extends SecureStorage {
         return getHttpsCredentialProviders(null, repos);
     }
 
+    @Override
+    public boolean isIntact(List<RepositoryInformation> authRequiredRepos) {
+        if (authRequiredRepos.isEmpty()) {
+            return true;
+        } else {
+            return isMasterPasswordSet();
+        }
+    }
+
     protected CredentialWrapper readCredentials(char[] masterPW) throws IOException {
         File credsFile = openCredentialsFile();
         byte[] bytes;

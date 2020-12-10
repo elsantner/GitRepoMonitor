@@ -1,6 +1,5 @@
 package at.aau.ainf.gitrepomonitor.core.files;
 
-import at.aau.ainf.gitrepomonitor.core.files.authentication.SecureFileStorage;
 import at.aau.ainf.gitrepomonitor.core.files.authentication.SecureStorage;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.dataformat.xml.XmlMapper;
@@ -13,7 +12,8 @@ import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.logging.Logger;
 
-import static at.aau.ainf.gitrepomonitor.core.files.RepoListWrapper.RepoList.*;
+import static at.aau.ainf.gitrepomonitor.core.files.RepoListWrapper.RepoList.FOUND;
+import static at.aau.ainf.gitrepomonitor.core.files.RepoListWrapper.RepoList.WATCH;
 
 public class FileManager {
     private static FileManager instance;
@@ -56,23 +56,16 @@ public class FileManager {
         }
         repoListWrapper.checkRepoPathValidity();
         repoListInitialized = true;
-
-        // if using SecureFileStorage, check if file exists if required
-        if(SecureStorage.getImplementation() instanceof SecureFileStorage) {
-            return !checkCredentialsFile();
-        } else {
-            return false;
-        }
+        return checkCredentials();
     }
 
     /**
      * Check if the credentials file is present if authenticated repos exist.
      * @return False, if credentials are required but no credentials file exists (was deleted).
      */
-    private boolean checkCredentialsFile() {
+    private boolean checkCredentials() {
         List<RepositoryInformation> authRequiredRepos = repoListWrapper.getAuthenticatedRepos();
-        boolean authExists = secureStorage.isMasterPasswordSet();
-        if (!authRequiredRepos.isEmpty() && !authExists) {
+        if (!secureStorage.isIntact(authRequiredRepos)) {
             repoListWrapper.resetAuthMethodAll();
             persistRepoLists();
             return false;

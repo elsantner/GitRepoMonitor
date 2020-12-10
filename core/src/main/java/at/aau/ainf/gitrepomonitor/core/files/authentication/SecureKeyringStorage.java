@@ -234,6 +234,39 @@ public class SecureKeyringStorage extends SecureStorage {
         return getHttpsCredentialProviders(null, repos);
     }
 
+    /**
+     * Check if for all given repos a valid password entry exists.
+     * If not, all other entries are deleted.
+     * @param authRequiredRepos Repos which require stored credentials information.
+     * @return
+     */
+    @Override
+    public boolean isIntact(List<RepositoryInformation> authRequiredRepos) {
+        if (authRequiredRepos.isEmpty()) {
+            return true;
+        } else {
+            if (!isMasterPasswordSet()) {
+                return false;
+            } else {
+                try {
+                    for (RepositoryInformation repo : authRequiredRepos) {
+                        keyring.getPassword(SERVICE, repo.getID().toString());
+                    }
+                    return true;
+                } catch (PasswordAccessException ex) {
+                    for (RepositoryInformation repo : authRequiredRepos) {
+                        try {
+                            keyring.deletePassword(SERVICE, repo.getID().toString());
+                        } catch (PasswordAccessException e) {
+                            // means that password did not exist so no need for any action
+                        }
+                    }
+                    return false;
+                }
+            }
+        }
+    }
+
     private boolean isMasterPasswordCorrect(char[] masterPW) throws PasswordAccessException {
         String pw = keyring.getPassword(getServiceName(), MP_SET);
         try {
