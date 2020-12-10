@@ -1,6 +1,7 @@
 package at.aau.ainf.gitrepomonitor.gui.settings;
 
 import at.aau.ainf.gitrepomonitor.core.files.authentication.SecureStorage;
+import at.aau.ainf.gitrepomonitor.core.files.authentication.SecureStorageSettings;
 import at.aau.ainf.gitrepomonitor.gui.ErrorDisplay;
 import at.aau.ainf.gitrepomonitor.gui.MasterPasswordQuery;
 import at.aau.ainf.gitrepomonitor.gui.ResourceStore;
@@ -74,6 +75,21 @@ public class ControllerSettings implements Initializable, ErrorDisplay, MasterPa
 
     private void loadSettings() {
         ckboxCacheMP.setSelected(secStorage.isMasterPasswordCacheEnabled());
+        SecureStorageSettings settings = secStorage.getSettings();
+
+        switch (settings.getClearMethod()) {
+            case NONE:
+                radioBtnDontClear.setSelected(true);
+                break;
+            case MAX_USES:
+                radioBtnMaxUses.setSelected(true);
+                txtMaxNumUses.setText(String.valueOf(settings.getClearValue()));
+                break;
+            case EXPIRATION_TIME:
+                radioBtnExpirationTime.setSelected(true);
+                txtExpirationTime.setText(String.valueOf(settings.getClearValue()));
+                break;
+        }
     }
 
     @FXML
@@ -87,6 +103,7 @@ public class ControllerSettings implements Initializable, ErrorDisplay, MasterPa
     public void onBtnSaveClick(ActionEvent actionEvent) {
         try {
             secStorage.enableMasterPasswordCache(ckboxCacheMP.isSelected());
+            secStorage.setMasterPasswordCacheMethod(getCacheClearMethod(), getCacheClearValue());
 
             Stage stage = (Stage) ckboxCacheMP.getScene().getWindow();
             stage.close();
@@ -95,6 +112,26 @@ public class ControllerSettings implements Initializable, ErrorDisplay, MasterPa
         } catch (Exception ex) {
             showError(ex.getMessage());
             ex.printStackTrace();
+        }
+    }
+
+    private Integer getCacheClearValue() {
+        if (radioBtnDontClear.isSelected()) {
+            return null;
+        } else if (radioBtnMaxUses.isSelected()) {
+            return Integer.parseInt(txtMaxNumUses.getText());
+        } else {
+            return Integer.parseInt(txtExpirationTime.getText());
+        }
+    }
+
+    private SecureStorageSettings.CacheClearMethod getCacheClearMethod() {
+        if (radioBtnDontClear.isSelected()) {
+            return SecureStorageSettings.CacheClearMethod.NONE;
+        } else if (radioBtnMaxUses.isSelected()) {
+            return SecureStorageSettings.CacheClearMethod.MAX_USES;
+        } else {
+            return SecureStorageSettings.CacheClearMethod.EXPIRATION_TIME;
         }
     }
 

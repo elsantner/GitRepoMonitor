@@ -34,6 +34,10 @@ public abstract class SecureStorage {
     protected char[] masterPassword;
     protected SecureStorageSettings settings;
     protected File fileSettings = new File(Utils.getProgramHomeDir() + "settings.xml");
+    protected int mpUseCount = 0;
+    protected Timer timer = new Timer();
+    protected TimerTask mpExpirationTimerTask;
+    protected final Object lockMasterPasswordReset = new Object();
 
     protected SecureStorage() {
         this.mapper = XmlMapper.xmlBuilder().build();
@@ -61,12 +65,27 @@ public abstract class SecureStorage {
         this.settings.setCacheEnabled(cacheMasterPassword);
         if (!cacheMasterPassword) {
             masterPassword = null;
+            stopMPExpirationTimer();
         }
         persistSettings();
     }
 
     public boolean isMasterPasswordCacheEnabled() {
         return this.settings.isCacheEnabled();
+    }
+
+    public synchronized void setMasterPasswordCacheMethod(SecureStorageSettings.CacheClearMethod method, Integer value) {
+        this.settings.setClearMethod(method);
+        this.settings.setClearValue(value);
+        persistSettings();
+        // reset mp cache & clearing mechanisms
+        resetMPUseCount();
+        stopMPExpirationTimer();
+        clearCachedMasterPassword();
+    }
+
+    public SecureStorageSettings getSettings() {
+        return (SecureStorageSettings) this.settings.clone();
     }
 
     /**
@@ -77,8 +96,10 @@ public abstract class SecureStorage {
     }
 
     public void clearCachedMasterPassword() {
-        clearCharArray(masterPassword);
-        masterPassword = null;
+        if (masterPassword != null) {
+            clearCharArray(masterPassword);
+            masterPassword = null;
+        }
     }
 
     protected void clearCharArray(char[] a) {
@@ -233,5 +254,55 @@ public abstract class SecureStorage {
             e.printStackTrace();
             settings = new SecureStorageSettings();
         }
+    }
+
+    protected synchronized void clearMasterPasswordIfRequired() {
+        incrementAndCheckMPUseCount();
+        startMPExpirationTimerIfNotStarted();
+    }
+
+    protected synchronized void incrementAndCheckMPUseCount() {
+        if (settings.isCacheEnabled() && settings.getClearMethod() == SecureStorageSettings.CacheClearMethod.MAX_USES) {
+            mpUseCount++;
+            if (mpUseCount > settings.getClearValue()) {
+                synchronized (lockMasterPasswordReset) {
+                    resetMPUseCount();
+                    clearCachedMasterPassword();
+                    Logger.getAnonymousLogger().info("Reset mp (use count)");
+                }
+            }
+        }
+    }
+
+    protected synchronized void resetMPUseCount() {
+        mpUseCount = 0;
+    }
+
+    protected synchronized void startMPExpirationTimerIfNotStarted() {
+        if (settings.isCacheEnabled() && settings.getClearMethod() == SecureStorageSettings.CacheClearMethod.EXPIRATION_TIME &&
+                mpExpirationTimerTask == null) {
+            synchronized (lockMasterPasswordReset) {
+                mpExpirationTimerTask = new TimerTask() {
+                    @Override
+                    public void run() {
+                        clearCachedMasterPassword();
+                        Logger.getAnonymousLogger().info("Reset mp (timer)");
+                    }
+                };
+                timer.schedule(mpExpirationTimerTask, settings.getClearValue() * 60 * 1000);
+            }
+        }
+    }
+
+    protected synchronized void stopMPExpirationTimer() {
+        if (mpExpirationTimerTask != null) {
+            mpExpirationTimerTask.cancel();
+            mpExpirationTimerTask = null;
+        }
+    }
+
+    protected synchronized void restartMPExpirationTimer() {
+        stopMPExpirationTimer();
+        startMPExpirationTimerIfNotStarted();
     }
 }

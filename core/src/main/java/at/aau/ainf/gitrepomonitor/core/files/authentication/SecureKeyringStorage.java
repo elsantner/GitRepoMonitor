@@ -82,28 +82,7 @@ public class SecureKeyringStorage extends SecureStorage {
 
     @Override
     public void updateMasterPassword(char[] currentMasterPW, char[] newMasterPW) throws AuthenticationException, IOException {
-        if (!isMasterPasswordSet()) {
-            throw new AuthenticationException("master password was not set before");
-        }
-        char[] hashedCurrentPW = sha3_256(currentMasterPW);
-        char[] hashedNewPW = sha3_256(newMasterPW);
-
-        try {
-            if (!isMasterPasswordCorrect(hashedCurrentPW)) {
-                throw new AuthenticationException("wrong master password");
-            }
-
-            for (RepositoryInformation repo : FileManager.getInstance().getAllAuthenticatedRepos()) {
-                if (repo.getAuthMethod() == RepositoryInformation.AuthMethod.HTTPS) {
-                    HttpsCredentials creds = readHttpsCredentials(hashedCurrentPW, repo.getID());
-                    writeHttpsCredentials(hashedNewPW, repo.getID(), creds.getUsername(), creds.getPassword());
-                }
-            }
-            keyring.setPassword(getServiceName(), MP_SET, encrypt(new String(hashedNewPW), hashedNewPW));
-            cacheMasterPasswordIfEnabled(hashedNewPW);
-        } catch (PasswordAccessException e) {
-            throw new AuthenticationException("authentication failed");
-        }
+        updateMasterPassword(currentMasterPW, newMasterPW, FileManager.getInstance().getAllAuthenticatedRepos());
     }
 
     public void updateMasterPassword(char[] currentMasterPW, char[] newMasterPW, List<RepositoryInformation> affectedRepos) throws AuthenticationException, IOException {
@@ -126,6 +105,9 @@ public class SecureKeyringStorage extends SecureStorage {
             }
             keyring.setPassword(getServiceName(), MP_SET, encrypt(new String(hashedNewPW), hashedNewPW));
             cacheMasterPasswordIfEnabled(hashedNewPW);
+            // reset mp clear mechanisms
+            resetMPUseCount();
+            restartMPExpirationTimer();
         } catch (PasswordAccessException e) {
             throw new AuthenticationException("authentication failed");
         }
@@ -133,15 +115,18 @@ public class SecureKeyringStorage extends SecureStorage {
 
     @Override
     public void storeHttpsCredentials(char[] masterPW, UUID repoID, String httpsUsername, char[] httpsPassword) throws IOException {
-        try {
-            masterPW = getAndCheckMasterPassword(masterPW);
-            writeHttpsCredentials(masterPW, repoID, httpsUsername, httpsPassword);
-            cacheMasterPasswordIfEnabled(masterPW);
-        } catch (PasswordAccessException e) {
-            throw new IOException("could not store credentials");
-        } finally {
-            clearCharArray(masterPW);
-            clearCharArray(httpsPassword);
+        synchronized (lockMasterPasswordReset) {
+            try {
+                masterPW = getAndCheckMasterPassword(masterPW);
+                writeHttpsCredentials(masterPW, repoID, httpsUsername, httpsPassword);
+                cacheMasterPasswordIfEnabled(masterPW);
+                clearMasterPasswordIfRequired();
+            } catch (PasswordAccessException e) {
+                throw new IOException("could not store credentials");
+            } finally {
+                clearCharArray(masterPW);
+                clearCharArray(httpsPassword);
+            }
         }
     }
 
@@ -157,14 +142,17 @@ public class SecureKeyringStorage extends SecureStorage {
 
     @Override
     public void deleteHttpsCredentials(char[] masterPW, UUID repoID) throws IOException {
-        try {
-            masterPW = getAndCheckMasterPassword(masterPW);
-            keyring.deletePassword(getServiceName(), repoID.toString());
-            cacheMasterPasswordIfEnabled(masterPW);
-        } catch (PasswordAccessException ex) {
-            throw new IOException(ex);
-        } finally {
-            clearCharArray(masterPW);
+        synchronized (lockMasterPasswordReset) {
+            try {
+                masterPW = getAndCheckMasterPassword(masterPW);
+                keyring.deletePassword(getServiceName(), repoID.toString());
+                cacheMasterPasswordIfEnabled(masterPW);
+                clearMasterPasswordIfRequired();
+            } catch (PasswordAccessException ex) {
+                throw new IOException(ex);
+            } finally {
+                clearCharArray(masterPW);
+            }
         }
     }
 
@@ -188,23 +176,30 @@ public class SecureKeyringStorage extends SecureStorage {
 
     @Override
     public HttpsCredentials getHttpsCredentials(char[] masterPW, UUID repoID) throws IOException {
-        masterPW = getAndCheckMasterPassword(masterPW);
-        HttpsCredentials creds = readHttpsCredentials(masterPW, repoID);
-        cacheMasterPasswordIfEnabled(masterPW);
-        return creds;
+        synchronized (lockMasterPasswordReset) {
+            masterPW = getAndCheckMasterPassword(masterPW);
+            HttpsCredentials creds = readHttpsCredentials(masterPW, repoID);
+            cacheMasterPasswordIfEnabled(masterPW);
+            clearMasterPasswordIfRequired();
+            return creds;
+        }
     }
 
     @Override
     public HttpsCredentials getHttpsCredentials(UUID repoID) throws IOException {
+        throwIfMasterPasswordNotCached();
         return getHttpsCredentials(null, repoID);
     }
 
     @Override
     public CredentialsProvider getHttpsCredentialProvider(char[] masterPW, UUID repoID) throws IOException {
-        masterPW = getCachedMasterPasswordHashIfPossible(masterPW);
-        HttpsCredentials credentials = readHttpsCredentials(masterPW, repoID);
-        cacheMasterPasswordIfEnabled(masterPW);
-        return new UsernamePasswordCredentialsProvider(credentials.getUsername(), credentials.getPassword());
+        synchronized (lockMasterPasswordReset) {
+            masterPW = getCachedMasterPasswordHashIfPossible(masterPW);
+            HttpsCredentials credentials = readHttpsCredentials(masterPW, repoID);
+            cacheMasterPasswordIfEnabled(masterPW);
+            clearMasterPasswordIfRequired();
+            return new UsernamePasswordCredentialsProvider(credentials.getUsername(), credentials.getPassword());
+        }
     }
 
     @Override
@@ -214,23 +209,29 @@ public class SecureKeyringStorage extends SecureStorage {
 
     @Override
     public Map<UUID, CredentialsProvider> getHttpsCredentialProviders(char[] masterPW, List<RepositoryInformation> repos) {
-        Map<UUID, CredentialsProvider> map = new HashMap<>();
+        synchronized (lockMasterPasswordReset) {
+            Map<UUID, CredentialsProvider> map = new HashMap<>();
 
-        for (RepositoryInformation repo : repos) {
-            try {
-                if (repo.isAuthenticated()) {
-                    CredentialsProvider credProv = getHttpsCredentialProvider(masterPW, repo.getID());
-                    map.put(repo.getID(), credProv);
+            masterPW = getCachedMasterPasswordHashIfPossible(masterPW);
+            for (RepositoryInformation repo : repos) {
+                try {
+                    if (repo.isAuthenticated()) {
+                        HttpsCredentials credentials = readHttpsCredentials(masterPW, repo.getID());
+                        CredentialsProvider credProv = new UsernamePasswordCredentialsProvider(credentials.getUsername(), credentials.getPassword());
+                        map.put(repo.getID(), credProv);
+                    }
+                } catch (IOException ex) {
+                    // means that repo has no stored credentials, continue loop
                 }
-            } catch (IOException ex) {
-                // means that repo has no stored credentialscontinue loop
             }
+            cacheMasterPasswordIfEnabled(masterPW);
+            clearMasterPasswordIfRequired();
+            return map;
         }
-        return map;
     }
 
     @Override
-    public Map<UUID, CredentialsProvider> getHttpsCredentialProviders(List<RepositoryInformation> repos) throws IOException {
+    public Map<UUID, CredentialsProvider> getHttpsCredentialProviders(List<RepositoryInformation> repos) {
         return getHttpsCredentialProviders(null, repos);
     }
 
@@ -238,7 +239,7 @@ public class SecureKeyringStorage extends SecureStorage {
      * Check if for all given repos a valid password entry exists.
      * If not, all other entries are deleted.
      * @param authRequiredRepos Repos which require stored credentials information.
-     * @return
+     * @return True, if credentials are intact
      */
     @Override
     public boolean isIntact(List<RepositoryInformation> authRequiredRepos) {

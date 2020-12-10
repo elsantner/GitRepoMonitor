@@ -1,11 +1,11 @@
 package at.aau.ainf.gitrepomonitor.core.files.authentication;
 
-public class SecureStorageSettings {
+public class SecureStorageSettings implements Cloneable {
     private boolean cacheEnabled = true;
     private CacheClearMethod clearMethod = CacheClearMethod.NONE;
-    private int clearValue;
+    private Integer clearValue;
 
-    protected enum CacheClearMethod {
+    public enum CacheClearMethod {
         NONE,
         MAX_USES,
         EXPIRATION_TIME
@@ -27,11 +27,20 @@ public class SecureStorageSettings {
         this.clearMethod = clearMethod;
     }
 
-    public int getClearValue() {
+    public Integer getClearValue() {
         return clearValue;
     }
 
-    public void setClearValue(int clearValue) {
+    public void setClearValue(Integer clearValue) {
         this.clearValue = clearValue;
+    }
+
+    @Override
+    public Object clone() {
+        try {
+            return super.clone();
+        } catch (CloneNotSupportedException e) {
+            return null;
+        }
     }
 }
