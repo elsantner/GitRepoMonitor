@@ -16,7 +16,9 @@ import javafx.scene.control.TextField;
 import javafx.scene.layout.AnchorPane;
 import javafx.scene.layout.HBox;
 import javafx.stage.Stage;
+import javafx.util.Pair;
 
+import javax.naming.AuthenticationException;
 import java.net.URL;
 import java.util.ResourceBundle;
 import java.util.regex.Pattern;
@@ -137,6 +139,16 @@ public class ControllerSettings implements Initializable, ErrorDisplay, MasterPa
 
     @FXML
     public void onBtnChangeMPClick(ActionEvent actionEvent) {
+        try {
+            Pair<String, String> input = showChangeMasterPasswordInputDialog();
+            if (input != null) {
+                secStorage.updateMasterPassword(input.getKey().toCharArray(), input.getValue().toCharArray());
+            }
+        } catch (SecurityException | AuthenticationException ex) {
+            showError("Wrong Master Password");
+        } catch (Exception ex) {
+            showError(ex.getMessage());
+        }
     }
 
     private void validateInput() {

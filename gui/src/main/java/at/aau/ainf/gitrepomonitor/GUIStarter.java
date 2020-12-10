@@ -1,5 +1,6 @@
 package at.aau.ainf.gitrepomonitor;
 
+import at.aau.ainf.gitrepomonitor.core.files.authentication.SecureStorage;
 import at.aau.ainf.gitrepomonitor.gui.ResourceStore;
 import at.aau.ainf.gitrepomonitor.gui.reposcan.ControllerScan;
 import javafx.application.Application;
@@ -56,11 +57,14 @@ public class GUIStarter extends Application {
             closeConfirmation.initOwner(primaryStage);
 
             Optional<ButtonType> closeResponse = closeConfirmation.showAndWait();
-            if (!ButtonType.OK.equals(closeResponse.get())) {
+            if (closeResponse.isEmpty() || !ButtonType.OK.equals(closeResponse.get())) {
                 event.consume();
             } else {
                 ControllerScan.stopScanningProcess();
+                SecureStorage.getImplementation().cleanup();
             }
+        } else {
+            SecureStorage.getImplementation().cleanup();
         }
     };
 

@@ -35,7 +35,7 @@ public abstract class SecureStorage {
     protected SecureStorageSettings settings;
     protected File fileSettings = new File(Utils.getProgramHomeDir() + "settings.xml");
     protected int mpUseCount = 0;
-    protected Timer timer = new Timer();
+    protected Timer timer;
     protected TimerTask mpExpirationTimerTask;
     protected final Object lockMasterPasswordReset = new Object();
 
@@ -289,6 +289,7 @@ public abstract class SecureStorage {
                         Logger.getAnonymousLogger().info("Reset mp (timer)");
                     }
                 };
+                timer = new Timer();
                 timer.schedule(mpExpirationTimerTask, settings.getClearValue() * 60 * 1000);
             }
         }
@@ -304,5 +305,12 @@ public abstract class SecureStorage {
     protected synchronized void restartMPExpirationTimer() {
         stopMPExpirationTimer();
         startMPExpirationTimerIfNotStarted();
+    }
+
+    public void cleanup() {
+        if (timer != null) {
+            timer.cancel();
+            timer = null;
+        }
     }
 }
