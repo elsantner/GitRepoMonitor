@@ -56,7 +56,7 @@ public class FileManager {
         }
         repoListWrapper.checkRepoPathValidity();
         repoListInitialized = true;
-        return checkCredentials();
+        return !checkCredentials();
     }
 
     /**

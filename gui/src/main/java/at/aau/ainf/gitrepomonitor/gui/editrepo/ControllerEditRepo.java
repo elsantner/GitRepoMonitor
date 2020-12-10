@@ -13,6 +13,7 @@ import at.aau.ainf.gitrepomonitor.gui.ResourceStore;
 import javafx.application.Platform;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
+import javafx.fxml.FXMLLoader;
 import javafx.fxml.Initializable;
 import javafx.scene.control.*;
 import javafx.scene.image.ImageView;
@@ -67,6 +68,11 @@ public class ControllerEditRepo implements Initializable, ErrorDisplay, MasterPa
     private RepositoryInformation repo;
 
     private boolean httpsCredentialsChanged;
+
+    public static FXMLLoader getLoader() {
+        return new FXMLLoader(ControllerEditRepo.class.getResource("/at/aau/ainf/gitrepomonitor/gui/editrepo/edit_repo.fxml"),
+                ResourceStore.getResourceBundle());
+    }
 
     @Override
     public void initialize(URL location, ResourceBundle resources) {

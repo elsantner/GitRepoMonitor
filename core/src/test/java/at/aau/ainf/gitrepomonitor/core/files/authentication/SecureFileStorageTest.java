@@ -4,11 +4,6 @@ import com.github.javakeyring.Keyring;
 import org.junit.After;
 import org.junit.Test;
 
-import javax.crypto.*;
-import javax.crypto.spec.SecretKeySpec;
-import java.io.*;
-import java.security.*;
-import java.security.cert.CertificateException;
 import java.util.UUID;
 
 import static org.junit.Assert.*;
@@ -62,7 +57,7 @@ public class SecureFileStorageTest {
     @Test
     public void testSetMasterPW() throws Exception {
         SecureFileStorageTestable secStorage = new SecureFileStorageTestable();
-        secStorage.setCacheMasterPassword(true);
+        secStorage.enableMasterPasswordCache(true);
         assertFalse(secStorage.isMasterPasswordSet());
         secStorage.setMasterPassword("someMasterPW".toCharArray());
         assertTrue(secStorage.isMasterPasswordSet());

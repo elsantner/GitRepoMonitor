@@ -1,52 +1,79 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
 <?import at.aau.ainf.gitrepomonitor.gui.main.CommitLogView?>
-<?import javafx.geometry.*?>
-<?import javafx.scene.control.*?>
-<?import javafx.scene.image.*?>
-<?import javafx.scene.layout.*?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.ListView?>
+<?import javafx.scene.control.ProgressIndicator?>
+<?import javafx.scene.control.SplitPane?>
+<?import javafx.scene.control.Tooltip?>
+<?import javafx.scene.image.Image?>
+<?import javafx.scene.image.ImageView?>
+<?import javafx.scene.layout.AnchorPane?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.VBox?>
+
 <AnchorPane maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="379.0" prefWidth="672.0" xmlns="http://javafx.com/javafx/8.0.171" xmlns:fx="http://javafx.com/fxml/1" fx:controller="at.aau.ainf.gitrepomonitor.gui.main.ControllerMain">
-    <HBox alignment="CENTER_LEFT" layoutX="6.0" layoutY="14.0" prefHeight="23.0" AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="0.0">
+    <HBox AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="0.0">
         <padding>
-            <Insets left="10.0" right="3.0" top="5.0" />
+            <Insets left="10.0" right="10.0"/>
         </padding>
-        <Button minWidth="80.0" mnemonicParsing="false" onAction="#btnScanClicked" prefHeight="30.0" text="%btn.scanpc">
-            <tooltip>
-                <Tooltip text="%btn.scanpc.tooltip" />
-            </tooltip>
-            <graphic>
-                <ImageView fitHeight="37.0" fitWidth="22.0" pickOnBounds="true" preserveRatio="true">
-                    <Image url="@../icons/icon_scan.png" />
-                </ImageView>
-            </graphic>
-        </Button>
-        <ProgressIndicator fx:id="indicatorScanRunning" prefHeight="30.0" prefWidth="34.0" />
-      <Button fx:id="btnCheckStatus" minWidth="80.0" mnemonicParsing="false" onAction="#btnCheckStatusClicked" prefHeight="30.0" text="%btn.checkstatus" HBox.hgrow="ALWAYS">
-         <tooltip>
-            <Tooltip text="%btn.checkstatus.tooltip" />
-         </tooltip>
-         <graphic>
-             <ImageView fitHeight="37.0" fitWidth="22.0" pickOnBounds="true" preserveRatio="true">
-                 <Image url="@../icons/icon_update_status.png" />
-             </ImageView>
-         </graphic>
-         <HBox.margin>
-            <Insets left="10.0" />
-         </HBox.margin>
-      </Button>
-      <Button fx:id="btnPullAll" minWidth="80.0" mnemonicParsing="false" onAction="#btnPullAllClicked" prefHeight="30.0" text="%btn.pull_all" HBox.hgrow="ALWAYS">
-         <tooltip>
-            <Tooltip text="%btn.checkstatus.tooltip" />
-         </tooltip>
-         <graphic>
-             <ImageView fitHeight="37.0" fitWidth="22.0" pickOnBounds="true" preserveRatio="true">
-                 <Image url="@../icons/icon_pull.png" />
-             </ImageView>
-         </graphic>
-         <HBox.margin>
-            <Insets left="10.0" />
-         </HBox.margin>
-      </Button>
+        <HBox alignment="CENTER_LEFT" prefHeight="23.0">
+            <padding>
+                <Insets right="3.0" top="5.0"/>
+            </padding>
+            <Button minWidth="80.0" mnemonicParsing="false" onAction="#btnScanClicked" prefHeight="30.0"
+                    text="%btn.scanpc">
+                <tooltip>
+                    <Tooltip text="%btn.scanpc.tooltip"/>
+                </tooltip>
+                <graphic>
+                    <ImageView fitHeight="22.0" fitWidth="22.0" pickOnBounds="true" preserveRatio="true">
+                        <Image url="@../icons/icon_scan.png"/>
+                    </ImageView>
+                </graphic>
+            </Button>
+            <ProgressIndicator fx:id="indicatorScanRunning" prefHeight="30.0" prefWidth="34.0"/>
+          <Button fx:id="btnCheckStatus" minWidth="80.0" mnemonicParsing="false" onAction="#btnCheckStatusClicked"
+                  prefHeight="30.0" text="%btn.checkstatus" HBox.hgrow="ALWAYS">
+              <tooltip>
+                  <Tooltip text="%btn.checkstatus.tooltip"/>
+              </tooltip>
+              <graphic>
+                  <ImageView fitHeight="22.0" fitWidth="22.0" pickOnBounds="true" preserveRatio="true">
+                      <Image url="@../icons/icon_update_status.png"/>
+                  </ImageView>
+              </graphic>
+              <HBox.margin>
+                  <Insets left="10.0"/>
+              </HBox.margin>
+          </Button>
+          <Button fx:id="btnPullAll" minWidth="80.0" mnemonicParsing="false" onAction="#btnPullAllClicked"
+                  prefHeight="30.0" text="%btn.pull_all" HBox.hgrow="ALWAYS">
+              <tooltip>
+                  <Tooltip text="%btn.checkstatus.tooltip"/>
+              </tooltip>
+              <graphic>
+                  <ImageView fitHeight="22.0" fitWidth="22.0" pickOnBounds="true" preserveRatio="true">
+                      <Image url="@../icons/icon_pull.png"/>
+                  </ImageView>
+              </graphic>
+              <HBox.margin>
+                  <Insets left="10.0"/>
+              </HBox.margin>
+          </Button>
+        </HBox>
+        <HBox alignment="CENTER_RIGHT" HBox.hgrow="ALWAYS">
+            <Button mnemonicParsing="false" onAction="#btnSettingsClicked">
+                <graphic>
+                    <ImageView fitHeight="22.0" fitWidth="22.0" pickOnBounds="true" preserveRatio="true">
+                        <Image url="@../icons/icon_settings.png"/>
+                    </ImageView>
+                </graphic>
+            </Button>
+        </HBox>
     </HBox>
    <Label fx:id="lblStatus" layoutX="14.0" layoutY="330.0" AnchorPane.bottomAnchor="10.0" AnchorPane.leftAnchor="10.0" AnchorPane.rightAnchor="10.0" />
     <SplitPane dividerPositions="0.35" prefHeight="160.0" prefWidth="200.0" AnchorPane.bottomAnchor="30.0" AnchorPane.leftAnchor="10.0" AnchorPane.rightAnchor="10.0" AnchorPane.topAnchor="40.0">
@@ -63,10 +90,9 @@
             </HBox>
         </AnchorPane>
         <AnchorPane minHeight="0.0" minWidth="0.0" prefHeight="160.0" prefWidth="100.0">
-            <Label fx:id="lblCommitLog" style="-fx-font-style: italic;" AnchorPane.leftAnchor="0.0"
-                   AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="0.0">
+            <Label fx:id="lblCommitLog" style="-fx-font-style: italic;" AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="0.0">
                 <padding>
-                    <Insets left="10.0" right="10.0"/>
+                    <Insets left="10.0" right="10.0" />
                 </padding>
             </Label>
             <CommitLogView fx:id="commitLogView" prefHeight="200.0" prefWidth="200.0" AnchorPane.bottomAnchor="0.0"

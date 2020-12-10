@@ -3,13 +3,13 @@ package at.aau.ainf.gitrepomonitor.gui.main;
 import at.aau.ainf.gitrepomonitor.core.files.FileManager;
 import at.aau.ainf.gitrepomonitor.core.files.RepositoryInformation;
 import at.aau.ainf.gitrepomonitor.core.files.Utils;
-import at.aau.ainf.gitrepomonitor.core.files.authentication.SecureFileStorage;
 import at.aau.ainf.gitrepomonitor.core.files.authentication.SecureStorage;
 import at.aau.ainf.gitrepomonitor.core.git.GitManager;
 import at.aau.ainf.gitrepomonitor.core.git.PullListener;
 import at.aau.ainf.gitrepomonitor.gui.*;
 import at.aau.ainf.gitrepomonitor.gui.repolist.RepositoryInformationCellFactory;
 import at.aau.ainf.gitrepomonitor.gui.reposcan.ControllerScan;
+import at.aau.ainf.gitrepomonitor.gui.settings.ControllerSettings;
 import javafx.application.Platform;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
@@ -81,8 +81,6 @@ public class ControllerMain extends StatusBarController implements Initializable
         });
         secureStorage = SecureStorage.getImplementation();
         setupUI();
-        // TODO: let user choose to cache mp or not
-        secureStorage.setCacheMasterPassword(true);
     }
 
     private void setupUI() {
@@ -132,8 +130,7 @@ public class ControllerMain extends StatusBarController implements Initializable
     }
 
     private void openScanWindow() throws IOException {
-        FXMLLoader loader = new FXMLLoader(getClass().getResource("/at/aau/ainf/gitrepomonitor/gui/reposcan/scan.fxml"),
-                ResourceStore.getResourceBundle());
+        FXMLLoader loader = ControllerScan.getLoader();
         Parent root = loader.load();
         ControllerScan controller = loader.getController();
 
@@ -211,5 +208,21 @@ public class ControllerMain extends StatusBarController implements Initializable
         if (repo != null && repo.getPath().equals(path)) {
             updateCommitLog(repo);
         }
+    }
+
+    @FXML
+    public void btnSettingsClicked(ActionEvent actionEvent) throws IOException {
+        FXMLLoader loader = ControllerSettings.getLoader();
+        Parent root = loader.load();
+
+        Stage stage = new Stage();
+        stage.initModality(Modality.APPLICATION_MODAL);
+        stage.initStyle(StageStyle.DECORATED);
+        stage.setTitle(ResourceStore.getString("settings"));
+        stage.setScene(new Scene(root));
+        stage.sizeToScene();
+        stage.show();
+        stage.setMinWidth(stage.getWidth());
+        stage.setMinHeight(stage.getHeight());
     }
 }

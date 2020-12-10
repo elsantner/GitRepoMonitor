@@ -2,11 +2,9 @@ package at.aau.ainf.gitrepomonitor.core.files.authentication;
 
 import at.aau.ainf.gitrepomonitor.core.files.RepositoryInformation;
 import at.aau.ainf.gitrepomonitor.core.files.Utils;
-import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.dataformat.xml.XmlMapper;
 import org.eclipse.jgit.transport.CredentialsProvider;
-import org.eclipse.jgit.transport.UsernamePasswordCredentialsProvider;
 
 import javax.crypto.BadPaddingException;
 import javax.crypto.Cipher;
@@ -17,8 +15,6 @@ import javax.crypto.spec.PBEKeySpec;
 import javax.crypto.spec.SecretKeySpec;
 import javax.naming.AuthenticationException;
 import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.CharBuffer;
@@ -26,6 +22,7 @@ import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.spec.KeySpec;
 import java.util.*;
+import java.util.logging.Logger;
 
 
 public abstract class SecureStorage {
@@ -35,10 +32,12 @@ public abstract class SecureStorage {
 
     protected XmlMapper mapper;
     protected char[] masterPassword;
-    protected boolean cacheMasterPassword = false;
+    protected SecureStorageSettings settings;
+    protected File fileSettings = new File(Utils.getProgramHomeDir() + "settings.xml");
 
     protected SecureStorage() {
         this.mapper = XmlMapper.xmlBuilder().build();
+        loadSettings();
     }
 
     public static SecureStorage getImplementation() {
@@ -58,11 +57,16 @@ public abstract class SecureStorage {
      * can be called without it.
      * @param cacheMasterPassword True, if master password should be cached.
      */
-    public synchronized void setCacheMasterPassword(boolean cacheMasterPassword) {
-        this.cacheMasterPassword = cacheMasterPassword;
+    public synchronized void enableMasterPasswordCache(boolean cacheMasterPassword) {
+        this.settings.setCacheEnabled(cacheMasterPassword);
         if (!cacheMasterPassword) {
             masterPassword = null;
         }
+        persistSettings();
+    }
+
+    public boolean isMasterPasswordCacheEnabled() {
+        return this.settings.isCacheEnabled();
     }
 
     /**
@@ -82,7 +86,7 @@ public abstract class SecureStorage {
     }
 
     protected synchronized void cacheMasterPasswordIfEnabled(char[] masterPassword) {
-        if (cacheMasterPassword) {
+        if (settings.isCacheEnabled()) {
             this.masterPassword = Arrays.copyOf(masterPassword, masterPassword.length);
         }
     }
@@ -212,4 +216,22 @@ public abstract class SecureStorage {
     }
 
     public abstract boolean isIntact(List<RepositoryInformation> authRequiredRepos);
+
+    private void persistSettings() {
+        try {
+            mapper.writeValue(fileSettings, settings);
+            Logger.getAnonymousLogger().info("Wrote settings to " + fileSettings.getAbsolutePath());
+        } catch (IOException ex) {
+            ex.printStackTrace();
+        }
+    }
+
+    private void loadSettings() {
+        try {
+            settings = mapper.readValue(fileSettings, new TypeReference<SecureStorageSettings>(){});
+        } catch (IOException e) {
+            e.printStackTrace();
+            settings = new SecureStorageSettings();
+        }
+    }
 }

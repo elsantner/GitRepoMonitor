@@ -17,7 +17,7 @@ public class SecureKeyringStorageTest {
     @Test
     public void testSetMasterPW() throws Exception {
         SecureKeyringStorageTestable secStorage = new SecureKeyringStorageTestable();
-        secStorage.setCacheMasterPassword(true);
+        secStorage.enableMasterPasswordCache(true);
         assertFalse(secStorage.isMasterPasswordSet());
         secStorage.setMasterPassword("someMasterPW".toCharArray());
         assertTrue(secStorage.isMasterPasswordSet());

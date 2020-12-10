@@ -143,8 +143,7 @@ public class RepositoryInformationContextMenu extends ContextMenu implements Err
     }
 
     private void openEditWindow(RepositoryInformation repo) throws IOException {
-        FXMLLoader loader = new FXMLLoader(getClass().getResource("/at/aau/ainf/gitrepomonitor/gui/editrepo/edit_repo.fxml"),
-                ResourceStore.getResourceBundle());
+        FXMLLoader loader = ControllerEditRepo.getLoader();
         Parent root = loader.load();
         ((ControllerEditRepo)loader.getController()).setRepo(repo);     // set repo information to display
 
