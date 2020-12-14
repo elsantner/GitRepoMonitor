@@ -285,7 +285,7 @@ public class SecureKeyringStorage extends SecureStorage {
         if (isMasterPasswordCached()) {
             return getCachedMasterPasswordHashIfPossible(masterPW);
         } else {
-            if (!isHashed) {
+            if (masterPW != null && !isHashed) {
                 char[] hashedPW = sha3_256(masterPW);
                 clearCharArray(masterPW);
                 masterPW = hashedPW;

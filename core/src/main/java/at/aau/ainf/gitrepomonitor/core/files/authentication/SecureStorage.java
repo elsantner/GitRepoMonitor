@@ -29,23 +29,60 @@ public abstract class SecureStorage {
 
     // salt for AES ciphers
     protected static final String SALT = "3JN3DXVqcVxzxtZK";
+    protected static SecureStorageSettings settings;
+    protected static XmlMapper mapper;
+    protected static File fileSettings = new File(Utils.getProgramHomeDir() + "settings.xml");
 
-    protected XmlMapper mapper;
     protected char[] masterPassword;
-    protected SecureStorageSettings settings;
-    protected File fileSettings = new File(Utils.getProgramHomeDir() + "settings.xml");
     protected int mpUseCount = 0;
     protected Timer timer;
     protected TimerTask mpExpirationTimerTask;
     protected final Object lockMasterPasswordReset = new Object();
 
-    protected SecureStorage() {
-        this.mapper = XmlMapper.xmlBuilder().build();
+    static {
+        mapper = XmlMapper.xmlBuilder().build();
         loadSettings();
     }
 
+    /**
+     * Gets the instance of the preferred storage type set in the settings.
+     * If a storage type is not supported, the default file storage is returned.
+     * @return Preferred (and supported) secure storage instance.
+     */
     public static SecureStorage getImplementation() {
-        return SecureKeyringStorage.getInstance();
+        if (settings.isUseKeyring()) {
+            if (SecureKeyringStorage.getInstance().isSupported()) {
+                return SecureKeyringStorage.getInstance();
+            } else {
+                settings.setUseKeyring(false);
+                persistSettings();
+                return SecureFileStorage.getInstance();
+            }
+        } else {
+            return SecureFileStorage.getInstance();
+        }
+    }
+
+    private static void loadSettings() {
+        try {
+            settings = mapper.readValue(fileSettings, new TypeReference<SecureStorageSettings>(){});
+        } catch (IOException e) {
+            e.printStackTrace();
+            settings = new SecureStorageSettings();
+        }
+    }
+
+    private static void persistSettings() {
+        try {
+            mapper.writeValue(fileSettings, settings);
+            Logger.getAnonymousLogger().info("Wrote settings to " + fileSettings.getAbsolutePath());
+        } catch (IOException ex) {
+            ex.printStackTrace();
+        }
+    }
+
+    protected SecureStorage() {
+        // defeat instantiation
     }
 
     /**
@@ -62,7 +99,7 @@ public abstract class SecureStorage {
      * @param cacheMasterPassword True, if master password should be cached.
      */
     public synchronized void enableMasterPasswordCache(boolean cacheMasterPassword) {
-        this.settings.setCacheEnabled(cacheMasterPassword);
+        settings.setCacheEnabled(cacheMasterPassword);
         if (!cacheMasterPassword) {
             masterPassword = null;
             stopMPExpirationTimer();
@@ -71,12 +108,12 @@ public abstract class SecureStorage {
     }
 
     public boolean isMasterPasswordCacheEnabled() {
-        return this.settings.isCacheEnabled();
+        return settings.isCacheEnabled();
     }
 
     public synchronized void setMasterPasswordCacheMethod(SecureStorageSettings.CacheClearMethod method, Integer value) {
-        this.settings.setClearMethod(method);
-        this.settings.setClearValue(value);
+        settings.setClearMethod(method);
+        settings.setClearValue(value);
         persistSettings();
         // reset mp cache & clearing mechanisms
         resetMPUseCount();
@@ -85,7 +122,7 @@ public abstract class SecureStorage {
     }
 
     public SecureStorageSettings getSettings() {
-        return (SecureStorageSettings) this.settings.clone();
+        return (SecureStorageSettings) settings.clone();
     }
 
     /**
@@ -103,7 +140,9 @@ public abstract class SecureStorage {
     }
 
     protected void clearCharArray(char[] a) {
-        Arrays.fill(a, (char) 0);
+        if (a != null) {
+            Arrays.fill(a, (char) 0);
+        }
     }
 
     protected synchronized void cacheMasterPasswordIfEnabled(char[] masterPassword) {
@@ -237,24 +276,6 @@ public abstract class SecureStorage {
     }
 
     public abstract boolean isIntact(List<RepositoryInformation> authRequiredRepos);
-
-    private void persistSettings() {
-        try {
-            mapper.writeValue(fileSettings, settings);
-            Logger.getAnonymousLogger().info("Wrote settings to " + fileSettings.getAbsolutePath());
-        } catch (IOException ex) {
-            ex.printStackTrace();
-        }
-    }
-
-    private void loadSettings() {
-        try {
-            settings = mapper.readValue(fileSettings, new TypeReference<SecureStorageSettings>(){});
-        } catch (IOException e) {
-            e.printStackTrace();
-            settings = new SecureStorageSettings();
-        }
-    }
 
     protected synchronized void clearMasterPasswordIfRequired() {
         incrementAndCheckMPUseCount();

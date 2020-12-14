@@ -67,6 +67,7 @@ public class ControllerMain extends StatusBarController implements Initializable
         }
         fileManager.addWatchlistListener(this);
         fileManager.addRepoStatusListener(this);
+
         gitManager = GitManager.getInstance();
         gitManager.setPullListener(this);
         // check repo status
@@ -97,7 +98,7 @@ public class ControllerMain extends StatusBarController implements Initializable
         watchlist.getSelectionModel().selectedItemProperty().addListener((observable, oldValue, newValue) -> {
             updateCommitLog(newValue);
             // clear "New"-icon when deselecting
-            if (oldValue != null) {
+            if (oldValue != null && newValue != null) {
                 fileManager.setNewChanges(oldValue.getPath(), 0);
             }
         });

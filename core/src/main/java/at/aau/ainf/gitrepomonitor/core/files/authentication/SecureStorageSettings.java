@@ -4,6 +4,7 @@ public class SecureStorageSettings implements Cloneable {
     private boolean cacheEnabled = true;
     private CacheClearMethod clearMethod = CacheClearMethod.NONE;
     private Integer clearValue;
+    private boolean useKeyring = true;
 
     public enum CacheClearMethod {
         NONE,
@@ -33,6 +34,14 @@ public class SecureStorageSettings implements Cloneable {
 
     public void setClearValue(Integer clearValue) {
         this.clearValue = clearValue;
+    }
+
+    public boolean isUseKeyring() {
+        return useKeyring;
+    }
+
+    public void setUseKeyring(boolean useKeyring) {
+        this.useKeyring = useKeyring;
     }
 
     @Override
