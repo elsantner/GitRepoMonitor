@@ -1,6 +1,7 @@
 package at.aau.ainf.gitrepomonitor.core.files.authentication;
 
 import at.aau.ainf.gitrepomonitor.core.files.RepositoryInformation;
+import at.aau.ainf.gitrepomonitor.core.files.Utils;
 import com.github.javakeyring.Keyring;
 import com.github.javakeyring.PasswordAccessException;
 import org.junit.After;
@@ -30,7 +31,7 @@ public class SecureKeyringStorageTest {
 
         secStorage.updateMasterPassword("someMasterPW".toCharArray(), "newPW".toCharArray(), repos);
         assertTrue(secStorage.isMasterPasswordSet());
-        assertArrayEquals(secStorage.sha3_256("newPW".toCharArray()), secStorage.getCachedMasterPassword());
+        assertArrayEquals(Utils.sha3_256("newPW".toCharArray()), secStorage.getCachedMasterPassword());
 
         HttpsCredentials credentials = secStorage.getHttpsCredentials("newPW".toCharArray(), repoID);
         assertEquals("user", credentials.getUsername());

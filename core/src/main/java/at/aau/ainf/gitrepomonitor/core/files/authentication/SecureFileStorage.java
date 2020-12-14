@@ -77,7 +77,7 @@ public class SecureFileStorage extends SecureStorage {
         if (isMasterPasswordSet()) {
             throw new AuthenticationException("master password was already set");
         }
-        char[] hashedPW = sha3_256(masterPW);
+        char[] hashedPW = Utils.sha3_256(masterPW);
         writeCredentials(new CredentialWrapper(), hashedPW);
         clearCharArray(masterPW);
         clearCharArray(hashedPW);
@@ -88,8 +88,8 @@ public class SecureFileStorage extends SecureStorage {
         if (!isMasterPasswordSet()) {
             throw new AuthenticationException("master password was not set before");
         }
-        char[] hashedCurrentPW = sha3_256(currentMasterPW);
-        char[] hashedNewPW = sha3_256(newMasterPW);
+        char[] hashedCurrentPW = Utils.sha3_256(currentMasterPW);
+        char[] hashedNewPW = Utils.sha3_256(newMasterPW);
         CredentialWrapper wrapper = readCredentials(hashedCurrentPW);
         writeCredentials(wrapper, hashedNewPW);
         clearCharArray(currentMasterPW);

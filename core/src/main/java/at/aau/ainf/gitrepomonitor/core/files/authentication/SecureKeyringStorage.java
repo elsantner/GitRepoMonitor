@@ -2,6 +2,7 @@ package at.aau.ainf.gitrepomonitor.core.files.authentication;
 
 import at.aau.ainf.gitrepomonitor.core.files.FileManager;
 import at.aau.ainf.gitrepomonitor.core.files.RepositoryInformation;
+import at.aau.ainf.gitrepomonitor.core.files.Utils;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.github.javakeyring.BackendNotSupportedException;
@@ -71,7 +72,7 @@ public class SecureKeyringStorage extends SecureStorage {
     @Override
     public void setMasterPassword(char[] masterPW) throws IOException {
         try {
-            char[] hashedMP = sha3_256(masterPW);
+            char[] hashedMP = Utils.sha3_256(masterPW);
             clearCharArray(masterPW);
             keyring.setPassword(getServiceName(), MP_SET, encrypt(new String(hashedMP), hashedMP));
             clearCharArray(hashedMP);
@@ -89,8 +90,8 @@ public class SecureKeyringStorage extends SecureStorage {
         if (!isMasterPasswordSet()) {
             throw new AuthenticationException("master password was not set before");
         }
-        char[] hashedCurrentPW = sha3_256(currentMasterPW);
-        char[] hashedNewPW = sha3_256(newMasterPW);
+        char[] hashedCurrentPW = Utils.sha3_256(currentMasterPW);
+        char[] hashedNewPW = Utils.sha3_256(newMasterPW);
 
         try {
             if (!isMasterPasswordCorrect(hashedCurrentPW)) {
@@ -286,7 +287,7 @@ public class SecureKeyringStorage extends SecureStorage {
             return getCachedMasterPasswordHashIfPossible(masterPW);
         } else {
             if (masterPW != null && !isHashed) {
-                char[] hashedPW = sha3_256(masterPW);
+                char[] hashedPW = Utils.sha3_256(masterPW);
                 clearCharArray(masterPW);
                 masterPW = hashedPW;
             }

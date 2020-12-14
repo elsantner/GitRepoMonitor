@@ -1,5 +1,6 @@
 package at.aau.ainf.gitrepomonitor.gui.main;
 
+import at.aau.ainf.gitrepomonitor.core.files.Utils;
 import at.aau.ainf.gitrepomonitor.core.git.CommitChange;
 import at.aau.ainf.gitrepomonitor.gui.ResourceStore;
 import javafx.fxml.FXML;
@@ -12,6 +13,8 @@ import javafx.scene.image.ImageView;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.VBox;
+import javafx.scene.paint.Color;
+import javafx.scene.paint.Paint;
 import org.eclipse.jgit.diff.DiffEntry;
 import org.eclipse.jgit.lib.PersonIdent;
 
@@ -73,15 +76,26 @@ public class CommitView extends Region {
 
         // fill display elements with data
         lblMsg.setText(commitChange.getCommit().getShortMessage());
-        ttCommitMessage.setText(commitChange.getCommit().getFullMessage());
+        ttCommitMessage.setText(commitChange.getCommit().getId().getName() + "\n" +
+                commitChange.getCommit().getFullMessage());
         lblDate.setText(df.format(new Date((long)commitChange.getCommit().getCommitTime() * 1000)));
         lblUsername.setText(commitChange.getCommit().getAuthorIdent().getName());
+        lblUsername.setTextFill(getUserColor(commitChange.getCommit().getAuthorIdent()));
         ttUsername.setText(getFullAuthorName(commitChange.getCommit().getAuthorIdent()));
         lblNewChange.managedProperty().bind(lblNewChange.visibleProperty());
 
         addFileChanges(commitChange.getFileChanges());
 
         this.getChildren().add(containerMain);
+    }
+
+    private Color getUserColor(PersonIdent author) {
+        String hash = new String(Utils.sha3_256(author.getEmailAddress().toCharArray()));
+        int r = (int) (Long.parseLong(hash.substring(0, 7), 16) % 256);
+        int g = (int) (Long.parseLong(hash.substring(8, 15), 16) % 256);
+        int b = (int) (Long.parseLong(hash.substring(16, 23), 16) % 256);
+
+        return Color.rgb(r, g, b);
     }
 
     private String getFullAuthorName(PersonIdent author) {

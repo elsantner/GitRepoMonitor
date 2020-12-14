@@ -1,5 +1,6 @@
 package at.aau.ainf.gitrepomonitor.core.files.authentication;
 
+import at.aau.ainf.gitrepomonitor.core.files.Utils;
 import com.github.javakeyring.Keyring;
 import org.junit.After;
 import org.junit.Test;
@@ -37,8 +38,8 @@ public class SecureFileStorageTest {
         CredentialWrapper originalWrapper = new CredentialWrapper();
         originalWrapper.putCredentials(new HttpsCredentials(new UUID(0, 0), "username1", "pw1".toCharArray()));
         originalWrapper.putCredentials(new HttpsCredentials(new UUID(0, 0), "user2", "pw2".toCharArray()));
-        secStorage.writeCredentials(originalWrapper, secStorage.sha3_256("someMasterSecret".toCharArray()));
-        CredentialWrapper loadedWrapper = secStorage.readCredentials(secStorage.sha3_256("someMasterSecret".toCharArray()));
+        secStorage.writeCredentials(originalWrapper, Utils.sha3_256("someMasterSecret".toCharArray()));
+        CredentialWrapper loadedWrapper = secStorage.readCredentials(Utils.sha3_256("someMasterSecret".toCharArray()));
 
         assertEquals(originalWrapper.getHttpsCredentials().size(), loadedWrapper.getHttpsCredentials().size());
     }
@@ -50,8 +51,8 @@ public class SecureFileStorageTest {
         originalWrapper.putCredentials(new HttpsCredentials(new UUID(0, 0),
                 "username1", "pw1".toCharArray()));
 
-        secStorage.writeCredentials(originalWrapper, secStorage.sha3_256("someMasterSecret".toCharArray()));
-        secStorage.readCredentials(secStorage.sha3_256("wrongMasterSecret".toCharArray()));
+        secStorage.writeCredentials(originalWrapper, Utils.sha3_256("someMasterSecret".toCharArray()));
+        secStorage.readCredentials(Utils.sha3_256("wrongMasterSecret".toCharArray()));
     }
 
     @Test
@@ -67,7 +68,7 @@ public class SecureFileStorageTest {
 
         secStorage.updateMasterPassword("someMasterPW".toCharArray(), "newPW".toCharArray());
         assertTrue(secStorage.isMasterPasswordSet());
-        assertArrayEquals(secStorage.sha3_256("newPW".toCharArray()), secStorage.getCachedMasterPassword());
+        assertArrayEquals(Utils.sha3_256("newPW".toCharArray()), secStorage.getCachedMasterPassword());
 
         HttpsCredentials credentials = secStorage.getHttpsCredentials("newPW".toCharArray(), repoID);
         assertEquals("user", credentials.getUsername());
@@ -77,7 +78,7 @@ public class SecureFileStorageTest {
     @Test
     public void testSHA() {
         SecureFileStorageTestable secStorage = new SecureFileStorageTestable();
-        char[] hash = secStorage.sha3_256("test".toCharArray());
+        char[] hash = Utils.sha3_256("test".toCharArray());
         assertEquals("36f028580bb02cc8272a9a020f4200e346e276ae664e45ee80745574e2f5ab80", String.valueOf(hash));
     }
 

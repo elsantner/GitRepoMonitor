@@ -43,10 +43,6 @@ public class SecureFileStorageTestable extends SecureFileStorage {
         new File(Utils.getProgramHomeDir() + getCredentialsFilename()).delete();
     }
 
-    public synchronized char[] sha3_256(char[] m) {
-        return super.sha3_256(m);
-    }
-
     public char[] getCachedMasterPassword() {
         return this.masterPassword;
     }

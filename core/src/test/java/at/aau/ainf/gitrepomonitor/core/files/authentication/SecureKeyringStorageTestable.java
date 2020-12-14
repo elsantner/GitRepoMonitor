@@ -20,10 +20,6 @@ public class SecureKeyringStorageTestable extends SecureKeyringStorage {
         this.keyring.deletePassword(SERVICE_NAME, MP_SET);
     }
 
-    public synchronized char[] sha3_256(char[] m) {
-        return super.sha3_256(m);
-    }
-
     public char[] getCachedMasterPassword() {
         return this.masterPassword;
     }

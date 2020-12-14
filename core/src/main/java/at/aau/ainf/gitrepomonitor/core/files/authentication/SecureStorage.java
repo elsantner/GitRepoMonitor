@@ -162,7 +162,7 @@ public abstract class SecureStorage {
             throwIfMasterPasswordNotCached();
             return Arrays.copyOf(masterPassword, masterPassword.length);
         }
-        char[] hashedPW = sha3_256(mp);
+        char[] hashedPW = Utils.sha3_256(mp);
         clearCharArray(mp);
         return hashedPW;
     }
@@ -244,36 +244,7 @@ public abstract class SecureStorage {
         }
     }
 
-    protected synchronized char[] sha3_256(char[] m) {
-        try {
-            MessageDigest digest = MessageDigest.getInstance("SHA3-256");
-            byte[] hash = digest.digest(toBytes(m));
-            return bytesToHex(hash).toCharArray();
-        } catch (Exception ex) {
-            throw new RuntimeException(ex);
-        }
-    }
 
-    private String bytesToHex(byte[] bytes) {
-        StringBuilder hexStr = new StringBuilder(2 * bytes.length);
-        for (byte b : bytes) {
-            String hex = Integer.toHexString(0xff & b);
-            if (hex.length() == 1) {
-                hexStr.append('0');
-            }
-            hexStr.append(hex);
-        }
-        return hexStr.toString();
-    }
-
-    private byte[] toBytes(char[] chars) {
-        CharBuffer bufChar = CharBuffer.wrap(chars);
-        ByteBuffer bufByte = StandardCharsets.UTF_8.encode(bufChar);
-        byte[] bytes = Arrays.copyOfRange(bufByte.array(),
-                bufByte.position(), bufByte.limit());
-        Arrays.fill(bufByte.array(), (byte) 0);
-        return bytes;
-    }
 
     public abstract boolean isIntact(List<RepositoryInformation> authRequiredRepos);
 

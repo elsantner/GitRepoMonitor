@@ -37,9 +37,9 @@ public class ControllerMain extends StatusBarController implements Initializable
         StatusDisplay, PropertyChangeListener, PullListener {
 
     @FXML
-    private ProgressIndicator indicatorScanRunning;
+    public Button btnPullAll;
     @FXML
-    private Label lblStatus;
+    private ProgressIndicator indicatorScanRunning;
     @FXML
     private Button btnCheckStatus;
     @FXML
@@ -188,6 +188,7 @@ public class ControllerMain extends StatusBarController implements Initializable
         if (fileManager.isWatchlistAuthenticationRequired() && !secureStorage.isMasterPasswordCached()) {
             masterPW = showMasterPasswordInputDialog(false);
         }
+        btnPullAll.setDisable(true);
         gitManager.pullWatchlistAsync(Utils.toCharOrNull(masterPW), (results, pullsFailed, wrongMasterPW) -> {
             if (results.isEmpty()) {
                 displayStatus("No changes to pull");
@@ -200,6 +201,7 @@ public class ControllerMain extends StatusBarController implements Initializable
                             results.size(), (results.size() + pullsFailed)));
                 }
             }
+            btnPullAll.setDisable(false);
         }, progessMonitor);
     }
 
