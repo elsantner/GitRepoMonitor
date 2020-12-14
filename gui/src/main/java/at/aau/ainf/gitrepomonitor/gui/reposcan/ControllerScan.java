@@ -10,13 +10,20 @@ import javafx.beans.property.ReadOnlyBooleanProperty;
 import javafx.beans.property.SimpleBooleanProperty;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
+import javafx.fxml.FXMLLoader;
 import javafx.fxml.Initializable;
+import javafx.scene.Parent;
+import javafx.scene.Scene;
 import javafx.scene.control.*;
 import javafx.stage.DirectoryChooser;
+import javafx.stage.Modality;
+import javafx.stage.Stage;
+import javafx.stage.StageStyle;
 
 import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
 import java.io.File;
+import java.io.IOException;
 import java.net.URL;
 import java.util.*;
 
@@ -51,6 +58,11 @@ public class ControllerScan extends StatusBarController implements Initializable
     private static final SimpleBooleanProperty scanRunningProperty = new SimpleBooleanProperty(null, "scanRunning", false);
     private static RepoSearchTask searchTask;
     private FileManager fileManager;
+
+    public static FXMLLoader getLoader() {
+        return new FXMLLoader(ControllerScan.class.getResource("/at/aau/ainf/gitrepomonitor/gui/reposcan/scan.fxml"),
+                ResourceStore.getResourceBundle());
+    }
 
     public static ReadOnlyBooleanProperty scanRunningProperty() {
         return scanRunningProperty;
@@ -191,13 +203,17 @@ public class ControllerScan extends StatusBarController implements Initializable
     @Override
     public void propertyChange(PropertyChangeEvent e) {
         Platform.runLater(() -> {
-            if (e.getPropertyName().equals("watchlist")) {
-                setWatchlistDisplay((Collection<RepositoryInformation>)e.getNewValue());
-            } else if (e.getPropertyName().equals("foundRepos")) {
-                setFoundReposDisplay((Collection<RepositoryInformation>)e.getNewValue());
-            } else if (e.getPropertyName().equals("repoStatus")) {
-                listWatchlist.refresh();
-                listFoundRepos.refresh();
+            switch (e.getPropertyName()) {
+                case "watchlist":
+                    setWatchlistDisplay((Collection<RepositoryInformation>) e.getNewValue());
+                    break;
+                case "foundRepos":
+                    setFoundReposDisplay((Collection<RepositoryInformation>) e.getNewValue());
+                    break;
+                case "repoStatus":
+                    listWatchlist.refresh();
+                    listFoundRepos.refresh();
+                    break;
             }
         });
     }

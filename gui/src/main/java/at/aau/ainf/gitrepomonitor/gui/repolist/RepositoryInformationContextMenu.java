@@ -3,6 +3,7 @@ package at.aau.ainf.gitrepomonitor.gui.repolist;
 import at.aau.ainf.gitrepomonitor.core.files.FileManager;
 import at.aau.ainf.gitrepomonitor.core.files.RepositoryInformation;
 import at.aau.ainf.gitrepomonitor.core.files.Utils;
+import at.aau.ainf.gitrepomonitor.core.files.authentication.SecureFileStorage;
 import at.aau.ainf.gitrepomonitor.core.files.authentication.SecureStorage;
 import at.aau.ainf.gitrepomonitor.core.git.GitManager;
 import at.aau.ainf.gitrepomonitor.core.git.PullCallback;
@@ -37,7 +38,7 @@ public class RepositoryInformationContextMenu extends ContextMenu implements Err
     private SecureStorage secureStorage;
 
     public RepositoryInformationContextMenu(ListCell<RepositoryInformation> cell, StatusDisplay statusDisplay, ProgressMonitor progressMonitor) {
-        this.secureStorage = SecureStorage.getInstance();
+        this.secureStorage = SecureStorage.getImplementation();
         this.gitManager = GitManager.getInstance();
         this.item = cell.getItem();
         this.statusDisplay = statusDisplay;
@@ -57,8 +58,8 @@ public class RepositoryInformationContextMenu extends ContextMenu implements Err
             setStatus(ResourceStore.getString("status.update_repo_status"));
             gitManager.updateRepoStatusAsync(item.getPath(), Utils.toCharOrNull(masterPW), (success, reposChecked, reposFailed, ex) -> {
                 if (!success) {
-                    ex.printStackTrace();
-                    setStatus(ResourceStore.getString("status.wrong_master_password", reposChecked));
+                    setStatus(ResourceStore.getString("status.wrong_master_password"));
+                    showError(ResourceStore.getString("status.wrong_master_password"));
                 } else {
                     setStatus(ResourceStore.getString("status.updated_n_repo_status", reposChecked));
                 }
@@ -73,14 +74,21 @@ public class RepositoryInformationContextMenu extends ContextMenu implements Err
                 masterPW = showMasterPasswordInputDialog(false);
             }
             gitManager.pullRepoAsync(item.getPath(), Utils.toCharOrNull(masterPW), (results, pullsFailed, wrongMP) -> {
-                PullCallback.PullResult result = results.get(0);
-                String statusMsg = getStatusMessage(result.getStatus());
-                if (statusMsg != null) {
-                    setStatus(statusMsg);
-                } else if (wrongMP) {
-                    showError("Wrong Master Password");
-                } else if (result.getEx() instanceof InvalidConfigurationException) {
-                    showError("Repository has no remote");
+                if (pullsFailed == 1) {
+                    if (!wrongMP) {
+                        setStatus("Repository not accessible (wrong credentials?)");
+                    } else {
+                        setStatus(ResourceStore.getString("status.wrong_master_password"));
+                        showError(ResourceStore.getString("status.wrong_master_password"));
+                    }
+                } else {
+                    PullCallback.PullResult result = results.get(0);
+                    String statusMsg = getStatusMessage(result.getStatus());
+                    if (statusMsg != null) {
+                        setStatus(statusMsg);
+                    } else if (result.getEx() instanceof InvalidConfigurationException) {
+                        showError("Repository has no remote");
+                    }
                 }
             }, progressMonitor);
         });
@@ -97,7 +105,24 @@ public class RepositoryInformationContextMenu extends ContextMenu implements Err
 
         MenuItem deleteItem = new MenuItem();
         deleteItem.setText(ResourceStore.getString("ctxmenu.remove"));
-        deleteItem.setOnAction(event -> FileManager.getInstance().deleteRepo(item));
+        deleteItem.setOnAction(event -> {
+            try {
+                if (item.isAuthenticated()) {
+                    secureStorage.deleteHttpsCredentials(item.getID());
+                }
+                FileManager.getInstance().deleteRepo(item);
+            } catch (IOException | SecurityException e) {
+                String masterPW = showMasterPasswordInputDialog(false);
+                try {
+                    if (masterPW != null) {
+                        secureStorage.deleteHttpsCredentials(masterPW.toCharArray(), item.getID());
+                        FileManager.getInstance().deleteRepo(item);
+                    }
+                } catch (IOException ioException) {
+                    showError(ResourceStore.getString("status.wrong_master_password"));
+                }
+            }
+        });
 
         MenuItem showInExplorerItem = new MenuItem();
         showInExplorerItem.setText(ResourceStore.getString("ctxmenu.show_in_explorer"));
@@ -135,8 +160,7 @@ public class RepositoryInformationContextMenu extends ContextMenu implements Err
     }
 
     private void openEditWindow(RepositoryInformation repo) throws IOException {
-        FXMLLoader loader = new FXMLLoader(getClass().getResource("/at/aau/ainf/gitrepomonitor/gui/editrepo/edit_repo.fxml"),
-                ResourceStore.getResourceBundle());
+        FXMLLoader loader = ControllerEditRepo.getLoader();
         Parent root = loader.load();
         ((ControllerEditRepo)loader.getController()).setRepo(repo);     // set repo information to display
 

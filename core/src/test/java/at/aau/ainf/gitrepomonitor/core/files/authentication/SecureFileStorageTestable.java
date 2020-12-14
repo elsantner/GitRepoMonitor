@@ -7,7 +7,7 @@ import javax.crypto.IllegalBlockSizeException;
 import java.io.File;
 import java.io.IOException;
 
-public class SecureStorageTestable extends SecureStorage {
+public class SecureFileStorageTestable extends SecureFileStorage {
 
     public static String CREDENTIALS_FILENAME = "credsTest";
 
@@ -19,8 +19,8 @@ public class SecureStorageTestable extends SecureStorage {
         return super.encrypt(plaintext, key);
     }
 
-    public String decrypt(String plaintext, char[] key) throws BadPaddingException, IllegalBlockSizeException {
-        return super.decrypt(plaintext, key);
+    public String decrypt(String ciphertext, char[] key) throws BadPaddingException, IllegalBlockSizeException {
+        return super.decrypt(ciphertext, key);
     }
 
     public String decryptFromBytes(byte[] ciphertext, char[] key) throws BadPaddingException, IllegalBlockSizeException {
@@ -45,5 +45,9 @@ public class SecureStorageTestable extends SecureStorage {
 
     public synchronized char[] sha3_256(char[] m) {
         return super.sha3_256(m);
+    }
+
+    public char[] getCachedMasterPassword() {
+        return this.masterPassword;
     }
 }

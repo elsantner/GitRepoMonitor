@@ -11,6 +11,7 @@ import javafx.scene.image.ImageView;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.VBox;
+import javafx.util.Pair;
 
 import java.util.Optional;
 import java.util.regex.Pattern;
@@ -37,6 +38,55 @@ public interface MasterPasswordQuery {
 
         Optional<String> input = dialog.showAndWait();
         return input.orElse(null);
+    }
+
+    default Pair<String, String> showChangeMasterPasswordInputDialog() {
+        Dialog<Pair<String, String>> dialog = new Dialog<>();
+        dialog.setTitle("Change Master Password");
+        ImageView icon = new ImageView(ResourceStore.getImage("icon_key.png"));
+        icon.setPreserveRatio(true);
+        icon.setFitHeight(50);
+        dialog.setGraphic(icon);
+        dialog.getDialogPane().getButtonTypes().addAll(ButtonType.OK, ButtonType.CANCEL);
+        setupChangeDialog(dialog);
+
+        Optional<Pair<String, String>> input = dialog.showAndWait();
+        return input.orElse(null);
+    }
+
+    private static  void setupChangeDialog(Dialog<Pair<String, String>> dialog) {
+        dialog.setHeaderText("Enter current and new Master Password information below.");
+
+        VBox container = new VBox();
+        container.setPadding(new Insets(5));
+        PasswordField pwFieldCurrent = new PasswordField();
+        HBox row0 = getRow(new Label("Current Master Password: "), pwFieldCurrent);
+
+        PasswordField pwFieldNew = new PasswordField();
+        HBox row1 = getRow(new Label("New Master Password: "), pwFieldNew);
+
+        PasswordField pwFieldConfirmNew = new PasswordField();
+        HBox row2 = getRow(new Label("Confirm new Master Password: "), pwFieldConfirmNew);
+
+        HBox row3 = new HBox();
+        Label lblHint = new Label();
+        lblHint.setStyle("-fx-text-fill: red;");
+        row3.getChildren().add(lblHint);
+
+        container.getChildren().addAll(row0, row1, row2, row3);
+        dialog.getDialogPane().setContent(container);
+
+        Button btnOK = (Button) dialog.getDialogPane().lookupButton(ButtonType.OK);
+        pwFieldNew.textProperty().addListener(new ChangeListenerPassword(btnOK, lblHint, pwFieldConfirmNew));
+        pwFieldConfirmNew.textProperty().addListener(new ChangeListenerPassword(btnOK, lblHint, pwFieldNew));
+
+        dialog.setResultConverter(dialogButton -> {
+            if (dialogButton == ButtonType.OK) {
+                return new Pair<>(pwFieldCurrent.getText(), pwFieldNew.getText());
+            }
+            return null;
+        });
+        Platform.runLater(pwFieldCurrent::requestFocus);
     }
 
     private static void setupDialogSingleInput(Dialog<String> dialog) {

@@ -29,15 +29,21 @@ public class RepoSearchTask extends Task<Integer> {
                 Platform.runLater(() -> {
                     FileManager.getInstance().addToFoundRepos(new RepositoryInformation(dir.getPath()));
                     foundRepoCount++;
+                    updateStatusMessage();
                 });
             }
 
             @Override
             public void dirScanned() {
-                updateMessage(ResourceStore.getString("scanpc.scan_status", (++scannedDirCount), foundRepoCount));
+                scannedDirCount++;
+                updateStatusMessage();
             }
         });
         return scannedDirCount;
+    }
+
+    private void updateStatusMessage() {
+        updateMessage(ResourceStore.getString("scanpc.scan_status", scannedDirCount, foundRepoCount));
     }
 
     public boolean isStopped() {

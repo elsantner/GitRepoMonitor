@@ -10,9 +10,10 @@ import java.io.IOException;
 import java.util.Calendar;
 import java.util.List;
 import java.util.NoSuchElementException;
-import java.util.UUID;
 import java.util.logging.Logger;
-import static at.aau.ainf.gitrepomonitor.core.files.RepoListWrapper.RepoList.*;
+
+import static at.aau.ainf.gitrepomonitor.core.files.RepoListWrapper.RepoList.FOUND;
+import static at.aau.ainf.gitrepomonitor.core.files.RepoListWrapper.RepoList.WATCH;
 
 public class FileManager {
     private static FileManager instance;
@@ -31,7 +32,7 @@ public class FileManager {
     }
 
     private FileManager() {
-        this.secureStorage = SecureStorage.getInstance();
+        this.secureStorage = SecureStorage.getImplementation();
         this.mapper = XmlMapper.xmlBuilder().build();
         this.fileRepoLists = new File(Utils.getProgramHomeDir() + "repolists.xml");
     }
@@ -42,7 +43,7 @@ public class FileManager {
 
     /**
      * Loads all stored repos.
-     * @return True, if repo auth method was reset to NONE as a consequece of missing credentials file
+     * @return True, if repo auth method was reset to NONE as a consequence of missing credentials file
      */
     public synchronized boolean init() throws IOException {
         try {
@@ -55,17 +56,16 @@ public class FileManager {
         }
         repoListWrapper.checkRepoPathValidity();
         repoListInitialized = true;
-        return !checkCredentialsFile();
+        return !checkCredentials();
     }
 
     /**
      * Check if the credentials file is present if authenticated repos exist.
      * @return False, if credentials are required but no credentials file exists (was deleted).
      */
-    private boolean checkCredentialsFile() {
+    private boolean checkCredentials() {
         List<RepositoryInformation> authRequiredRepos = repoListWrapper.getAuthenticatedRepos();
-        boolean authExists = secureStorage.isMasterPasswordSet();
-        if (!authRequiredRepos.isEmpty() && !authExists) {
+        if (!secureStorage.isIntact(authRequiredRepos)) {
             repoListWrapper.resetAuthMethodAll();
             persistRepoLists();
             return false;
@@ -210,5 +210,9 @@ public class FileManager {
                 return true;
         }
         return false;
+    }
+
+    public List<RepositoryInformation> getAllAuthenticatedRepos() {
+        return repoListWrapper.getAuthenticatedRepos();
     }
 }
