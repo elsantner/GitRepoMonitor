@@ -1,5 +1,6 @@
 package at.aau.ainf.gitrepomonitor.gui.settings;
 
+import at.aau.ainf.gitrepomonitor.core.files.Utils;
 import at.aau.ainf.gitrepomonitor.core.files.authentication.SecureStorage;
 import at.aau.ainf.gitrepomonitor.core.files.authentication.SecureStorageSettings;
 import at.aau.ainf.gitrepomonitor.gui.ErrorDisplay;
@@ -45,8 +46,10 @@ public class ControllerSettings implements Initializable, ErrorDisplay, MasterPa
     public AnchorPane containerCacheSettings;
     @FXML
     public Button btnSave;
+    @FXML
+    public Button btnChangeMP;
 
-    private SecureStorage secStorage = SecureStorage.getImplementation();
+    private SecureStorage secStorage;
     private final String REGEX_INTEGER_ONLY = "^\\d+$";
 
     public static FXMLLoader getLoader() {
@@ -56,8 +59,18 @@ public class ControllerSettings implements Initializable, ErrorDisplay, MasterPa
 
     @Override
     public void initialize(URL location, ResourceBundle resources) {
+        secStorage = SecureStorage.getImplementation();
         setupUI();
+        setMPButtonText();
         loadSettings();
+    }
+
+    private void setMPButtonText() {
+        if (!secStorage.isMasterPasswordSet()) {
+            btnChangeMP.setText("Set Master Password");
+        } else {
+            btnChangeMP.setText("Change Master Password");
+        }
     }
 
     private void setupUI() {
@@ -140,10 +153,18 @@ public class ControllerSettings implements Initializable, ErrorDisplay, MasterPa
     @FXML
     public void onBtnChangeMPClick(ActionEvent actionEvent) {
         try {
-            Pair<String, String> input = showChangeMasterPasswordInputDialog();
-            if (input != null) {
-                secStorage.updateMasterPassword(input.getKey().toCharArray(), input.getValue().toCharArray());
+            if (!secStorage.isMasterPasswordSet()) {
+                String masterPW = showMasterPasswordInputDialog(true);
+                if (masterPW != null) {
+                    secStorage.setMasterPassword(Utils.toCharOrNull(masterPW));
+                }
+            } else {
+                Pair<String, String> input = showChangeMasterPasswordInputDialog();
+                if (input != null) {
+                    secStorage.updateMasterPassword(input.getKey().toCharArray(), input.getValue().toCharArray());
+                }
             }
+            setMPButtonText();
         } catch (SecurityException | AuthenticationException ex) {
             showError("Wrong Master Password");
         } catch (Exception ex) {
