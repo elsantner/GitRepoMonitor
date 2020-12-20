@@ -18,11 +18,11 @@ import static at.aau.ainf.gitrepomonitor.core.files.RepoListWrapper.RepoList.WAT
 public class FileManager {
     private static FileManager instance;
 
-    private XmlMapper mapper;
-    private File fileRepoLists;
+    private final XmlMapper mapper;
+    private final File fileRepoLists;
     private RepoListWrapper repoListWrapper;
     private boolean repoListInitialized = false;
-    private SecureStorage secureStorage;
+    private final SecureStorage secureStorage;
 
     public static synchronized FileManager getInstance() {
         if (instance == null) {
@@ -214,5 +214,12 @@ public class FileManager {
 
     public List<RepositoryInformation> getAllAuthenticatedRepos() {
         return repoListWrapper.getAuthenticatedRepos();
+    }
+
+    public void applyMergeStratToAllRepos(RepositoryInformation.MergeStrategy strat) {
+        for (RepositoryInformation repo : repoListWrapper.getAllRepos()) {
+            repo.setMergeStrategy(strat);
+        }
+        persistRepoLists();
     }
 }

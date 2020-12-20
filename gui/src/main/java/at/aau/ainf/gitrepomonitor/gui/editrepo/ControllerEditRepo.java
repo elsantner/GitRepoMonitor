@@ -1,15 +1,15 @@
 package at.aau.ainf.gitrepomonitor.gui.editrepo;
 
 import at.aau.ainf.gitrepomonitor.core.files.FileManager;
-import at.aau.ainf.gitrepomonitor.core.files.Utils;
 import at.aau.ainf.gitrepomonitor.core.files.RepositoryInformation;
+import at.aau.ainf.gitrepomonitor.core.files.Utils;
 import at.aau.ainf.gitrepomonitor.core.files.authentication.HttpsCredentials;
-import at.aau.ainf.gitrepomonitor.core.files.authentication.SecureFileStorage;
 import at.aau.ainf.gitrepomonitor.core.files.authentication.SecureStorage;
 import at.aau.ainf.gitrepomonitor.core.git.GitManager;
 import at.aau.ainf.gitrepomonitor.gui.ErrorDisplay;
 import at.aau.ainf.gitrepomonitor.gui.MasterPasswordQuery;
 import at.aau.ainf.gitrepomonitor.gui.ResourceStore;
+import com.sun.javafx.collections.ImmutableObservableList;
 import javafx.application.Platform;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
@@ -20,10 +20,13 @@ import javafx.scene.image.ImageView;
 import javafx.scene.layout.AnchorPane;
 import javafx.stage.DirectoryChooser;
 import javafx.stage.Stage;
+import javafx.util.Callback;
 
+import javax.naming.AuthenticationException;
 import java.io.File;
 import java.io.IOException;
 import java.net.URL;
+import java.util.Optional;
 import java.util.ResourceBundle;
 
 public class ControllerEditRepo implements Initializable, ErrorDisplay, MasterPasswordQuery {
@@ -52,6 +55,10 @@ public class ControllerEditRepo implements Initializable, ErrorDisplay, MasterPa
     public Tooltip ttShowPW;
     @FXML
     public Button btnLoadCredentials;
+    @FXML
+    public ComboBox<RepositoryInformation.MergeStrategy> cbBoxMergeStrat;
+    @FXML
+    public CheckBox chkBoxMergeStratApplyAll;
     @FXML
     private TextField txtName;
     @FXML
@@ -107,6 +114,43 @@ public class ControllerEditRepo implements Initializable, ErrorDisplay, MasterPa
                 ttShowPW.setText(ResourceStore.getString("edit_repo.show_password"));
             }
         });
+
+        cbBoxMergeStrat.setItems(new ImmutableObservableList<>(RepositoryInformation.MergeStrategy.values()));
+        cbBoxMergeStrat.setCellFactory(new Callback<>() {
+            @Override
+            public ListCell<RepositoryInformation.MergeStrategy> call(ListView<RepositoryInformation.MergeStrategy> item) {
+                return new ListCell<>() {
+                    @Override
+                    protected void updateItem(RepositoryInformation.MergeStrategy item, boolean empty) {
+                        super.updateItem(item, empty);
+                        if (item == null || empty) {
+                            setGraphic(null);
+                            setTooltip(null);
+                        } else {
+                            setText(item.toString());
+                            setTooltip(new Tooltip(getTooltipText(item)));
+                        }
+                    }
+                };
+            }
+        });
+    }
+
+    private String getTooltipText(RepositoryInformation.MergeStrategy item) {
+        switch (item) {
+            case OURS:
+                return ResourceStore.getString("merge_strat.ours.tooltip");
+            case THEIRS:
+                return ResourceStore.getString("merge_strat.theirs.tooltip");
+            //case RESOLVE:
+            //    return ResourceStore.getString("merge_strat.resolve.tooltip");
+            case RECURSIVE:
+                return ResourceStore.getString("merge_strat.recursive.tooltip");
+            //case SIMPLE_TWO_WAY_IN_CORE:
+            //    return ResourceStore.getString("merge_strat.2way.tooltip");
+            default:
+                return null;
+        }
     }
 
     private boolean validateTextFields() {
@@ -141,6 +185,7 @@ public class ControllerEditRepo implements Initializable, ErrorDisplay, MasterPa
         this.originalPath = repo.getPath();
         this.txtName.setText(repo.getName());
         this.txtPath.setText(repo.getPath());
+        this.cbBoxMergeStrat.getSelectionModel().select(repo.getMergeStrategy().ordinal());
 
         setupCredentials();
         setupCredentialChangeListener();
@@ -216,38 +261,15 @@ public class ControllerEditRepo implements Initializable, ErrorDisplay, MasterPa
                 throw new IllegalArgumentException(ResourceStore.getString("errormsg.invalid_repo_path"));
             }
 
-            // only require master pw if credentials wre actually changed
-            if (wasAuthChanged()) {
-                // master password is required whenever auth information is changed
-                // This also applies to selecting NONE (removing auth information)
-                // since the credentials previously stored must be erased
-                String masterPW = null;
-                if (secureStorage.isMasterPasswordSet()) {
-                    if (!secureStorage.isMasterPasswordCached()) {
-                        masterPW = showMasterPasswordInputDialog(false);
-                        // if master password dialog was aborted, abort method
-                        if (masterPW == null) {
-                            return;
-                        }
-                    }
-                } else {
-                    masterPW = showMasterPasswordInputDialog(true);
-                    if (masterPW != null) {
-                        secureStorage.setMasterPassword(Utils.toCharOrNull(masterPW));
-                    } else {
-                        return; // if master password dialog was aborted, abort method
-                    }
+            if (chkBoxMergeStratApplyAll.isSelected()) {
+                if (!showConfirmMergeStratApplyAllDialog()) {
+                    return;     // abort method if user does not confirm their intend
                 }
+            }
 
-                if (radioBtnNone.isSelected()) {
-                    secureStorage.deleteHttpsCredentials(Utils.toCharOrNull(masterPW), repo.getID());
-                } else if (radioBtnHttps.isSelected()) {
-                    if (!validateHttpsCredentials()) {
-                        throw new IllegalArgumentException("HTTPS username must not be empty");
-                    }
-                    secureStorage.storeHttpsCredentials(Utils.toCharOrNull(masterPW), repo.getID(),
-                            txtHttpsUsername.getText(), txtHttpsPasswordHidden.getText().toCharArray());
-                }
+            // only require master pw if credentials were actually changed
+            if (wasAuthChanged()) {
+                handleAuthChanged();
             }
             // update repo data
             updateRepoInformation(getSelectedAuthMethod());
@@ -259,6 +281,49 @@ public class ControllerEditRepo implements Initializable, ErrorDisplay, MasterPa
         } catch (Exception ex) {
             showError(ex.getMessage());
             ex.printStackTrace();
+        }
+    }
+
+    private boolean showConfirmMergeStratApplyAllDialog() {
+        Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
+        alert.setTitle("Confirm Apply All");
+        alert.setHeaderText("The selected Merge Strategy will be applied to ALL other repositories.");
+        alert.setContentText("Are you sure you want this to happen?");
+
+        Optional<ButtonType> res = alert.showAndWait();
+        return res.isPresent() && res.get() == ButtonType.OK;
+    }
+
+    private void handleAuthChanged() throws IOException, AuthenticationException {
+        // master password is required whenever auth information is changed
+        // This also applies to selecting NONE (removing auth information)
+        // since the credentials previously stored must be erased
+        String masterPW = null;
+        if (secureStorage.isMasterPasswordSet()) {
+            if (!secureStorage.isMasterPasswordCached()) {
+                masterPW = showMasterPasswordInputDialog(false);
+                // if master password dialog was aborted, abort method
+                if (masterPW == null) {
+                    return;
+                }
+            }
+        } else {
+            masterPW = showMasterPasswordInputDialog(true);
+            if (masterPW != null) {
+                secureStorage.setMasterPassword(Utils.toCharOrNull(masterPW));
+            } else {
+                return; // if master password dialog was aborted, abort method
+            }
+        }
+
+        if (radioBtnNone.isSelected()) {
+            secureStorage.deleteHttpsCredentials(Utils.toCharOrNull(masterPW), repo.getID());
+        } else if (radioBtnHttps.isSelected()) {
+            if (!validateHttpsCredentials()) {
+                throw new IllegalArgumentException("HTTPS username must not be empty");
+            }
+            secureStorage.storeHttpsCredentials(Utils.toCharOrNull(masterPW), repo.getID(),
+                    txtHttpsUsername.getText(), txtHttpsPasswordHidden.getText().toCharArray());
         }
     }
 
@@ -291,8 +356,13 @@ public class ControllerEditRepo implements Initializable, ErrorDisplay, MasterPa
         RepositoryInformation editedRepo = (RepositoryInformation) repo.clone();
         editedRepo.setPath(txtPath.getText());
         editedRepo.setName(txtName.getText());
+        editedRepo.setMergeStrategy(cbBoxMergeStrat.getValue());
         editedRepo.setAuthMethod(authMethod);
         fileManager.editRepo(originalPath, editedRepo);
+
+        if (chkBoxMergeStratApplyAll.isSelected()) {
+            fileManager.applyMergeStratToAllRepos(cbBoxMergeStrat.getValue());
+        }
     }
 
     private File getDeepestExistingDirectory(String path) {
