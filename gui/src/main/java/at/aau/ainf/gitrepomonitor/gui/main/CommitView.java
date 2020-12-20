@@ -90,10 +90,10 @@ public class CommitView extends Region {
     }
 
     private Color getUserColor(PersonIdent author) {
-        String hash = new String(Utils.sha3_256(author.getEmailAddress().toCharArray()));
-        int r = (int) (Long.parseLong(hash.substring(0, 7), 16) % 256);
-        int g = (int) (Long.parseLong(hash.substring(8, 15), 16) % 256);
-        int b = (int) (Long.parseLong(hash.substring(16, 23), 16) % 256);
+        int hash = author.getEmailAddress().hashCode();
+        int r = hash & 0x0000FF;
+        int g = (hash & 0x00FF00) >> 8;
+        int b = (hash & 0xFF0000) >> 16;
 
         return Color.rgb(r, g, b);
     }
