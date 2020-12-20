@@ -2,6 +2,7 @@ package at.aau.ainf.gitrepomonitor.core.files;
 
 import com.fasterxml.jackson.annotation.JsonAutoDetect;
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import org.eclipse.jgit.merge.MergeStrategy;
 
 import java.util.Date;
 import java.util.Objects;
@@ -18,6 +19,31 @@ public class RepositoryInformation implements Comparable<RepositoryInformation>,
     private String path;
     private String name;
     private Date dateAdded;
+    private MergeStrategy mergeStrategy = MergeStrategy.RECURSIVE;
+
+    public enum MergeStrategy {
+        OURS("Ours", org.eclipse.jgit.merge.MergeStrategy.OURS),
+        THEIRS("Theirs", org.eclipse.jgit.merge.MergeStrategy.THEIRS),
+        RECURSIVE("Recursive", org.eclipse.jgit.merge.MergeStrategy.RECURSIVE),
+        RESOLVE("Resolve", org.eclipse.jgit.merge.MergeStrategy.RESOLVE),
+        SIMPLE_TWO_WAY_IN_CORE("Simple 2-Way In", org.eclipse.jgit.merge.MergeStrategy.SIMPLE_TWO_WAY_IN_CORE);
+
+        private final org.eclipse.jgit.merge.MergeStrategy jgitStrat;
+        private final String name;
+        MergeStrategy(String name, org.eclipse.jgit.merge.MergeStrategy jgitStrat) {
+            this.name = name;
+            this.jgitStrat = jgitStrat;
+        }
+
+        public org.eclipse.jgit.merge.MergeStrategy getJgitStrat() {
+            return jgitStrat;
+        }
+
+        @Override
+        public String toString() {
+            return name;
+        }
+    }
 
     public enum RepoStatus {
         UNCHECKED,
@@ -101,6 +127,18 @@ public class RepositoryInformation implements Comparable<RepositoryInformation>,
     public void setPersistentValueChanged(boolean persistentValueChanged) {
         this.persistentValueChanged = persistentValueChanged;
     }
+    @JsonIgnore
+    public boolean hasNewChanges() {
+        return newCommitCount != 0;
+    }
+    @JsonIgnore
+    public int getNewCommitCount() {
+        return newCommitCount;
+    }
+    @JsonIgnore
+    public void setNewChanges(int newCommitCount) {
+        this.newCommitCount = newCommitCount;
+    }
 
     public String getPath() {
         return path;
@@ -129,19 +167,13 @@ public class RepositoryInformation implements Comparable<RepositoryInformation>,
         this.persistentValueChanged = true;
     }
 
-    @JsonIgnore
-    public boolean hasNewChanges() {
-        return newCommitCount != 0;
+    public MergeStrategy getMergeStrategy() {
+        return mergeStrategy;
     }
 
-    @JsonIgnore
-    public int getNewCommitCount() {
-        return newCommitCount;
-    }
-
-    @JsonIgnore
-    public void setNewChanges(int newCommitCount) {
-        this.newCommitCount = newCommitCount;
+    public void setMergeStrategy(MergeStrategy mergeStrategy) {
+        this.mergeStrategy = mergeStrategy;
+        this.persistentValueChanged = true;
     }
 
     @Override

@@ -2,22 +2,21 @@ package at.aau.ainf.gitrepomonitor.core.git;
 
 import at.aau.ainf.gitrepomonitor.core.files.FileManager;
 import at.aau.ainf.gitrepomonitor.core.files.RepositoryInformation;
-import at.aau.ainf.gitrepomonitor.core.files.authentication.SecureFileStorage;
 import at.aau.ainf.gitrepomonitor.core.files.authentication.SecureStorage;
 import org.eclipse.jgit.api.Git;
+import org.eclipse.jgit.api.MergeCommand;
 import org.eclipse.jgit.api.MergeResult;
 import org.eclipse.jgit.api.PullResult;
-import org.eclipse.jgit.api.errors.GitAPIException;
-import org.eclipse.jgit.api.errors.InvalidConfigurationException;
-import org.eclipse.jgit.api.errors.InvalidRemoteException;
-import org.eclipse.jgit.api.errors.TransportException;
+import org.eclipse.jgit.api.errors.*;
 import org.eclipse.jgit.diff.DiffEntry;
 import org.eclipse.jgit.errors.NoRemoteRepositoryException;
 import org.eclipse.jgit.lib.*;
+import org.eclipse.jgit.merge.MergeStrategy;
 import org.eclipse.jgit.revwalk.RevCommit;
 import org.eclipse.jgit.revwalk.RevWalk;
 import org.eclipse.jgit.storage.file.FileRepositoryBuilder;
 import org.eclipse.jgit.transport.CredentialsProvider;
+import org.eclipse.jgit.transport.URIish;
 import org.eclipse.jgit.transport.UsernamePasswordCredentialsProvider;
 import org.eclipse.jgit.treewalk.CanonicalTreeParser;
 import org.eclipse.jgit.treewalk.EmptyTreeIterator;
@@ -26,7 +25,6 @@ import org.eclipse.jgit.util.MutableInteger;
 import javax.security.auth.login.CredentialException;
 import java.io.File;
 import java.io.IOException;
-import java.nio.file.AccessDeniedException;
 import java.util.*;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadPoolExecutor;
@@ -45,9 +43,9 @@ public class GitManager {
     }
 
     private final HashMap<String, Git> repoCache;
-    private FileManager fileManager;
-    private SecureStorage secureStorage;
-    private ThreadPoolExecutor executor;
+    private final FileManager fileManager;
+    private final SecureStorage secureStorage;
+    private final ThreadPoolExecutor executor;
     private PullListener pullListener;
 
     private GitManager() {
@@ -89,13 +87,15 @@ public class GitManager {
         return repoGit;
     }
 
-    private MergeResult.MergeStatus pullRepo(String path, CredentialsProvider cp, ProgressMonitor progressMonitor) throws IOException, CredentialException, NoRemoteRepositoryException {
+    private MergeResult.MergeStatus pullRepo(String path, CredentialsProvider cp, ProgressMonitor progressMonitor) throws IOException, CredentialException, CheckoutConflictException {
         Git git = getRepoGit(path);
+        RepositoryInformation repoInfo = fileManager.getRepo(path);
 
         try {
             PullResult pullResult = git.pull()
                     .setCredentialsProvider(cp)
                     .setRemote("origin")
+                    .setStrategy(repoInfo.getMergeStrategy().getJgitStrat())
                     .setProgressMonitor(progressMonitor)
                     .call();
 
@@ -104,10 +104,13 @@ public class GitManager {
 
             notifyPullListener(path, pullResult.getMergeResult().getMergeStatus());
             return pullResult.getMergeResult().getMergeStatus();
+
         } catch (InvalidConfigurationException ex) {
-            throw new NoRemoteRepositoryException(null, "no remote");
+            throw new NoRemoteRepositoryException(new URIish(), "no remote");
         } catch (TransportException ex) {
             throw new CredentialException("invalid https credentials");
+        } catch (CheckoutConflictException ex) {
+            throw ex;
         } catch (GitAPIException ex) {
             throw new SecurityException("authentication failed");
         } finally {
@@ -138,12 +141,8 @@ public class GitManager {
             try {
                 status = pullRepo(path, cp, progressMonitor);
                 cb.finished(path, status, null);
-            } catch (SecurityException e) {
-                cb.failed(true);
-            } catch (CredentialException | NoRemoteRepositoryException e) {
-                cb.failed(false);
             } catch (Exception e) {
-                cb.finished(path, MergeResult.MergeStatus.FAILED, e);
+                handlePullException(e, cb, path);
             }
         });
     }
@@ -154,14 +153,22 @@ public class GitManager {
             try {
                 status = pullRepo(path, masterPW, progressMonitor);
                 cb.finished(path, status, null);
-            } catch (SecurityException e) {
-                cb.failed(true);
-            } catch (CredentialException | NoRemoteRepositoryException e) {
-                cb.failed(false);
             } catch (Exception e) {
-                cb.finished(path, MergeResult.MergeStatus.FAILED, e);
+                handlePullException(e, cb, path);
             }
         });
+    }
+
+    private void handlePullException(Exception ex, PullCallback cb, String path) {
+        if (ex instanceof SecurityException) {
+            cb.failed(true);
+        } else if (ex instanceof CredentialException || ex instanceof  NoRemoteRepositoryException) {
+            cb.failed(false);
+        } else if (ex instanceof CheckoutConflictException) {
+            cb.finished(path, MergeResult.MergeStatus.CONFLICTING, ex);
+        } else {
+            cb.finished(path, MergeResult.MergeStatus.FAILED, ex);
+        }
     }
 
     /**

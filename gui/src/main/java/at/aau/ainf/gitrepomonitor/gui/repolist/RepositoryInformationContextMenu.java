@@ -22,6 +22,7 @@ import javafx.stage.Modality;
 import javafx.stage.Stage;
 import javafx.stage.StageStyle;
 import org.eclipse.jgit.api.MergeResult;
+import org.eclipse.jgit.api.errors.GitAPIException;
 import org.eclipse.jgit.api.errors.InvalidConfigurationException;
 import org.eclipse.jgit.lib.ProgressMonitor;
 
@@ -31,11 +32,11 @@ import java.io.IOException;
 
 public class RepositoryInformationContextMenu extends ContextMenu implements ErrorDisplay, MasterPasswordQuery {
 
-    private GitManager gitManager;
-    private RepositoryInformation item;
-    private StatusDisplay statusDisplay;
-    private ProgressMonitor progressMonitor;
-    private SecureStorage secureStorage;
+    private final GitManager gitManager;
+    private final RepositoryInformation item;
+    private final StatusDisplay statusDisplay;
+    private final ProgressMonitor progressMonitor;
+    private final SecureStorage secureStorage;
 
     public RepositoryInformationContextMenu(ListCell<RepositoryInformation> cell, StatusDisplay statusDisplay, ProgressMonitor progressMonitor) {
         this.secureStorage = SecureStorage.getImplementation();
@@ -149,6 +150,8 @@ public class RepositoryInformationContextMenu extends ContextMenu implements Err
             statusMsg = ResourceStore.getString("status.pull_no_changes");
         } else if(status == MergeResult.MergeStatus.CONFLICTING) {
             statusMsg = ResourceStore.getString("status.pull_conflict");
+        } else if(status == MergeResult.MergeStatus.FAILED) {
+            statusMsg = ResourceStore.getString("status.pull_failed");
         }
         return statusMsg;
     }

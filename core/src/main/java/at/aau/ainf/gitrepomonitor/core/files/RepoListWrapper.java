@@ -76,6 +76,11 @@ class RepoListWrapper {
         }
     }
 
+    public Set<RepositoryInformation> getAllRepos() {
+        return Stream.concat(watchlist.values().stream(),
+                foundRepos.values().stream()).collect(Collectors.toSet());
+    }
+
     public boolean exists(RepositoryInformation repo) {
         return getListName(repo) != null;
     }
@@ -182,8 +187,7 @@ class RepoListWrapper {
 
     public List<RepositoryInformation> getAuthenticatedRepos() {
         List<RepositoryInformation> authRepos = new ArrayList<>();
-        for (RepositoryInformation repo : Stream.concat(watchlist.values().stream(),
-                foundRepos.values().stream()).collect(Collectors.toList())) {
+        for (RepositoryInformation repo : getAllRepos()) {
 
             if (repo.isAuthenticated()) {
                 authRepos.add(repo);
@@ -193,8 +197,7 @@ class RepoListWrapper {
     }
 
     public void resetAuthMethodAll() {
-        for (RepositoryInformation repo : Stream.concat(watchlist.values().stream(),
-                foundRepos.values().stream()).collect(Collectors.toList())) {
+        for (RepositoryInformation repo : getAllRepos()) {
             repo.setAuthMethod(RepositoryInformation.AuthMethod.NONE);
         }
     }
