@@ -354,7 +354,7 @@ public class GitManager {
             } else if (!equalHeads) {
                 status = PUSH_AVAILABLE;
             } else {
-                status =UP_TO_DATE;
+                status = UP_TO_DATE;
             }
         }
         catch (NoRemoteRepositoryException | InvalidRemoteException ex) {

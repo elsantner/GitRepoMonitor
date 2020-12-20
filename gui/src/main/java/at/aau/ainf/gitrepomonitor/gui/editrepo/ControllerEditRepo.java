@@ -142,12 +142,12 @@ public class ControllerEditRepo implements Initializable, ErrorDisplay, MasterPa
                 return ResourceStore.getString("merge_strat.ours.tooltip");
             case THEIRS:
                 return ResourceStore.getString("merge_strat.theirs.tooltip");
-            case RESOLVE:
-                return ResourceStore.getString("merge_strat.resolve.tooltip");
+            //case RESOLVE:
+            //    return ResourceStore.getString("merge_strat.resolve.tooltip");
             case RECURSIVE:
                 return ResourceStore.getString("merge_strat.recursive.tooltip");
-            case SIMPLE_TWO_WAY_IN_CORE:
-                return ResourceStore.getString("merge_strat.2way.tooltip");
+            //case SIMPLE_TWO_WAY_IN_CORE:
+            //    return ResourceStore.getString("merge_strat.2way.tooltip");
             default:
                 return null;
         }

@@ -24,9 +24,10 @@ public class RepositoryInformation implements Comparable<RepositoryInformation>,
     public enum MergeStrategy {
         OURS("Ours", org.eclipse.jgit.merge.MergeStrategy.OURS),
         THEIRS("Theirs", org.eclipse.jgit.merge.MergeStrategy.THEIRS),
-        RECURSIVE("Recursive", org.eclipse.jgit.merge.MergeStrategy.RECURSIVE),
-        RESOLVE("Resolve", org.eclipse.jgit.merge.MergeStrategy.RESOLVE),
-        SIMPLE_TWO_WAY_IN_CORE("Simple 2-Way In", org.eclipse.jgit.merge.MergeStrategy.SIMPLE_TWO_WAY_IN_CORE);
+        RECURSIVE("Recursive", org.eclipse.jgit.merge.MergeStrategy.RECURSIVE);
+        // deactivated until further notice
+        //RESOLVE("Resolve", org.eclipse.jgit.merge.MergeStrategy.RESOLVE),
+        //SIMPLE_TWO_WAY_IN_CORE("Simple 2-Way In", org.eclipse.jgit.merge.MergeStrategy.SIMPLE_TWO_WAY_IN_CORE);
 
         private final org.eclipse.jgit.merge.MergeStrategy jgitStrat;
         private final String name;
