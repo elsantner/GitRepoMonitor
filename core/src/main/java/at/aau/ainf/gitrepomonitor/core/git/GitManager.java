@@ -3,10 +3,7 @@ package at.aau.ainf.gitrepomonitor.core.git;
 import at.aau.ainf.gitrepomonitor.core.files.FileManager;
 import at.aau.ainf.gitrepomonitor.core.files.RepositoryInformation;
 import at.aau.ainf.gitrepomonitor.core.files.authentication.SecureStorage;
-import org.eclipse.jgit.api.Git;
-import org.eclipse.jgit.api.MergeCommand;
-import org.eclipse.jgit.api.MergeResult;
-import org.eclipse.jgit.api.PullResult;
+import org.eclipse.jgit.api.*;
 import org.eclipse.jgit.api.errors.*;
 import org.eclipse.jgit.diff.DiffEntry;
 import org.eclipse.jgit.errors.NoRemoteRepositoryException;
@@ -94,7 +91,6 @@ public class GitManager {
         try {
             PullResult pullResult = git.pull()
                     .setCredentialsProvider(cp)
-                    .setRemote("origin")
                     .setStrategy(repoInfo.getMergeStrategy().getJgitStrat())
                     .setProgressMonitor(progressMonitor)
                     .call();
@@ -236,7 +232,6 @@ public class GitManager {
 
     private void fetchRepo(Git repoGit, CredentialsProvider cp) throws GitAPIException {
         repoGit.fetch()
-                .setRemote("origin")
                 .setCredentialsProvider(cp)
                 .call();
     }
@@ -336,10 +331,9 @@ public class GitManager {
             // query remote heads
             Map<String, Ref> refs = repoGit.lsRemote()
                     .setHeads(true)
-                    .setRemote("origin")
                     .setCredentialsProvider(cp)
                     .callAsMap();
-            // TODO: add support for multiple branches
+
             Ref remoteHead = refs.get(repoGit.getRepository().getFullBranch());
             Ref localHead = repoGit.getRepository().findRef("HEAD");
 
@@ -488,5 +482,28 @@ public class GitManager {
             status = PATH_INVALID;
         }
         return status;
+    }
+
+    public List<String> getBranchNames(String path) throws IOException, GitAPIException {
+        List<String> branchNames = new ArrayList<>();
+        Git repoGit = getRepoGit(path);
+        List<Ref> branches = repoGit
+                .branchList()
+                .call();
+
+        for (Ref b : branches) {
+            branchNames.add(b.getName().replace("refs/heads/", ""));
+        }
+        return branchNames;
+    }
+
+    public String getSelectedBranch(String path) throws IOException {
+        Git repoGit = getRepoGit(path);
+        return repoGit.getRepository().getBranch();
+    }
+
+    public void checkout(String path, String branchName) throws IOException, GitAPIException {
+        Git repoGit = getRepoGit(path);
+        repoGit.checkout().setName(branchName).call();
     }
 }
