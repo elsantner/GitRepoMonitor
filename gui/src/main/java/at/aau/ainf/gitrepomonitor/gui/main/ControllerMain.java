@@ -10,6 +10,7 @@ import at.aau.ainf.gitrepomonitor.gui.*;
 import at.aau.ainf.gitrepomonitor.gui.repolist.RepositoryInformationCellFactory;
 import at.aau.ainf.gitrepomonitor.gui.reposcan.ControllerScan;
 import at.aau.ainf.gitrepomonitor.gui.settings.ControllerSettings;
+import com.sun.javafx.collections.ImmutableObservableList;
 import javafx.application.Platform;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
@@ -18,6 +19,7 @@ import javafx.fxml.Initializable;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
+import javafx.scene.layout.HBox;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
 import javafx.stage.StageStyle;
@@ -27,9 +29,7 @@ import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
 import java.io.IOException;
 import java.net.URL;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.ResourceBundle;
+import java.util.*;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -38,6 +38,8 @@ public class ControllerMain extends StatusBarController implements Initializable
 
     @FXML
     public Button btnPullAll;
+    @FXML
+    public ComboBox<String> cbBoxBranch;
     @FXML
     private ProgressIndicator indicatorScanRunning;
     @FXML
@@ -92,16 +94,58 @@ public class ControllerMain extends StatusBarController implements Initializable
         indicatorScanRunning.visibleProperty().bind(ControllerScan.scanRunningProperty());
         indicatorScanRunning.managedProperty().bind(indicatorScanRunning.visibleProperty());
         setupCommitLogDisplay();
+        setupSwitchBranch();
+    }
+
+    private void setupSwitchBranch() {
+        cbBoxBranch.getSelectionModel().selectedItemProperty().addListener((observable, oldValue, newValue) -> {
+            try {
+                RepositoryInformation repo = watchlist.getSelectionModel().getSelectedItem();
+                if (repo != null && newValue != null) {
+                    gitManager.checkout(repo.getPath(), newValue);
+                    updateCommitLog(repo);
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        });
     }
 
     private void setupCommitLogDisplay() {
         watchlist.getSelectionModel().selectedItemProperty().addListener((observable, oldValue, newValue) -> {
+            updateBranches(newValue);
             updateCommitLog(newValue);
             // clear "New"-icon when deselecting
             if (oldValue != null && newValue != null) {
                 fileManager.setNewChanges(oldValue.getPath(), 0);
             }
         });
+    }
+
+    /**
+     * Update branch selection ComboBox according to given repo
+     * @param repo Repo
+     */
+    private void updateBranches(RepositoryInformation repo) {
+        try {
+            List<String> branchNames;
+            try {
+                branchNames = gitManager.getBranchNames(repo.getPath());
+            } catch (Exception e) {
+                branchNames = new ArrayList<>();
+            }
+            if (!branchNames.isEmpty()) {
+                cbBoxBranch.setItems(new ImmutableObservableList<>(branchNames.toArray(new String[0])));
+                cbBoxBranch.getSelectionModel().select(gitManager.getSelectedBranch(repo.getPath()));
+                cbBoxBranch.setDisable(false);
+            } else {
+                cbBoxBranch.setItems(null);
+                cbBoxBranch.setDisable(true);
+            }
+        } catch (Exception e) {
+            cbBoxBranch.setItems(null);
+            cbBoxBranch.setDisable(true);
+        }
     }
 
     private void updateCommitLog(RepositoryInformation repo) {
