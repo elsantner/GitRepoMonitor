@@ -4,7 +4,6 @@ import at.aau.ainf.gitrepomonitor.core.files.RepositoryInformation;
 import at.aau.ainf.gitrepomonitor.core.files.Utils;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.dataformat.xml.XmlMapper;
-import org.eclipse.jgit.transport.CredentialsProvider;
 import org.eclipse.jgit.transport.UsernamePasswordCredentialsProvider;
 
 import javax.crypto.BadPaddingException;
@@ -17,10 +16,7 @@ import javax.crypto.spec.SecretKeySpec;
 import javax.naming.AuthenticationException;
 import java.io.File;
 import java.io.IOException;
-import java.nio.ByteBuffer;
-import java.nio.CharBuffer;
 import java.nio.charset.StandardCharsets;
-import java.security.MessageDigest;
 import java.security.spec.KeySpec;
 import java.util.*;
 import java.util.logging.Logger;
@@ -198,6 +194,18 @@ public abstract class SecureStorage {
     public abstract Map<UUID, UsernamePasswordCredentialsProvider> getHttpsCredentialProviders(char[] masterPW, List<RepositoryInformation> repos) throws IOException;
 
     public abstract Map<UUID, UsernamePasswordCredentialsProvider> getHttpsCredentialProviders(List<RepositoryInformation> repos) throws IOException;
+
+    public abstract void storeSslInformation(char[] masterPW, UUID repoID, String sslKeyPath, String sslPassphrase) throws IOException;
+
+    public abstract void storeSslInformation(UUID repoID, String sslKeyPath, String sslPassphrase) throws IOException;
+
+    public abstract void deleteSslInformation(char[] masterPW, UUID repoID) throws IOException;
+
+    public abstract void deleteSslInformation(UUID repoID) throws IOException;
+
+    public abstract SSLInformation getSslInformation(char[] masterPW, UUID repoID) throws IOException;
+
+    public abstract SSLInformation getSslInformation(UUID repoID) throws IOException;
 
     protected byte[] encryptToBytes(String plaintext, char[] key) {
         try {

@@ -158,6 +158,14 @@ public class SecureFileStorage extends SecureStorage {
         return credentials;
     }
 
+    private SSLInformation getSslInformationHashed(char[] masterPWHash, UUID repoID) throws IOException {
+        CredentialWrapper allCredentials = readCredentials(masterPWHash);
+        SSLInformation sslInformation = allCredentials.getSslInformation(repoID);
+        cacheMasterPasswordIfEnabled(masterPWHash);
+        clearCharArray(masterPWHash);
+        return sslInformation;
+    }
+
     public HttpsCredentials getHttpsCredentials(UUID repoID) throws IOException {
         throwIfMasterPasswordNotCached();
         return getHttpsCredentials(null, repoID);
@@ -205,6 +213,63 @@ public class SecureFileStorage extends SecureStorage {
     public Map<UUID, UsernamePasswordCredentialsProvider> getHttpsCredentialProviders(List<RepositoryInformation> repos) throws IOException {
         throwIfMasterPasswordNotCached();
         return getHttpsCredentialProviders(null, repos);
+    }
+
+    @Override
+    public void storeSslInformation(char[] masterPW, UUID repoID, String sslKeyPath, String sslPassphrase) throws IOException {
+        synchronized (lockMasterPasswordReset) {
+            masterPW = getCachedMasterPasswordHashIfPossible(masterPW);
+            CredentialWrapper allCredentials = readCredentials(masterPW);
+            SSLInformation newSslInfo = new SSLInformation(repoID, sslKeyPath, sslPassphrase);
+            allCredentials.putSslInformation(newSslInfo);
+            writeCredentials(allCredentials, masterPW);
+
+            cacheMasterPasswordIfEnabled(masterPW);
+            clearCharArray(masterPW);
+            clearMasterPasswordIfRequired();
+        }
+    }
+
+    @Override
+    public void storeSslInformation(UUID repoID, String sslKeyPath, String sslPassphrase) throws IOException {
+        throwIfMasterPasswordNotCached();
+        storeSslInformation(null, repoID, sslKeyPath, sslPassphrase);
+    }
+
+    @Override
+    public void deleteSslInformation(char[] masterPW, UUID repoID) throws IOException {
+        synchronized (lockMasterPasswordReset) {
+            masterPW = getCachedMasterPasswordHashIfPossible(masterPW);
+            CredentialWrapper allCredentials = readCredentials(masterPW);
+            allCredentials.removeSslInformation(repoID);
+            writeCredentials(allCredentials, masterPW);
+
+            cacheMasterPasswordIfEnabled(masterPW);
+            clearCharArray(masterPW);
+            clearMasterPasswordIfRequired();
+        }
+    }
+
+    @Override
+    public void deleteSslInformation(UUID repoID) throws IOException {
+        throwIfMasterPasswordNotCached();
+        deleteSslInformation(null, repoID);
+    }
+
+    @Override
+    public SSLInformation getSslInformation(char[] masterPW, UUID repoID) throws IOException {
+        synchronized (lockMasterPasswordReset) {
+            masterPW = getCachedMasterPasswordHashIfPossible(masterPW);
+            SSLInformation sslInformation = getSslInformationHashed(masterPW, repoID);
+            clearMasterPasswordIfRequired();
+            return sslInformation;
+        }
+    }
+
+    @Override
+    public SSLInformation getSslInformation(UUID repoID) throws IOException {
+        throwIfMasterPasswordNotCached();
+        return getSslInformation(null ,repoID);
     }
 
     @Override

@@ -2,27 +2,14 @@ package at.aau.ainf.gitrepomonitor.core.files.authentication;
 
 import java.util.UUID;
 
-public class HttpsCredentials {
-    private UUID repoID;
+public class HttpsCredentials extends AuthenticationInformation {
     private String username;
     private char[] password;
 
-    public HttpsCredentials() {
-        // for serialization
-    }
-
     public HttpsCredentials(UUID repoID, String username, char[] password) {
-        this.repoID = repoID;
+        super(repoID);
         this.username = username;
         this.password = password;
-    }
-
-    public UUID getRepoID() {
-        return repoID;
-    }
-
-    public void setRepoID(UUID repoID) {
-        this.repoID = repoID;
     }
 
     public String getUsername() {
