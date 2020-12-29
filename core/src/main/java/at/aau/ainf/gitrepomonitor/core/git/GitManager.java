@@ -2,11 +2,9 @@ package at.aau.ainf.gitrepomonitor.core.git;
 
 import at.aau.ainf.gitrepomonitor.core.files.FileManager;
 import at.aau.ainf.gitrepomonitor.core.files.RepositoryInformation;
+import at.aau.ainf.gitrepomonitor.core.files.authentication.AuthInfo;
 import at.aau.ainf.gitrepomonitor.core.files.authentication.SecureStorage;
-import org.eclipse.jgit.api.Git;
-import org.eclipse.jgit.api.ListBranchCommand;
-import org.eclipse.jgit.api.MergeResult;
-import org.eclipse.jgit.api.PullResult;
+import org.eclipse.jgit.api.*;
 import org.eclipse.jgit.api.errors.*;
 import org.eclipse.jgit.diff.DiffEntry;
 import org.eclipse.jgit.errors.NoRemoteRepositoryException;
@@ -15,7 +13,6 @@ import org.eclipse.jgit.revwalk.RevCommit;
 import org.eclipse.jgit.revwalk.RevWalk;
 import org.eclipse.jgit.storage.file.FileRepositoryBuilder;
 import org.eclipse.jgit.transport.CredentialsProvider;
-import org.eclipse.jgit.transport.TrackingRefUpdate;
 import org.eclipse.jgit.transport.URIish;
 import org.eclipse.jgit.transport.UsernamePasswordCredentialsProvider;
 import org.eclipse.jgit.treewalk.CanonicalTreeParser;
@@ -65,101 +62,6 @@ public class GitManager {
         this.pullListener = pullListener;
     }
 
-    private void notifyPullListener(String path, MergeResult.MergeStatus status) {
-        if (this.pullListener != null) {
-            this.pullListener.pullExecuted(path, status);
-        }
-    }
-
-    /**
-     * Get a Repository object for the repository at the provided path
-     * @param path Path of the folder wrapping the git repository
-     * @return Repository at specified path
-     * @throws IOException If path does not point to a valid repository
-     */
-    private synchronized Git getRepoGit(String path) throws IOException {
-        Git repoGit = repoCache.get(path);
-        if (repoGit == null) {
-            Repository repo = new FileRepositoryBuilder()
-                    .setGitDir(new File(path + "/.git"))
-                    .build();
-            repoGit = new Git(repo);
-            repoCache.put(path, repoGit);
-        }
-        return repoGit;
-    }
-
-    private List<RevCommit> getCommitsInRange(Git git, ObjectId from, ObjectId to) {
-        List<RevCommit> commits = new ArrayList<>();
-        try {
-            git.log().addRange(from, to).call().forEach(commits::add);
-        } catch(Exception ex) {
-            return new ArrayList<>();
-        }
-        return commits;
-    }
-
-    private MergeResult.MergeStatus pullRepo(String path, CredentialsProvider cp, ProgressMonitor progressMonitor) throws IOException, CredentialException, CheckoutConflictException {
-        Git git = getRepoGit(path);
-        RepositoryInformation repoInfo = fileManager.getRepo(path);
-
-        try {
-            ObjectId oldHead = git.getRepository().resolve("HEAD");
-            PullResult pullResult = git.pull()
-                    .setCredentialsProvider(cp)
-                    .setStrategy(repoInfo.getMergeStrategy().getJgitStrat())
-                    .setProgressMonitor(progressMonitor)
-                    .call();
-            ObjectId head = git.getRepository().resolve("HEAD");
-
-            // set new update count
-            fileManager.setNewChanges(path, getCommitsInRange(git, oldHead, head).size());
-
-            notifyPullListener(path, pullResult.getMergeResult().getMergeStatus());
-            return pullResult.getMergeResult().getMergeStatus();
-
-        } catch (InvalidConfigurationException ex) {
-            throw new NoRemoteRepositoryException(new URIish(), "no remote");
-        } catch (TransportException ex) {
-            throw new CredentialException("invalid https credentials");
-        } catch (CheckoutConflictException ex) {
-            throw ex;
-        } catch (GitAPIException ex) {
-            throw new SecurityException("authentication failed");
-        } finally {
-            updateRepoStatus(path, cp);
-        }
-    }
-
-    private MergeResult.MergeStatus pullRepo(String path, char[] masterPW, ProgressMonitor progressMonitor) throws IOException, GitAPIException, CredentialException {
-        RepositoryInformation repoInfo = fileManager.getRepo(path);
-        CredentialsProvider cp = null;
-        if (repoInfo.isAuthenticated()) {
-            cp = secureStorage.getHttpsCredentialProvider(masterPW, repoInfo.getID());
-        }
-        return pullRepo(path, cp, progressMonitor);
-    }
-
-    public void pullRepoAsync(String path, PullCallback cb) {
-        pullRepoAsync(path, (char[]) null, cb, null);
-    }
-
-    public void pullRepoAsync(String path, PullCallback cb, ProgressMonitor progressMonitor) {
-        pullRepoAsync(path, (char[]) null, cb, progressMonitor);
-    }
-
-    private void pullRepoAsync(String path, CredentialsProvider cp, PullCallback cb, ProgressMonitor progressMonitor) {
-        executor.submit(() -> {
-            MergeResult.MergeStatus status;
-            try {
-                status = pullRepo(path, cp, progressMonitor);
-                cb.finished(path, status, null);
-            } catch (Exception e) {
-                handlePullException(e, cb, path);
-            }
-        });
-    }
-
     public void pullRepoAsync(String path, char[] masterPW, PullCallback cb, ProgressMonitor progressMonitor) {
         executor.submit(() -> {
             MergeResult.MergeStatus status;
@@ -170,18 +72,6 @@ public class GitManager {
                 handlePullException(e, cb, path);
             }
         });
-    }
-
-    private void handlePullException(Exception ex, PullCallback cb, String path) {
-        if (ex instanceof SecurityException) {
-            cb.failed(path, true);
-        } else if (ex instanceof CredentialException || ex instanceof  NoRemoteRepositoryException) {
-            cb.failed(path, false);
-        } else if (ex instanceof CheckoutConflictException) {
-            cb.failed(path, MergeResult.MergeStatus.CHECKOUT_CONFLICT, ex, false);
-        } else {
-            cb.finished(path, MergeResult.MergeStatus.FAILED, ex);
-        }
     }
 
     /**
@@ -200,10 +90,10 @@ public class GitManager {
         checksSuccessful.value = 0;
 
         // load credentials of all repos if correct masterPW
-        Map<UUID, CredentialsProvider> credentials = getCredentialsIfPossible(masterPW, watchlist);
+        Map<UUID, AuthInfo> authInfo = getAuthInfoIfPossible(masterPW, watchlist);
 
         for (RepositoryInformation repo : watchlist) {
-            updateRepoStatusAsync(repo.getPath(), credentials.get(repo.getID()),
+            updateRepoStatusAsync(repo.getPath(), Optional.ofNullable(authInfo.get(repo.getID())).orElse(new AuthInfo()),
                     (success, reposChecked, reposFailed, ex) -> {
                         checksFinished.value++;
                         if (success) checksSuccessful.value++;
@@ -225,16 +115,17 @@ public class GitManager {
         updateWatchlistStatusAsync(null, cb);
     }
 
-    public void updateRepoStatusAsync(String path, CredentialsProvider cp, UpdateStatusCallback cb) {
+    public void updateRepoStatusAsync(String path, AuthInfo authInfo, UpdateStatusCallback cb) {
         executor.submit(() -> {
             try {
-                updateRepoStatus(path, cp);
+                updateRepoStatus(path, authInfo);
                 cb.finished(true, 1, 0, null);
             } catch (Exception e) {
                 cb.finished(false, 0, 1, e);
             }
         });
     }
+
 
     public void updateRepoStatusAsync(String path, char[] masterPW, UpdateStatusCallback cb) {
         executor.submit(() -> {
@@ -245,22 +136,6 @@ public class GitManager {
                 cb.finished(false, 0, 1, e);
             }
         });
-    }
-
-    private void fetchRepo(Git repoGit, CredentialsProvider cp) throws GitAPIException {
-        repoGit.fetch()
-                .setCredentialsProvider(cp)
-                .call();
-    }
-
-    private Map<UUID, CredentialsProvider> getCredentialsIfPossible(char[] masterPW, List<RepositoryInformation> repos) {
-        Map<UUID, CredentialsProvider> credentials = new HashMap<>();
-        try {
-            credentials = secureStorage.getHttpsCredentialProviders(masterPW, repos);
-        } catch (Exception ex) {
-            // nothing since repos without need for authentication will still be checked
-        }
-        return credentials;
     }
 
     public void pullWatchlistAsync(char[] masterPW, PullCallback cb, ProgressMonitor progressMonitor) {
@@ -274,12 +149,12 @@ public class GitManager {
         AtomicBoolean wrongMasterPW = new AtomicBoolean(false);
 
         // load credentials of all repos if correct masterPW
-        Map<UUID, CredentialsProvider> credentials = getCredentialsIfPossible(masterPW, watchlist);
+        Map<UUID, AuthInfo> authInfo = getAuthInfoIfPossible(masterPW, watchlist);
 
         List<PullCallback.PullResult> pullResults = new ArrayList<>();
         for (RepositoryInformation repo : watchlist) {
-            pullRepoAsync(repo.getPath(), credentials.get(repo.getID()), (results, pullsSuccessCount,
-                                                                          pullsFailedCount, wrongMP) -> {
+            pullRepoAsync(repo.getPath(), Optional.ofNullable(authInfo.get(repo.getID())).orElse(new AuthInfo()),
+                    (results, pullsSuccessCount, pullsFailedCount, wrongMP) -> {
                 pullsFinished.value++;
                 pullResults.addAll(results);
                 pullsSuccess.value += pullsSuccessCount;
@@ -294,105 +169,6 @@ public class GitManager {
         if (watchlist.isEmpty()) {
             cb.finished(new ArrayList<>(), 0,0, false);
         }
-    }
-
-    public void pullWatchlistAsync(PullCallback cb, ProgressMonitor progressMonitor) {
-        pullWatchlistAsync(null, cb, progressMonitor);
-    }
-    /**
-     * Sets status of the Repo at the provided path.
-     * IF a master password != null is provided, the stored credentials of a repo are
-     * attempted to be loaded and (if load is successful, i.e. master password is correct)
-     * those credentials are used to access the repo.
-     * @param path Path the repo is located at
-     * @param masterPW Master Password for stored credentials
-     * @throws IOException If repo path is invalid
-     */
-    private void updateRepoStatus(String path, char[] masterPW) throws IOException {
-        RepositoryInformation repoInfo = fileManager.getRepo(path);
-        // if master password is provided & repo has authentication method specified, use those credentials
-        try {
-            CredentialsProvider cp = null;
-            if (repoInfo.isAuthenticated()) {
-                cp = secureStorage.getHttpsCredentialProvider(masterPW, repoInfo.getID());
-            }
-            updateRepoStatus(path, cp);
-        } catch (SecurityException ex) {
-            fileManager.updateRepoStatus(repoInfo.getPath(), WRONG_MASTER_PW);
-            throw ex;
-        }
-    }
-
-    private void updateRepoStatus(String path, CredentialsProvider cp) throws IOException {
-        RepositoryInformation repoInfo = fileManager.getRepo(path);
-        RepositoryInformation.RepoStatus status = WRONG_MASTER_PW;
-        try {
-            if (repoInfo.isAuthenticated() && cp == null) {
-                throw new SecurityException("wrong master password");
-            } else {
-                status = getRepoStatus(getRepoGit(path), cp);
-            }
-        } finally {
-            fileManager.updateRepoStatus(repoInfo.getPath(), status);
-        }
-    }
-
-    /**
-     * Gets the current status of the given repository
-     * @param repoGit Repository to check
-     * @return Status of the repository
-     */
-    private RepositoryInformation.RepoStatus getRepoStatus(Git repoGit, CredentialsProvider cp) throws IOException {
-        RepositoryInformation.RepoStatus status;
-
-        try {
-            // update refs
-            fetchRepo(repoGit, cp);
-            // query remote heads
-            Map<String, Ref> refs = repoGit.lsRemote()
-                    .setHeads(true)
-                    .setCredentialsProvider(cp)
-                    .callAsMap();
-
-            Ref remoteHead = refs.get(repoGit.getRepository().getFullBranch());
-            Ref localHead = repoGit.getRepository().findRef("HEAD");
-
-            int commitTimeRemote = getCommit(repoGit.getRepository(), remoteHead.getObjectId()).getCommitTime();
-            int commitTimeLocal = getCommit(repoGit.getRepository(), localHead.getObjectId()).getCommitTime();
-            boolean equalHeads = remoteHead.getObjectId().equals(localHead.getObjectId());
-
-            if (repoGit.getRepository().readMergeHeads() != null) {
-                status = MERGE_NEEDED;
-            } else if (!equalHeads && commitTimeRemote >= commitTimeLocal) {
-                status = PULL_AVAILABLE;
-            } else if (!equalHeads) {
-                status = PUSH_AVAILABLE;
-            } else {
-                status = UP_TO_DATE;
-            }
-        }
-        catch (NoRemoteRepositoryException | InvalidRemoteException ex) {
-            status = NO_REMOTE;
-        }
-        catch (TransportException ex) {
-            if (ex.getCause() != null && ex.getCause() instanceof NoRemoteRepositoryException) {
-                status = NO_REMOTE;
-            } else {
-                status = INACCESSIBLE_REMOTE;
-            }
-        } catch (GitAPIException ex) {
-            status = UNKNOWN_ERROR;
-        }
-
-        return status;
-    }
-
-    private RevCommit getCommit(Repository repo, ObjectId objectId) throws IOException {
-        RevCommit commit;
-        try (RevWalk revWalk = new RevWalk(repo)) {
-            commit = revWalk.parseCommit(objectId);
-        }
-        return commit;
     }
 
     /**
@@ -438,70 +214,20 @@ public class GitManager {
         return changes;
     }
 
-    /**
-     * Returns a list of file changes between two commits.
-     * @param git Git of which the commits are part of.
-     * @param objectIdOld ID of the commit to which the new commit is compared.
-     * @param objectIdNew ID of the commit which is compared to the old commit.
-     * @return List of DiffEntries which represent file changes.
-     * @throws IOException If invalid git is passed.
-     * @throws GitAPIException If error during diff calculation occurs.
-     */
-    private List<DiffEntry> getDiff(Git git, ObjectId objectIdOld, ObjectId objectIdNew) throws IOException, GitAPIException {
-        try (ObjectReader reader = git.getRepository().newObjectReader()) {
-            CanonicalTreeParser oldTreeIter = new CanonicalTreeParser();
-            oldTreeIter.reset(reader, getCommit(git.getRepository(), objectIdOld).getTree());
-            CanonicalTreeParser newTreeIter = new CanonicalTreeParser();
-            newTreeIter.reset(reader, getCommit(git.getRepository(), objectIdNew).getTree());
-
-            return git.diff()
-                    .setOldTree(oldTreeIter)
-                    .setNewTree(newTreeIter)
-                    .setShowNameAndStatusOnly(true)
-                    .call();
-        }
-    }
-
-    /**
-     * Returns a list of file changes between the provided commit and the empty repository.
-     * (This means all files in the commit will be marked as ADDED).
-     * @param git Git of which the commits are part of.
-     * @param objectIdInitial ID of the commit to which the new commit is compared.
-     * @return List of DiffEntries which represent file changes.
-     * @throws IOException If invalid git is passed.
-     * @throws GitAPIException If error during diff calculation occurs.
-     */
-    private List<DiffEntry> getDiff(Git git, ObjectId objectIdInitial) throws IOException, GitAPIException {
-        try (ObjectReader reader = git.getRepository().newObjectReader()) {
-            EmptyTreeIterator oldTreeIter = new EmptyTreeIterator();
-            CanonicalTreeParser newTreeIter = new CanonicalTreeParser();
-            newTreeIter.reset(reader, getCommit(git.getRepository(), objectIdInitial).getTree());
-
-            return git.diff()
-                    .setOldTree(oldTreeIter)
-                    .setNewTree(newTreeIter)
-                    .setShowNameAndStatusOnly(true)
-                    .call();
-        }
-    }
-
     public void testRepoConnectionAsync(RepositoryInformation repo, ConnectionTestCallback cb) {
-        executor.submit(() -> cb.finished(testRepoConnection(repo, null)));
+        executor.submit(() -> cb.finished(testRepoConnection(repo, new AuthInfo())));
     }
 
-    public void testRepoConnectionAsync(RepositoryInformation repo, String httpsUsername, String httpsPassword, ConnectionTestCallback cb) {
-        executor.submit(() -> cb.finished(testRepoConnection(repo, new UsernamePasswordCredentialsProvider(httpsUsername, httpsPassword))));
+    public void testRepoConnectionHttpsAsync(RepositoryInformation repo, String httpsUsername, String httpsPassword,
+                                        ConnectionTestCallback cb) {
+        executor.submit(() -> cb.finished(testRepoConnection(repo,
+                new AuthInfo(new UsernamePasswordCredentialsProvider(httpsUsername, httpsPassword)))));
     }
 
-    private RepositoryInformation.RepoStatus testRepoConnection(RepositoryInformation repo, CredentialsProvider cp) {
-        RepositoryInformation.RepoStatus status;
-        try {
-            Git git = getRepoGit(repo.getPath());
-            status = getRepoStatus(git, cp);
-        } catch (IOException e) {
-            status = PATH_INVALID;
-        }
-        return status;
+    public void testRepoConnectionSslAsync(RepositoryInformation repo, String sslKeyPath, String sslPassphrase,
+                                        ConnectionTestCallback cb) {
+        executor.submit(() -> cb.finished(testRepoConnection(repo,
+                new AuthInfo(new SSLTransportConfigCallback(sslKeyPath, sslPassphrase)))));
     }
 
     public Collection<Branch> getBranchNames(String path) throws IOException, GitAPIException {
@@ -551,5 +277,271 @@ public class GitManager {
         repoGit.branchCreate()
                 .setName(branchName)
                 .call();
+    }
+
+    private void notifyPullListener(String path, MergeResult.MergeStatus status) {
+        if (this.pullListener != null) {
+            this.pullListener.pullExecuted(path, status);
+        }
+    }
+
+    /**
+     * Get a Repository object for the repository at the provided path
+     * @param path Path of the folder wrapping the git repository
+     * @return Repository at specified path
+     * @throws IOException If path does not point to a valid repository
+     */
+    private synchronized Git getRepoGit(String path) throws IOException {
+        Git repoGit = repoCache.get(path);
+        if (repoGit == null) {
+            Repository repo = new FileRepositoryBuilder()
+                    .setGitDir(new File(path + "/.git"))
+                    .build();
+            repoGit = new Git(repo);
+            repoCache.put(path, repoGit);
+        }
+        return repoGit;
+    }
+
+    private List<RevCommit> getCommitsInRange(Git git, ObjectId from, ObjectId to) {
+        List<RevCommit> commits = new ArrayList<>();
+        try {
+            git.log().addRange(from, to).call().forEach(commits::add);
+        } catch(Exception ex) {
+            return new ArrayList<>();
+        }
+        return commits;
+    }
+
+    private MergeResult.MergeStatus pullRepo(String path, AuthInfo authInfo, ProgressMonitor progressMonitor) throws IOException, CredentialException, CheckoutConflictException {
+        Git git = getRepoGit(path);
+        RepositoryInformation repoInfo = fileManager.getRepo(path);
+
+        try {
+            ObjectId oldHead = git.getRepository().resolve("HEAD");
+            PullCommand cmd = git.pull()
+                    .setStrategy(repoInfo.getMergeStrategy().getJgitStrat())
+                    .setProgressMonitor(progressMonitor);
+            authInfo.configure(cmd);
+            PullResult pullResult = cmd.call();
+            ObjectId head = git.getRepository().resolve("HEAD");
+
+            // set new update count
+            fileManager.setNewChanges(path, getCommitsInRange(git, oldHead, head).size());
+
+            notifyPullListener(path, pullResult.getMergeResult().getMergeStatus());
+            return pullResult.getMergeResult().getMergeStatus();
+
+        } catch (InvalidConfigurationException ex) {
+            throw new NoRemoteRepositoryException(new URIish(), "no remote");
+        } catch (TransportException ex) {
+            throw new CredentialException("invalid https credentials");
+        } catch (CheckoutConflictException ex) {
+            throw ex;
+        } catch (GitAPIException ex) {
+            throw new SecurityException("authentication failed");
+        } finally {
+            updateRepoStatus(path, authInfo);
+        }
+    }
+
+    private MergeResult.MergeStatus pullRepo(String path, char[] masterPW, ProgressMonitor progressMonitor) throws IOException, GitAPIException, CredentialException {
+        RepositoryInformation repoInfo = fileManager.getRepo(path);
+        AuthInfo authInfo = AuthInfo.getFor(repoInfo, masterPW);
+        MergeResult.MergeStatus status = pullRepo(path, authInfo, progressMonitor);
+        authInfo.destroy();
+        return status;
+    }
+
+    private void pullRepoAsync(String path, AuthInfo authInfo, PullCallback cb, ProgressMonitor progressMonitor) {
+        executor.submit(() -> {
+            MergeResult.MergeStatus status;
+            try {
+                status = pullRepo(path, authInfo, progressMonitor);
+                cb.finished(path, status, null);
+            } catch (Exception e) {
+                handlePullException(e, cb, path);
+            }
+        });
+    }
+
+    private void handlePullException(Exception ex, PullCallback cb, String path) {
+        if (ex instanceof SecurityException) {
+            cb.failed(path, true);
+        } else if (ex instanceof CredentialException || ex instanceof  NoRemoteRepositoryException) {
+            cb.failed(path, false);
+        } else if (ex instanceof CheckoutConflictException) {
+            cb.failed(path, MergeResult.MergeStatus.CHECKOUT_CONFLICT, ex, false);
+        } else {
+            cb.finished(path, MergeResult.MergeStatus.FAILED, ex);
+        }
+    }
+
+    private void fetchRepo(Git repoGit, AuthInfo authInfo) throws GitAPIException {
+        FetchCommand cmd = repoGit.fetch();
+        authInfo.configure(cmd);
+        cmd.call();
+    }
+
+
+    private Map<UUID, AuthInfo> getAuthInfoIfPossible(char[] masterPW, List<RepositoryInformation> repos) {
+        Map<UUID, AuthInfo> authInfo = new HashMap<>();
+        try {
+            authInfo = AuthInfo.getFor(repos, masterPW);
+        } catch (Exception ex) {
+            // nothing since repos without need for authentication will still be checked
+        }
+        return authInfo;
+    }
+
+    /**
+     * Sets status of the Repo at the provided path.
+     * IF a master password != null is provided, the stored credentials of a repo are
+     * attempted to be loaded and (if load is successful, i.e. master password is correct)
+     * those credentials are used to access the repo.
+     * @param path Path the repo is located at
+     * @param masterPW Master Password for stored credentials
+     * @throws IOException If repo path is invalid
+     */
+    private void updateRepoStatus(String path, char[] masterPW) throws IOException {
+        RepositoryInformation repoInfo = fileManager.getRepo(path);
+        // if master password is provided & repo has authentication method specified, use those credentials
+        try {
+            AuthInfo authInfo = AuthInfo.getFor(repoInfo, masterPW);
+            updateRepoStatus(path, authInfo);
+        } catch (SecurityException ex) {
+            fileManager.updateRepoStatus(repoInfo.getPath(), WRONG_MASTER_PW);
+            throw ex;
+        }
+    }
+
+    private void updateRepoStatus(String path, AuthInfo authInfo) throws IOException {
+        RepositoryInformation repoInfo = fileManager.getRepo(path);
+        RepositoryInformation.RepoStatus status = WRONG_MASTER_PW;
+        try {
+            if (repoInfo.isAuthenticated() && !authInfo.hasInformation()) {
+                throw new SecurityException("wrong master password");
+            } else {
+                status = getRepoStatus(getRepoGit(path), authInfo);
+            }
+        } finally {
+            fileManager.updateRepoStatus(repoInfo.getPath(), status);
+        }
+    }
+
+
+    /**
+     * Gets the current status of the given repository
+     * @param repoGit Repository to check
+     * @return Status of the repository
+     */
+    private RepositoryInformation.RepoStatus getRepoStatus(Git repoGit, AuthInfo authInfo) throws IOException {
+        RepositoryInformation.RepoStatus status;
+
+        try {
+            // update refs
+            fetchRepo(repoGit, authInfo);
+            // query remote heads
+            LsRemoteCommand cmd = repoGit.lsRemote().setHeads(true);
+            authInfo.configure(cmd);
+            Map<String, Ref> refs = cmd.callAsMap();
+
+            Ref remoteHead = refs.get(repoGit.getRepository().getFullBranch());
+            Ref localHead = repoGit.getRepository().findRef("HEAD");
+
+            int commitTimeRemote = getCommit(repoGit.getRepository(), remoteHead.getObjectId()).getCommitTime();
+            int commitTimeLocal = getCommit(repoGit.getRepository(), localHead.getObjectId()).getCommitTime();
+            boolean equalHeads = remoteHead.getObjectId().equals(localHead.getObjectId());
+
+            if (repoGit.getRepository().readMergeHeads() != null) {
+                status = MERGE_NEEDED;
+            } else if (!equalHeads && commitTimeRemote >= commitTimeLocal) {
+                status = PULL_AVAILABLE;
+            } else if (!equalHeads) {
+                status = PUSH_AVAILABLE;
+            } else {
+                status = UP_TO_DATE;
+            }
+        }
+        catch (NoRemoteRepositoryException | InvalidRemoteException ex) {
+            status = NO_REMOTE;
+        }
+        catch (TransportException ex) {
+            if (ex.getCause() != null && ex.getCause() instanceof NoRemoteRepositoryException) {
+                status = NO_REMOTE;
+            } else {
+                status = INACCESSIBLE_REMOTE;
+            }
+        } catch (GitAPIException ex) {
+            status = UNKNOWN_ERROR;
+        }
+
+        return status;
+    }
+
+    private RevCommit getCommit(Repository repo, ObjectId objectId) throws IOException {
+        RevCommit commit;
+        try (RevWalk revWalk = new RevWalk(repo)) {
+            commit = revWalk.parseCommit(objectId);
+        }
+        return commit;
+    }
+
+    /**
+     * Returns a list of file changes between two commits.
+     * @param git Git of which the commits are part of.
+     * @param objectIdOld ID of the commit to which the new commit is compared.
+     * @param objectIdNew ID of the commit which is compared to the old commit.
+     * @return List of DiffEntries which represent file changes.
+     * @throws IOException If invalid git is passed.
+     * @throws GitAPIException If error during diff calculation occurs.
+     */
+    private List<DiffEntry> getDiff(Git git, ObjectId objectIdOld, ObjectId objectIdNew) throws IOException, GitAPIException {
+        try (ObjectReader reader = git.getRepository().newObjectReader()) {
+            CanonicalTreeParser oldTreeIter = new CanonicalTreeParser();
+            oldTreeIter.reset(reader, getCommit(git.getRepository(), objectIdOld).getTree());
+            CanonicalTreeParser newTreeIter = new CanonicalTreeParser();
+            newTreeIter.reset(reader, getCommit(git.getRepository(), objectIdNew).getTree());
+
+            return git.diff()
+                    .setOldTree(oldTreeIter)
+                    .setNewTree(newTreeIter)
+                    .setShowNameAndStatusOnly(true)
+                    .call();
+        }
+    }
+
+    /**
+     * Returns a list of file changes between the provided commit and the empty repository.
+     * (This means all files in the commit will be marked as ADDED).
+     * @param git Git of which the commits are part of.
+     * @param objectIdInitial ID of the commit to which the new commit is compared.
+     * @return List of DiffEntries which represent file changes.
+     * @throws IOException If invalid git is passed.
+     * @throws GitAPIException If error during diff calculation occurs.
+     */
+    private List<DiffEntry> getDiff(Git git, ObjectId objectIdInitial) throws IOException, GitAPIException {
+        try (ObjectReader reader = git.getRepository().newObjectReader()) {
+            EmptyTreeIterator oldTreeIter = new EmptyTreeIterator();
+            CanonicalTreeParser newTreeIter = new CanonicalTreeParser();
+            newTreeIter.reset(reader, getCommit(git.getRepository(), objectIdInitial).getTree());
+
+            return git.diff()
+                    .setOldTree(oldTreeIter)
+                    .setNewTree(newTreeIter)
+                    .setShowNameAndStatusOnly(true)
+                    .call();
+        }
+    }
+
+    private RepositoryInformation.RepoStatus testRepoConnection(RepositoryInformation repo, AuthInfo authInfo) {
+        RepositoryInformation.RepoStatus status;
+        try {
+            Git git = getRepoGit(repo.getPath());
+            status = getRepoStatus(git, authInfo);
+        } catch (IOException e) {
+            status = PATH_INVALID;
+        }
+        return status;
     }
 }

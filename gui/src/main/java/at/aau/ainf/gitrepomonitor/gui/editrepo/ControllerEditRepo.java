@@ -405,7 +405,7 @@ public class ControllerEditRepo implements Initializable, ErrorDisplay, MasterPa
                 credentialsSet = onBtnLoadCredentialsClick(actionEvent);
             }
             if (credentialsSet) {
-                gitManager.testRepoConnectionAsync(repo, txtHttpsUsername.getText(), txtHttpsPasswordHidden.getText(),
+                gitManager.testRepoConnectionHttpsAsync(repo, txtHttpsUsername.getText(), txtHttpsPasswordHidden.getText(),
                         status -> Platform.runLater(() -> {
                             setConnectionStatusDisplay(status);
                             btnTestConnection.setDisable(false);
@@ -414,9 +414,13 @@ public class ControllerEditRepo implements Initializable, ErrorDisplay, MasterPa
                 btnTestConnection.setDisable(false);
             }
         } else {
-            btnTestConnection.setDisable(false);
+            btnTestConnection.setDisable(true);
+            gitManager.testRepoConnectionSslAsync(repo, null, null,
+                    status -> Platform.runLater(() -> {
+                        setConnectionStatusDisplay(status);
+                        btnTestConnection.setDisable(false);
+                    }));
         }
-
     }
 
     private void setConnectionStatusDisplay(RepositoryInformation.RepoStatus status) {

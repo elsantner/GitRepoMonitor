@@ -193,7 +193,7 @@ public class SecureKeyringStorage extends SecureStorage {
     }
 
     @Override
-    public CredentialsProvider getHttpsCredentialProvider(char[] masterPW, UUID repoID) throws IOException {
+    public UsernamePasswordCredentialsProvider getHttpsCredentialProvider(char[] masterPW, UUID repoID) throws IOException {
         synchronized (lockMasterPasswordReset) {
             masterPW = getCachedMasterPasswordHashIfPossible(masterPW);
             HttpsCredentials credentials = readHttpsCredentials(masterPW, repoID);
@@ -204,21 +204,21 @@ public class SecureKeyringStorage extends SecureStorage {
     }
 
     @Override
-    public CredentialsProvider getHttpsCredentialProvider(UUID repoID) throws IOException {
+    public UsernamePasswordCredentialsProvider getHttpsCredentialProvider(UUID repoID) throws IOException {
         return getHttpsCredentialProvider(null, repoID);
     }
 
     @Override
-    public Map<UUID, CredentialsProvider> getHttpsCredentialProviders(char[] masterPW, List<RepositoryInformation> repos) {
+    public Map<UUID, UsernamePasswordCredentialsProvider> getHttpsCredentialProviders(char[] masterPW, List<RepositoryInformation> repos) {
         synchronized (lockMasterPasswordReset) {
-            Map<UUID, CredentialsProvider> map = new HashMap<>();
+            Map<UUID, UsernamePasswordCredentialsProvider> map = new HashMap<>();
 
             masterPW = getCachedMasterPasswordHashIfPossible(masterPW);
             for (RepositoryInformation repo : repos) {
                 try {
                     if (repo.isAuthenticated()) {
                         HttpsCredentials credentials = readHttpsCredentials(masterPW, repo.getID());
-                        CredentialsProvider credProv = new UsernamePasswordCredentialsProvider(credentials.getUsername(), credentials.getPassword());
+                        UsernamePasswordCredentialsProvider credProv = new UsernamePasswordCredentialsProvider(credentials.getUsername(), credentials.getPassword());
                         map.put(repo.getID(), credProv);
                     }
                 } catch (IOException ex) {
@@ -232,7 +232,7 @@ public class SecureKeyringStorage extends SecureStorage {
     }
 
     @Override
-    public Map<UUID, CredentialsProvider> getHttpsCredentialProviders(List<RepositoryInformation> repos) {
+    public Map<UUID, UsernamePasswordCredentialsProvider> getHttpsCredentialProviders(List<RepositoryInformation> repos) {
         return getHttpsCredentialProviders(null, repos);
     }
 

@@ -5,6 +5,7 @@ import at.aau.ainf.gitrepomonitor.core.files.Utils;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.dataformat.xml.XmlMapper;
 import org.eclipse.jgit.transport.CredentialsProvider;
+import org.eclipse.jgit.transport.UsernamePasswordCredentialsProvider;
 
 import javax.crypto.BadPaddingException;
 import javax.crypto.Cipher;
@@ -190,13 +191,13 @@ public abstract class SecureStorage {
 
     public abstract HttpsCredentials getHttpsCredentials(UUID repoID) throws IOException;
 
-    public abstract CredentialsProvider getHttpsCredentialProvider(char[] masterPW, UUID repoID) throws IOException;
+    public abstract UsernamePasswordCredentialsProvider getHttpsCredentialProvider(char[] masterPW, UUID repoID) throws IOException;
 
-    public abstract CredentialsProvider getHttpsCredentialProvider(UUID repoID) throws IOException;
+    public abstract UsernamePasswordCredentialsProvider getHttpsCredentialProvider(UUID repoID) throws IOException;
 
-    public abstract Map<UUID, CredentialsProvider> getHttpsCredentialProviders(char[] masterPW, List<RepositoryInformation> repos) throws IOException;
+    public abstract Map<UUID, UsernamePasswordCredentialsProvider> getHttpsCredentialProviders(char[] masterPW, List<RepositoryInformation> repos) throws IOException;
 
-    public abstract Map<UUID, CredentialsProvider> getHttpsCredentialProviders(List<RepositoryInformation> repos) throws IOException;
+    public abstract Map<UUID, UsernamePasswordCredentialsProvider> getHttpsCredentialProviders(List<RepositoryInformation> repos) throws IOException;
 
     protected byte[] encryptToBytes(String plaintext, char[] key) {
         try {
