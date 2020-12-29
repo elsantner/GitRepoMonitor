@@ -1,7 +1,13 @@
 package at.aau.ainf.gitrepomonitor.core.files;
 
+import at.aau.ainf.gitrepomonitor.core.git.GitManager;
+import org.eclipse.jgit.lib.Repository;
+import org.eclipse.jgit.storage.file.FileRepositoryBuilder;
+
 import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
+import java.io.File;
+import java.io.IOException;
 import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -143,9 +149,11 @@ class RepoListWrapper {
     }
 
     private void checkRepoPathValidity(Collection<RepositoryInformation> reposToCheck) {
-        for (RepositoryInformation repo : reposToCheck) {
-            if (!Utils.validateRepositoryPath(repo.getPath())) {
-                repo.setStatus(RepositoryInformation.RepoStatus.PATH_INVALID);
+        for (RepositoryInformation repoInfo : reposToCheck) {
+            try {
+                FileManager.setAuthMethod(repoInfo);
+            } catch (IOException e) {
+                repoInfo.setStatus(RepositoryInformation.RepoStatus.PATH_INVALID);
             }
         }
     }
@@ -198,7 +206,7 @@ class RepoListWrapper {
 
     public void resetAuthMethodAll() {
         for (RepositoryInformation repo : getAllRepos()) {
-            repo.setAuthMethod(RepositoryInformation.AuthMethod.NONE);
+            repo.setRequiresAuthentication(false);
         }
     }
 

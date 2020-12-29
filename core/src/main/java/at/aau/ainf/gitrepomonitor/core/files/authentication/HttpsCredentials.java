@@ -6,6 +6,10 @@ public class HttpsCredentials extends AuthenticationInformation {
     private String username;
     private char[] password;
 
+    public HttpsCredentials() {
+        super();
+    }
+
     public HttpsCredentials(UUID repoID, String username, char[] password) {
         super(repoID);
         this.username = username;

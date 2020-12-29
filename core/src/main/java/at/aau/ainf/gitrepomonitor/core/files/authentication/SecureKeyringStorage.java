@@ -167,7 +167,8 @@ public class SecureKeyringStorage extends SecureStorage {
         try {
             String credsCipher = keyring.getPassword(getServiceName(), repoID.toString());
             String xml = decrypt(credsCipher, masterPW);
-            return mapper.readValue(xml, new TypeReference<HttpsCredentials>(){});
+            return mapper.readValue(xml, new TypeReference<>() {
+            });
         } catch (PasswordAccessException ex) {
             throw new IOException(ex);
         } catch (BadPaddingException | IllegalBlockSizeException e) {
@@ -298,7 +299,7 @@ public class SecureKeyringStorage extends SecureStorage {
         try {
             String credsCipher = keyring.getPassword(getServiceName(), repoID.toString());
             String xml = decrypt(credsCipher, masterPW);
-            return mapper.readValue(xml, new TypeReference<SSLInformation>(){});
+            return mapper.readValue(xml, new TypeReference<>() {});
         } catch (PasswordAccessException ex) {
             throw new IOException(ex);
         } catch (BadPaddingException | IllegalBlockSizeException e) {

@@ -3,6 +3,9 @@ package at.aau.ainf.gitrepomonitor.core.files;
 import at.aau.ainf.gitrepomonitor.core.files.authentication.SecureStorage;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.dataformat.xml.XmlMapper;
+import org.eclipse.jgit.errors.ConfigInvalidException;
+import org.eclipse.jgit.lib.Repository;
+import org.eclipse.jgit.storage.file.FileRepositoryBuilder;
 
 import java.beans.PropertyChangeListener;
 import java.io.File;
@@ -57,6 +60,21 @@ public class FileManager {
         repoListWrapper.checkRepoPathValidity();
         repoListInitialized = true;
         return !checkCredentials();
+    }
+
+    public static void setAuthMethod(RepositoryInformation repoInfo) throws IOException {
+        Repository repo = new FileRepositoryBuilder()
+                .setGitDir(new File(repoInfo.getPath() + "/.git"))
+                .build();
+
+        String originURL = repo.getConfig().getString("remote", "origin", "url");
+        if (originURL == null) {
+            repoInfo.setAuthMethod(RepositoryInformation.AuthMethod.NONE);
+        } else if (originURL.contains("https://")) {
+            repoInfo.setAuthMethod(RepositoryInformation.AuthMethod.HTTPS);
+        } else {
+            repoInfo.setAuthMethod(RepositoryInformation.AuthMethod.SSL);
+        }
     }
 
     /**

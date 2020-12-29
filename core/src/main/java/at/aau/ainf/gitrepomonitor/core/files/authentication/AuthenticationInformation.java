@@ -5,6 +5,10 @@ import java.util.UUID;
 public abstract class AuthenticationInformation {
     protected UUID repoID;
 
+    protected AuthenticationInformation() {
+        // for serialization
+    }
+
     protected AuthenticationInformation(UUID repoID) {
         this.repoID = repoID;
     }

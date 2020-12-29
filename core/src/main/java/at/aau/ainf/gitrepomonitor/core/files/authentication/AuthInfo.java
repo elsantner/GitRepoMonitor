@@ -46,7 +46,7 @@ public class AuthInfo {
         switch (repo.getAuthMethod()) {
             case HTTPS:
                 return new AuthInfo(secureStorage.getHttpsCredentialProvider(masterPW, repo.getID()));
-            case SSH:
+            case SSL:
                 // TODO: add custom ssl path support
                 return new AuthInfo(new SSLTransportConfigCallback());
             default:

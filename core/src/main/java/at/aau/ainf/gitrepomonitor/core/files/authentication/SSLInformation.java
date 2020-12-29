@@ -6,6 +6,10 @@ public class SSLInformation extends AuthenticationInformation {
     private String sslKeyPath;
     private String sslPassphrase;
 
+    public SSLInformation() {
+        // for serialization
+    }
+
     public SSLInformation(UUID repoID, String sslKeyPath, String sslPassphrase) {
         super(repoID);
         this.sslKeyPath = sslKeyPath;

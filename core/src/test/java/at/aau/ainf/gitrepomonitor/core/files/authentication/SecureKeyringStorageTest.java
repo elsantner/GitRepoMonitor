@@ -23,7 +23,6 @@ public class SecureKeyringStorageTest {
         secStorage.setMasterPassword("someMasterPW".toCharArray());
         assertTrue(secStorage.isMasterPasswordSet());
         List<RepositoryInformation> repos = Collections.singletonList(new RepositoryInformation());
-        repos.get(0).setAuthMethod(RepositoryInformation.AuthMethod.HTTPS);
         UUID repoID = repos.get(0).getID();
 
         secStorage.storeHttpsCredentials("someMasterPW".toCharArray(), repoID,

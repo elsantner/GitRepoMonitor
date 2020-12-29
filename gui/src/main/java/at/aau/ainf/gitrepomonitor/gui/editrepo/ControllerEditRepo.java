@@ -43,12 +43,6 @@ public class ControllerEditRepo implements Initializable, ErrorDisplay, MasterPa
     @FXML
     public AnchorPane authContainerHTTPS;
     @FXML
-    public RadioButton radioBtnNone;
-    @FXML
-    public RadioButton radioBtnHttps;
-    @FXML
-    public RadioButton radioBtnSSL;
-    @FXML
     public AnchorPane authContainerSSL;
     @FXML
     public ImageView iconShowPW;
@@ -74,6 +68,8 @@ public class ControllerEditRepo implements Initializable, ErrorDisplay, MasterPa
     public ImageView iconShowSslPassphrase;
     @FXML
     public Tooltip ttShowSslPassphrase;
+    @FXML
+    public AnchorPane authContainerNone;
     @FXML
     private TextField txtName;
     @FXML
@@ -111,10 +107,9 @@ public class ControllerEditRepo implements Initializable, ErrorDisplay, MasterPa
             }
         });
         // only show selected credential input
+        authContainerNone.managedProperty().bind(authContainerNone.visibleProperty());
         authContainerHTTPS.managedProperty().bind(authContainerHTTPS.visibleProperty());
-        authContainerHTTPS.visibleProperty().bind(radioBtnHttps.selectedProperty());
         authContainerSSL.managedProperty().bind(authContainerSSL.visibleProperty());
-        authContainerSSL.visibleProperty().bind(radioBtnSSL.selectedProperty());
 
         // sync text between hidden and shown password fields
         txtHttpsPasswordHidden.textProperty().bindBidirectional(txtHttpsPasswordShown.textProperty());
@@ -188,7 +183,7 @@ public class ControllerEditRepo implements Initializable, ErrorDisplay, MasterPa
 
     private boolean validateHttpsCredentials() {
         boolean status = false;
-        if (radioBtnHttps.isSelected()) {
+        if (authContainerHTTPS.isVisible()) {
             status = txtHttpsUsername.getText().isBlank();
             if (status) {
                 txtHttpsUsername.getStyleClass().add("error-input");
@@ -247,14 +242,20 @@ public class ControllerEditRepo implements Initializable, ErrorDisplay, MasterPa
 
     private void setAuthenticationMethod() {
         switch (repo.getAuthMethod()) {
-            case NONE:
-                radioBtnNone.setSelected(true);
-                break;
             case HTTPS:
-                radioBtnHttps.setSelected(true);
+                authContainerHTTPS.setVisible(true);
+                authContainerSSL.setVisible(false);
+                authContainerNone.setVisible(false);
                 break;
-            case SSH:
-                radioBtnSSL.setSelected(true);
+            case SSL:
+                authContainerHTTPS.setVisible(false);
+                authContainerSSL.setVisible(true);
+                authContainerNone.setVisible(false);
+                break;
+            case NONE:
+                authContainerHTTPS.setVisible(false);
+                authContainerSSL.setVisible(false);
+                authContainerNone.setVisible(true);
                 break;
         }
     }
@@ -301,7 +302,7 @@ public class ControllerEditRepo implements Initializable, ErrorDisplay, MasterPa
                 handleAuthChanged();
             }
             // update repo data
-            updateRepoInformation(getSelectedAuthMethod());
+            updateRepoInformation();
 
             Stage stage = (Stage) txtName.getScene().getWindow();
             stage.close();
@@ -325,8 +326,6 @@ public class ControllerEditRepo implements Initializable, ErrorDisplay, MasterPa
 
     private void handleAuthChanged() throws IOException, AuthenticationException {
         // master password is required whenever auth information is changed
-        // This also applies to selecting NONE (removing auth information)
-        // since the credentials previously stored must be erased
         String masterPW = null;
         if (secureStorage.isMasterPasswordSet()) {
             if (!secureStorage.isMasterPasswordCached()) {
@@ -345,24 +344,14 @@ public class ControllerEditRepo implements Initializable, ErrorDisplay, MasterPa
             }
         }
 
-        if (radioBtnNone.isSelected()) {
-            secureStorage.deleteHttpsCredentials(Utils.toCharOrNull(masterPW), repo.getID());
-        } else if (radioBtnHttps.isSelected()) {
+        if (authContainerHTTPS.isVisible()) {
             if (!validateHttpsCredentials()) {
                 throw new IllegalArgumentException("HTTPS username must not be empty");
             }
             secureStorage.storeHttpsCredentials(Utils.toCharOrNull(masterPW), repo.getID(),
                     txtHttpsUsername.getText(), txtHttpsPasswordHidden.getText().toCharArray());
         }
-    }
-
-    private RepositoryInformation.AuthMethod getSelectedAuthMethod() {
-        if (radioBtnNone.isSelected())
-            return RepositoryInformation.AuthMethod.NONE;
-        else if (radioBtnHttps.isSelected())
-            return RepositoryInformation.AuthMethod.HTTPS;
-        else
-            return RepositoryInformation.AuthMethod.SSH;
+        // TODO: add ssl support
     }
 
     /**
@@ -370,27 +359,30 @@ public class ControllerEditRepo implements Initializable, ErrorDisplay, MasterPa
      * @return True, if changed
      */
     private boolean wasAuthChanged() {
-        switch (repo.getAuthMethod()) {
-            case NONE:
-                return !radioBtnNone.isSelected();
-            case HTTPS:
-                return !radioBtnHttps.isSelected() || httpsCredentialsChanged;
-            case SSH:
-                return !radioBtnSSL.isSelected();
-        }
-        return false;
+        return httpsCredentialsChanged; // TODO: || sslInfoChanged
     }
 
-    private void updateRepoInformation(RepositoryInformation.AuthMethod authMethod) {
+    private void updateRepoInformation() {
         RepositoryInformation editedRepo = (RepositoryInformation) repo.clone();
         editedRepo.setPath(txtPath.getText());
         editedRepo.setName(txtName.getText());
         editedRepo.setMergeStrategy(cbBoxMergeStrat.getValue());
-        editedRepo.setAuthMethod(authMethod);
+        editedRepo.setRequiresAuthentication(!defaultAuthValuesSet());
         fileManager.editRepo(originalPath, editedRepo);
 
         if (chkBoxMergeStratApplyAll.isSelected()) {
             fileManager.applyMergeStratToAllRepos(cbBoxMergeStrat.getValue());
+        }
+    }
+
+    private boolean defaultAuthValuesSet() {
+        if (authContainerHTTPS.isVisible()) {
+            return txtHttpsUsername.getText().isBlank() && txtHttpsPasswordHidden.getText().isBlank();
+        } else if (authContainerSSL.isVisible())  {
+            return txtSslKeyPath.getText().isBlank() && txtSslPassphraseHidden.getText().isBlank();
+        } else {
+            // no remote --> no auth info
+            return true;
         }
     }
 
@@ -420,12 +412,7 @@ public class ControllerEditRepo implements Initializable, ErrorDisplay, MasterPa
     @FXML
     public void onBtnTestConnClick(ActionEvent actionEvent) {
         btnTestConnection.setDisable(true);
-        if (radioBtnNone.isSelected()) {
-            gitManager.testRepoConnectionAsync(repo, status -> Platform.runLater(() -> {
-                setConnectionStatusDisplay(status);
-                btnTestConnection.setDisable(false);
-            }));
-        } else if (radioBtnHttps.isSelected()) {
+        if (authContainerHTTPS.isVisible()) {
             // if credentials are stored but not loaded, prompt the user to input Master Password and load them
             // (if user aborts MP input, abort connection test)
             // else use text from TextFields

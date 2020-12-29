@@ -2,7 +2,6 @@ package at.aau.ainf.gitrepomonitor.core.files;
 
 import com.fasterxml.jackson.annotation.JsonAutoDetect;
 import com.fasterxml.jackson.annotation.JsonIgnore;
-import org.eclipse.jgit.merge.MergeStrategy;
 
 import java.util.Date;
 import java.util.Objects;
@@ -15,11 +14,19 @@ import java.util.UUID;
 public class RepositoryInformation implements Comparable<RepositoryInformation>, Cloneable {
 
     private final UUID id;
-    private AuthMethod authMethod;
     private String path;
     private String name;
     private Date dateAdded;
+    private String sslKeyPath;
+    private boolean requiresAuthentication;
+    private AuthMethod authMethod;
     private MergeStrategy mergeStrategy = MergeStrategy.RECURSIVE;
+
+    public enum AuthMethod {
+        HTTPS,
+        SSL,
+        NONE
+    }
 
     public enum MergeStrategy {
         OURS("Ours", org.eclipse.jgit.merge.MergeStrategy.OURS),
@@ -59,12 +66,6 @@ public class RepositoryInformation implements Comparable<RepositoryInformation>,
         UNKNOWN_ERROR,
     }
 
-    public enum AuthMethod {
-        NONE,
-        HTTPS,
-        SSH
-    }
-
     @JsonIgnore
     private RepoStatus status;
     @JsonIgnore
@@ -77,7 +78,6 @@ public class RepositoryInformation implements Comparable<RepositoryInformation>,
         // this value is overwritten during deserialization
         this.id = UUID.randomUUID();
         this.status = RepoStatus.UNCHECKED;
-        this.authMethod = AuthMethod.NONE;
     }
 
     public RepositoryInformation(String path) {
@@ -99,19 +99,10 @@ public class RepositoryInformation implements Comparable<RepositoryInformation>,
         return id;
     }
 
-    public AuthMethod getAuthMethod() {
-        return authMethod;
-    }
-
-    public void setAuthMethod(AuthMethod authMethod) {
-        this.authMethod = authMethod;
-    }
-
     @JsonIgnore
     public boolean isAuthenticated() {
-        return authMethod != AuthMethod.NONE;
+        return requiresAuthentication;
     }
-
     @JsonIgnore
     public RepoStatus getStatus() {
         return status;
@@ -140,6 +131,14 @@ public class RepositoryInformation implements Comparable<RepositoryInformation>,
     public void setNewChanges(int newCommitCount) {
         this.newCommitCount = newCommitCount;
     }
+    @JsonIgnore
+    public AuthMethod getAuthMethod() {
+        return authMethod;
+    }
+    @JsonIgnore
+    void setAuthMethod(AuthMethod authMethod) {
+        this.authMethod = authMethod;
+    }
 
     public String getPath() {
         return path;
@@ -148,6 +147,22 @@ public class RepositoryInformation implements Comparable<RepositoryInformation>,
     public void setPath(String path) {
         this.path = path;
         this.persistentValueChanged = true;
+    }
+
+    public String getSslKeyPath() {
+        return sslKeyPath;
+    }
+
+    public void setSslKeyPath(String sslKeyPath) {
+        this.sslKeyPath = sslKeyPath;
+    }
+
+    public boolean isRequiresAuthentication() {
+        return requiresAuthentication;
+    }
+
+    public void setRequiresAuthentication(boolean requiresAuthentication) {
+        this.requiresAuthentication = requiresAuthentication;
     }
 
     public String getName() {
