@@ -19,6 +19,7 @@ import javafx.scene.control.*;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.AnchorPane;
 import javafx.stage.DirectoryChooser;
+import javafx.stage.FileChooser;
 import javafx.stage.Stage;
 import javafx.util.Callback;
 
@@ -59,6 +60,20 @@ public class ControllerEditRepo implements Initializable, ErrorDisplay, MasterPa
     public ComboBox<RepositoryInformation.MergeStrategy> cbBoxMergeStrat;
     @FXML
     public CheckBox chkBoxMergeStratApplyAll;
+    @FXML
+    public TextField txtSslKeyPath;
+    @FXML
+    public Button btnChooseSslKeyPath;
+    @FXML
+    public PasswordField txtSslPassphraseHidden;
+    @FXML
+    public TextField txtSslPassphraseShown;
+    @FXML
+    public ToggleButton toggleShowSslPassphrase;
+    @FXML
+    public ImageView iconShowSslPassphrase;
+    @FXML
+    public Tooltip ttShowSslPassphrase;
     @FXML
     private TextField txtName;
     @FXML
@@ -112,6 +127,20 @@ public class ControllerEditRepo implements Initializable, ErrorDisplay, MasterPa
             } else {
                 iconShowPW.setImage(ResourceStore.getImage("icon_visible.png"));
                 ttShowPW.setText(ResourceStore.getString("edit_repo.show_password"));
+            }
+        });
+
+        // sync text between hidden and shown password fields
+        txtSslPassphraseHidden.textProperty().bindBidirectional(txtSslPassphraseShown.textProperty());
+        txtSslPassphraseHidden.visibleProperty().bind(toggleShowSslPassphrase.selectedProperty().not());
+        txtSslPassphraseShown.visibleProperty().bind(toggleShowSslPassphrase.selectedProperty());
+        toggleShowSslPassphrase.selectedProperty().addListener((observable, oldValue, newValue) -> {
+            if (newValue) {
+                iconShowSslPassphrase.setImage(ResourceStore.getImage("icon_hidden.png"));
+                ttShowSslPassphrase.setText(ResourceStore.getString("edit_repo.hide_password"));
+            } else {
+                iconShowSslPassphrase.setImage(ResourceStore.getImage("icon_visible.png"));
+                ttShowSslPassphrase.setText(ResourceStore.getString("edit_repo.show_password"));
             }
         });
 
@@ -415,7 +444,11 @@ public class ControllerEditRepo implements Initializable, ErrorDisplay, MasterPa
             }
         } else {
             btnTestConnection.setDisable(true);
-            gitManager.testRepoConnectionSslAsync(repo, null, null,
+
+            String path = txtSslKeyPath.getText().isBlank() ? null : txtSslKeyPath.getText();
+            String passphrase = txtSslPassphraseHidden.getText().isBlank() ? null : txtSslPassphraseHidden.getText();
+
+            gitManager.testRepoConnectionSslAsync(repo, path, passphrase,
                     status -> Platform.runLater(() -> {
                         setConnectionStatusDisplay(status);
                         btnTestConnection.setDisable(false);
@@ -475,5 +508,16 @@ public class ControllerEditRepo implements Initializable, ErrorDisplay, MasterPa
         btnLoadCredentials.setVisible(false);
         // all previous changes are overwritten --> no changes made yet
         httpsCredentialsChanged = false;
+    }
+
+    public void onBtnChooseSslKeyPathClick(ActionEvent actionEvent) {
+        FileChooser fileChooser = new FileChooser();
+        fileChooser.setTitle(ResourceStore.getString("edit_repo.selectdir.title"));
+        fileChooser.setInitialDirectory(getDeepestExistingDirectory(txtSslKeyPath.getText()));
+        File selectedFile = fileChooser.showOpenDialog(txtName.getScene().getWindow());
+        if (selectedFile != null) {
+            txtSslKeyPath.setText(selectedFile.getAbsolutePath());
+            //validateTextFieldPath();
+        }
     }
 }

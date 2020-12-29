@@ -119,7 +119,54 @@
          <padding>
             <Insets left="10.0" right="10.0" />
          </padding>
-         <Label alignment="CENTER" contentDisplay="CENTER" text="Not implemented yet" AnchorPane.bottomAnchor="0.0" AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="0.0" />
+         <children>
+            <HBox AnchorPane.leftAnchor="10.0" AnchorPane.rightAnchor="10.0" AnchorPane.topAnchor="0.0">
+               <children>
+                  <HBox maxWidth="140.0" minWidth="140.0" prefWidth="140.0" HBox.hgrow="NEVER">
+                     <children>
+                        <Label text="SSL Key Path" HBox.hgrow="ALWAYS" />
+                     </children>
+                  </HBox>
+                  <HBox alignment="TOP_RIGHT" spacing="5.0" HBox.hgrow="ALWAYS">
+                     <children>
+                        <TextField fx:id="txtSslKeyPath" promptText="Default location" HBox.hgrow="ALWAYS" />
+                        <Button fx:id="btnChooseSslKeyPath" mnemonicParsing="false" onAction="#onBtnChooseSslKeyPathClick" prefHeight="25.0" prefWidth="25.0" text="..." />
+                     </children>
+                  </HBox>
+               </children>
+            </HBox>
+            <HBox layoutX="10.0" layoutY="10.0" AnchorPane.leftAnchor="10.0" AnchorPane.rightAnchor="10.0" AnchorPane.topAnchor="30.0">
+               <children>
+                  <HBox maxWidth="140.0" minWidth="140.0" prefWidth="140.0" HBox.hgrow="NEVER">
+                     <children>
+                        <Label text="SSL Key Passphrase" HBox.hgrow="ALWAYS" />
+                     </children>
+                  </HBox>
+                  <HBox alignment="TOP_RIGHT" spacing="5.0" HBox.hgrow="ALWAYS">
+                     <children>
+                        <StackPane HBox.hgrow="ALWAYS">
+                           <children>
+                              <PasswordField fx:id="txtSslPassphraseHidden" />
+                              <TextField fx:id="txtSslPassphraseShown" visible="false" />
+                           </children>
+                        </StackPane>
+                        <ToggleButton fx:id="toggleShowSslPassphrase" mnemonicParsing="false" HBox.hgrow="ALWAYS">
+                           <graphic>
+                              <ImageView fx:id="iconShowSslPassphrase" fitHeight="17.0" fitWidth="19.0" pickOnBounds="true" preserveRatio="true">
+                                 <image>
+                                    <Image url="@../icons/icon_visible.png" />
+                                 </image>
+                              </ImageView>
+                           </graphic>
+                           <tooltip>
+                              <Tooltip fx:id="ttShowSslPassphrase" text="%edit_repo.show_password" />
+                           </tooltip>
+                        </ToggleButton>
+                     </children>
+                  </HBox>
+               </children>
+            </HBox>
+         </children>
       </AnchorPane>
       <HBox prefHeight="33.0" prefWidth="574.0">
          <opaqueInsets>
