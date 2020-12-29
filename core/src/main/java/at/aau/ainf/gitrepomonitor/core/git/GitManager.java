@@ -15,6 +15,7 @@ import org.eclipse.jgit.revwalk.RevCommit;
 import org.eclipse.jgit.revwalk.RevWalk;
 import org.eclipse.jgit.storage.file.FileRepositoryBuilder;
 import org.eclipse.jgit.transport.CredentialsProvider;
+import org.eclipse.jgit.transport.TrackingRefUpdate;
 import org.eclipse.jgit.transport.URIish;
 import org.eclipse.jgit.transport.UsernamePasswordCredentialsProvider;
 import org.eclipse.jgit.treewalk.CanonicalTreeParser;
@@ -88,19 +89,31 @@ public class GitManager {
         return repoGit;
     }
 
+    private List<RevCommit> getCommitsInRange(Git git, ObjectId from, ObjectId to) {
+        List<RevCommit> commits = new ArrayList<>();
+        try {
+            git.log().addRange(from, to).call().forEach(commits::add);
+        } catch(Exception ex) {
+            return new ArrayList<>();
+        }
+        return commits;
+    }
+
     private MergeResult.MergeStatus pullRepo(String path, CredentialsProvider cp, ProgressMonitor progressMonitor) throws IOException, CredentialException, CheckoutConflictException {
         Git git = getRepoGit(path);
         RepositoryInformation repoInfo = fileManager.getRepo(path);
 
         try {
+            ObjectId oldHead = git.getRepository().resolve("HEAD");
             PullResult pullResult = git.pull()
                     .setCredentialsProvider(cp)
                     .setStrategy(repoInfo.getMergeStrategy().getJgitStrat())
                     .setProgressMonitor(progressMonitor)
                     .call();
+            ObjectId head = git.getRepository().resolve("HEAD");
 
             // set new update count
-            fileManager.setNewChanges(path, pullResult.getFetchResult().getTrackingRefUpdates().size());
+            fileManager.setNewChanges(path, getCommitsInRange(git, oldHead, head).size());
 
             notifyPullListener(path, pullResult.getMergeResult().getMergeStatus());
             return pullResult.getMergeResult().getMergeStatus();
