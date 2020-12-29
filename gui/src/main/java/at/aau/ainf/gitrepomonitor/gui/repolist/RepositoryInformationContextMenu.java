@@ -3,7 +3,6 @@ package at.aau.ainf.gitrepomonitor.gui.repolist;
 import at.aau.ainf.gitrepomonitor.core.files.FileManager;
 import at.aau.ainf.gitrepomonitor.core.files.RepositoryInformation;
 import at.aau.ainf.gitrepomonitor.core.files.Utils;
-import at.aau.ainf.gitrepomonitor.core.files.authentication.SecureFileStorage;
 import at.aau.ainf.gitrepomonitor.core.files.authentication.SecureStorage;
 import at.aau.ainf.gitrepomonitor.core.git.GitManager;
 import at.aau.ainf.gitrepomonitor.core.git.PullCallback;
@@ -22,7 +21,6 @@ import javafx.stage.Modality;
 import javafx.stage.Stage;
 import javafx.stage.StageStyle;
 import org.eclipse.jgit.api.MergeResult;
-import org.eclipse.jgit.api.errors.GitAPIException;
 import org.eclipse.jgit.api.errors.InvalidConfigurationException;
 import org.eclipse.jgit.lib.ProgressMonitor;
 
@@ -150,6 +148,8 @@ public class RepositoryInformationContextMenu extends ContextMenu implements Err
             statusMsg = ResourceStore.getString("status.pull_no_changes");
         } else if(status == MergeResult.MergeStatus.CONFLICTING) {
             statusMsg = ResourceStore.getString("status.pull_conflict");
+        } else if(status == MergeResult.MergeStatus.CHECKOUT_CONFLICT) {
+            statusMsg = ResourceStore.getString("status.pull_checkout_conflict");
         } else if(status == MergeResult.MergeStatus.FAILED) {
             statusMsg = ResourceStore.getString("status.pull_failed");
         }
