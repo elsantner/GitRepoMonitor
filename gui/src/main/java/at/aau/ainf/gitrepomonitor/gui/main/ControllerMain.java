@@ -245,16 +245,16 @@ public class ControllerMain extends StatusBarController implements Initializable
             masterPW = showMasterPasswordInputDialog(false);
         }
         btnPullAll.setDisable(true);
-        gitManager.pullWatchlistAsync(Utils.toCharOrNull(masterPW), (results, pullsFailed, wrongMasterPW) -> {
+        gitManager.pullWatchlistAsync(Utils.toCharOrNull(masterPW), (results, pullsSuccess, pullsFailed, wrongMasterPW) -> {
             if (results.isEmpty()) {
                 displayStatus("No changes to pull");
             } else {
                 if (wrongMasterPW) {
                     displayStatus(ResourceStore.getString("status.pulled_n_of_m_repo_status_wrong_mp",
-                            results.size(), (results.size() + pullsFailed)));
+                            pullsSuccess, (pullsSuccess + pullsFailed)));
                 } else {
                     displayStatus(ResourceStore.getString("status.pulled_n_of_m_repo_status",
-                            results.size(), (results.size() + pullsFailed)));
+                            pullsSuccess, (pullsSuccess + pullsFailed)));
                 }
             }
             btnPullAll.setDisable(false);

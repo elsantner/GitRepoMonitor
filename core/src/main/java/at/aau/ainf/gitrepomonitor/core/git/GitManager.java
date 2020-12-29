@@ -29,7 +29,6 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.regex.Pattern;
-import java.util.stream.Collectors;
 
 import static at.aau.ainf.gitrepomonitor.core.files.RepositoryInformation.RepoStatus.*;
 
@@ -162,11 +161,11 @@ public class GitManager {
 
     private void handlePullException(Exception ex, PullCallback cb, String path) {
         if (ex instanceof SecurityException) {
-            cb.failed(true);
+            cb.failed(path, true);
         } else if (ex instanceof CredentialException || ex instanceof  NoRemoteRepositoryException) {
-            cb.failed(false);
+            cb.failed(path, false);
         } else if (ex instanceof CheckoutConflictException) {
-            cb.finished(path, MergeResult.MergeStatus.CHECKOUT_CONFLICT, ex);
+            cb.failed(path, MergeResult.MergeStatus.CHECKOUT_CONFLICT, ex, false);
         } else {
             cb.finished(path, MergeResult.MergeStatus.FAILED, ex);
         }
@@ -255,6 +254,8 @@ public class GitManager {
         List<RepositoryInformation> watchlist = fileManager.getWatchlist();
         MutableInteger pullsFinished = new MutableInteger();
         pullsFinished.value = 0;
+        MutableInteger pullsSuccess = new MutableInteger();
+        pullsSuccess.value = 0;
         MutableInteger pullsFailed = new MutableInteger();
         pullsFailed.value = 0;
         AtomicBoolean wrongMasterPW = new AtomicBoolean(false);
@@ -264,20 +265,21 @@ public class GitManager {
 
         List<PullCallback.PullResult> pullResults = new ArrayList<>();
         for (RepositoryInformation repo : watchlist) {
-
-            pullRepoAsync(repo.getPath(), credentials.get(repo.getID()), (results, pullsFailedCount, wrongMP) -> {
+            pullRepoAsync(repo.getPath(), credentials.get(repo.getID()), (results, pullsSuccessCount,
+                                                                          pullsFailedCount, wrongMP) -> {
                 pullsFinished.value++;
                 pullResults.addAll(results);
+                pullsSuccess.value += pullsSuccessCount;
                 pullsFailed.value += pullsFailedCount;
                 wrongMasterPW.set(wrongMasterPW.get() || wrongMP);
                 // once all pulls have finished, call callback
                 if (pullsFinished.value == watchlist.size()) {
-                    cb.finished(pullResults, pullsFailed.value, wrongMasterPW.get());
+                    cb.finished(pullResults, pullsSuccess.value, pullsFailed.value, wrongMasterPW.get());
                 }
             }, progressMonitor);
         }
         if (watchlist.isEmpty()) {
-            cb.finished(new ArrayList<>(), 0, false);
+            cb.finished(new ArrayList<>(), 0,0, false);
         }
     }
 

@@ -72,14 +72,13 @@ public class RepositoryInformationContextMenu extends ContextMenu implements Err
             if (item.isAuthenticated() && !secureStorage.isMasterPasswordCached()) {
                 masterPW = showMasterPasswordInputDialog(false);
             }
-            gitManager.pullRepoAsync(item.getPath(), Utils.toCharOrNull(masterPW), (results, pullsFailed, wrongMP) -> {
-                if (pullsFailed == 1) {
-                    if (!wrongMP) {
-                        setStatus("Repository not accessible (wrong credentials?)");
-                    } else {
-                        setStatus(ResourceStore.getString("status.wrong_master_password"));
-                        showError(ResourceStore.getString("status.wrong_master_password"));
-                    }
+            gitManager.pullRepoAsync(item.getPath(), Utils.toCharOrNull(masterPW), (results, pullsSuccess,
+                                                                                    pullsFailed, wrongMP) -> {
+                if (wrongMP) {
+                    setStatus(ResourceStore.getString("status.wrong_master_password"));
+                    showError(ResourceStore.getString("status.wrong_master_password"));
+                } else if (pullsFailed == 1 && results.get(0) == null) {
+                    setStatus("Repository not accessible (wrong credentials?)");
                 } else {
                     PullCallback.PullResult result = results.get(0);
                     String statusMsg = getStatusMessage(result.getStatus());
