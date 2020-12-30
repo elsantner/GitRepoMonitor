@@ -3,6 +3,7 @@ package at.aau.ainf.gitrepomonitor.core.files.authentication;
 import at.aau.ainf.gitrepomonitor.core.files.FileManager;
 import at.aau.ainf.gitrepomonitor.core.files.RepositoryInformation;
 import at.aau.ainf.gitrepomonitor.core.files.Utils;
+import at.aau.ainf.gitrepomonitor.core.git.SSLTransportConfigCallback;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.github.javakeyring.BackendNotSupportedException;
@@ -238,11 +239,11 @@ public class SecureKeyringStorage extends SecureStorage {
     }
 
     @Override
-    public void storeSslInformation(char[] masterPW, UUID repoID, String sslKeyPath, String sslPassphrase) throws IOException {
+    public void storeSslInformation(char[] masterPW, UUID repoID, String sslPassphrase) throws IOException {
         synchronized (lockMasterPasswordReset) {
             try {
                 masterPW = getAndCheckMasterPassword(masterPW);
-                writeAuthenticationInformation(masterPW, new SSLInformation(repoID, sslKeyPath, sslPassphrase));
+                writeAuthenticationInformation(masterPW, new SSLInformation(repoID, sslPassphrase));
                 cacheMasterPasswordIfEnabled(masterPW);
                 clearMasterPasswordIfRequired();
             } catch (PasswordAccessException | JsonProcessingException e) {
@@ -254,8 +255,8 @@ public class SecureKeyringStorage extends SecureStorage {
     }
 
     @Override
-    public void storeSslInformation(UUID repoID, String sslKeyPath, String sslPassphrase) throws IOException {
-        storeSslInformation(null, repoID, sslKeyPath, sslPassphrase);
+    public void storeSslInformation(UUID repoID, String sslPassphrase) throws IOException {
+        storeSslInformation(null, repoID, sslPassphrase);
     }
 
     @Override
@@ -293,6 +294,35 @@ public class SecureKeyringStorage extends SecureStorage {
     @Override
     public SSLInformation getSslInformation(UUID repoID) throws IOException {
         return getSslInformation(null, repoID);
+    }
+
+    @Override
+    public Map<UUID, AuthInfo> getAuthInfos(char[] masterPW, List<RepositoryInformation> repos) {
+        synchronized (lockMasterPasswordReset) {
+            Map<UUID, AuthInfo> map = new HashMap<>();
+
+            masterPW = getCachedMasterPasswordHashIfPossible(masterPW);
+            for (RepositoryInformation repo : repos) {
+                try {
+                    if (repo.getAuthMethod() == RepositoryInformation.AuthMethod.HTTPS) {
+                        HttpsCredentials credentials = readHttpsCredentials(masterPW, repo.getID());
+                        UsernamePasswordCredentialsProvider credProv = new UsernamePasswordCredentialsProvider(credentials.getUsername(), credentials.getPassword());
+                        map.put(repo.getID(), new AuthInfo(credProv));
+                    } else if (repo.getAuthMethod() == RepositoryInformation.AuthMethod.SSL) {
+                        if (repo.getSslKeyPath() != null && !repo.getSslKeyPath().isBlank()) {
+                            SSLInformation sslInfo = readSslInformation(masterPW, repo.getID());
+                            SSLTransportConfigCallback sslConfig = new SSLTransportConfigCallback(repo.getSslKeyPath(), sslInfo.getSslPassphrase());
+                            map.put(repo.getID(), new AuthInfo(sslConfig));
+                        }
+                    }
+                } catch (IOException ex) {
+                    // means that repo has no stored credentials, continue loop
+                }
+            }
+            cacheMasterPasswordIfEnabled(masterPW);
+            clearMasterPasswordIfRequired();
+            return map;
+        }
     }
 
     private SSLInformation readSslInformation(char[] masterPW, UUID repoID) throws IOException {

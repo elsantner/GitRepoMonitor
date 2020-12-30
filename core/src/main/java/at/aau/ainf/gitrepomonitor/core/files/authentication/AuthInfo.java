@@ -30,16 +30,7 @@ public class AuthInfo {
     }
 
     public static Map<UUID, AuthInfo> getFor(List<RepositoryInformation> repos, char[] masterPW) throws IOException {
-        Map<UUID, AuthInfo> authInfos = new HashMap<>();
-        Map<UUID, UsernamePasswordCredentialsProvider> credentialsProviders =
-                secureStorage.getHttpsCredentialProviders(masterPW, repos);
-
-        for (UUID id : credentialsProviders.keySet()) {
-            authInfos.put(id, new AuthInfo(credentialsProviders.get(id)));
-        }
-
-        // TODO: add support for ssl --> MAKE SURE THIS DOES NOT COUNT AS 2 OPERATIONS FOR MP RESET
-        return authInfos;
+        return secureStorage.getAuthInfos(masterPW, repos);
     }
 
     public static AuthInfo getFor(RepositoryInformation repo, char[] masterPW) throws IOException {
@@ -48,7 +39,14 @@ public class AuthInfo {
                 return new AuthInfo(secureStorage.getHttpsCredentialProvider(masterPW, repo.getID()));
             case SSL:
                 // TODO: add custom ssl path support
-                return new AuthInfo(new SSLTransportConfigCallback());
+                SSLTransportConfigCallback sslConfig;
+                if (repo.getSslKeyPath() != null) {
+                    sslConfig = new SSLTransportConfigCallback(repo.getSslKeyPath(),
+                            secureStorage.getSslInformation(masterPW, repo.getID()).getSslPassphrase());
+                } else {
+                    sslConfig = new SSLTransportConfigCallback();
+                }
+                return new AuthInfo(sslConfig);
             default:
                 return new AuthInfo();
         }

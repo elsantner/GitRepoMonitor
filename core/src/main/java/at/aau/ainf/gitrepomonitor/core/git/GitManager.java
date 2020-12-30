@@ -467,6 +467,7 @@ public class GitManager {
             status = NO_REMOTE;
         }
         catch (TransportException ex) {
+            ex.printStackTrace();
             if (ex.getCause() != null && ex.getCause() instanceof NoRemoteRepositoryException) {
                 status = NO_REMOTE;
             } else {

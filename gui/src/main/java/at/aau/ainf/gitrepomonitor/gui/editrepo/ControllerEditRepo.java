@@ -4,6 +4,7 @@ import at.aau.ainf.gitrepomonitor.core.files.FileManager;
 import at.aau.ainf.gitrepomonitor.core.files.RepositoryInformation;
 import at.aau.ainf.gitrepomonitor.core.files.Utils;
 import at.aau.ainf.gitrepomonitor.core.files.authentication.HttpsCredentials;
+import at.aau.ainf.gitrepomonitor.core.files.authentication.SSLInformation;
 import at.aau.ainf.gitrepomonitor.core.files.authentication.SecureStorage;
 import at.aau.ainf.gitrepomonitor.core.git.GitManager;
 import at.aau.ainf.gitrepomonitor.gui.ErrorDisplay;
@@ -85,7 +86,7 @@ public class ControllerEditRepo implements Initializable, ErrorDisplay, MasterPa
     private String originalPath;
     private RepositoryInformation repo;
 
-    private boolean httpsCredentialsChanged;
+    private boolean authInfoChanged;
 
     public static FXMLLoader getLoader() {
         return new FXMLLoader(ControllerEditRepo.class.getResource("/at/aau/ainf/gitrepomonitor/gui/editrepo/edit_repo.fxml"),
@@ -181,17 +182,16 @@ public class ControllerEditRepo implements Initializable, ErrorDisplay, MasterPa
         return validateTextFieldPath();
     }
 
-    private boolean validateHttpsCredentials() {
-        boolean status = false;
-        if (authContainerHTTPS.isVisible()) {
-            status = txtHttpsUsername.getText().isBlank();
-            if (status) {
+    private void validateHttpsCredentials() {
+        // Removed for now since it's not needed anymore
+        /*if (authContainerHTTPS.isVisible()) {
+            if (txtHttpsUsername.getText().isBlank()) {
                 txtHttpsUsername.getStyleClass().add("error-input");
+                throw new IllegalArgumentException("HTTPS username must not be empty");
             } else {
                 txtHttpsUsername.getStyleClass().remove("error-input");
             }
-        }
-        return !status;
+        }*/
     }
 
     private boolean validateTextFieldPath() {
@@ -210,6 +210,7 @@ public class ControllerEditRepo implements Initializable, ErrorDisplay, MasterPa
         this.txtName.setText(repo.getName());
         this.txtPath.setText(repo.getPath());
         this.cbBoxMergeStrat.getSelectionModel().select(repo.getMergeStrategy().ordinal());
+        this.txtSslKeyPath.setText(repo.getSslKeyPath());
 
         setupCredentials();
         setupCredentialChangeListener();
@@ -221,7 +222,7 @@ public class ControllerEditRepo implements Initializable, ErrorDisplay, MasterPa
         // if auth method is not NONE, then there must be stored credentials
         if (!repo.isAuthenticated()) {
             btnLoadCredentials.setVisible(false);
-        } else if (repo.getAuthMethod() == RepositoryInformation.AuthMethod.HTTPS) {
+        } else {
             // load credentials if mp is cached
             if (secureStorage.isMasterPasswordCached()) {
                 try {
@@ -236,6 +237,8 @@ public class ControllerEditRepo implements Initializable, ErrorDisplay, MasterPa
                 txtHttpsUsername.setPromptText("Stored Username");
                 txtHttpsPasswordHidden.setPromptText("Stored Password");
                 txtHttpsPasswordShown.setPromptText("Stored Password");
+                txtSslPassphraseHidden.setPromptText("Stored Passphrase");
+                txtSslPassphraseShown.setPromptText("Stored Passphrase");
             }
         }
     }
@@ -262,12 +265,18 @@ public class ControllerEditRepo implements Initializable, ErrorDisplay, MasterPa
 
     private void setupCredentialChangeListener() {
         txtHttpsUsername.textProperty().addListener((observable, oldValue, newValue) -> {
-            httpsCredentialsChanged = true;
+            authInfoChanged = true;
             clearHttpsInputPrompts();
         });
         txtHttpsPasswordHidden.textProperty().addListener((observable, oldValue, newValue) -> {
-            httpsCredentialsChanged = true;
+            authInfoChanged = true;
             clearHttpsInputPrompts();
+        });
+        txtSslKeyPath.textProperty().addListener((observable, oldValue, newValue) -> {
+            authInfoChanged = true;
+        });
+        txtSslPassphraseHidden.textProperty().addListener((observable, oldValue, newValue) -> {
+            authInfoChanged = true;
         });
     }
 
@@ -308,6 +317,8 @@ public class ControllerEditRepo implements Initializable, ErrorDisplay, MasterPa
             stage.close();
         } catch (SecurityException ex) {
             showError("Wrong Master Password");
+        } catch (AuthenticationException ex) {
+            // abort method
         } catch (Exception ex) {
             showError(ex.getMessage());
             ex.printStackTrace();
@@ -332,7 +343,7 @@ public class ControllerEditRepo implements Initializable, ErrorDisplay, MasterPa
                 masterPW = showMasterPasswordInputDialog(false);
                 // if master password dialog was aborted, abort method
                 if (masterPW == null) {
-                    return;
+                    throw new AuthenticationException("Master Password input aborted");
                 }
             }
         } else {
@@ -340,18 +351,39 @@ public class ControllerEditRepo implements Initializable, ErrorDisplay, MasterPa
             if (masterPW != null) {
                 secureStorage.setMasterPassword(Utils.toCharOrNull(masterPW));
             } else {
-                return; // if master password dialog was aborted, abort method
+                // if master password dialog was aborted, abort method
+                throw new AuthenticationException("Master Password input aborted");
             }
         }
 
         if (authContainerHTTPS.isVisible()) {
-            if (!validateHttpsCredentials()) {
-                throw new IllegalArgumentException("HTTPS username must not be empty");
-            }
+            validateHttpsCredentials();
             secureStorage.storeHttpsCredentials(Utils.toCharOrNull(masterPW), repo.getID(),
                     txtHttpsUsername.getText(), txtHttpsPasswordHidden.getText().toCharArray());
+        } else if (authContainerSSL.isVisible()) {
+            validateSslInformation();
+            secureStorage.storeSslInformation(Utils.toCharOrNull(masterPW), repo.getID(),
+                    txtSslPassphraseHidden.getText());
         }
-        // TODO: add ssl support
+    }
+
+    private void validateSslInformation() {
+        if (authContainerSSL.isVisible()) {
+            if (txtSslKeyPath.getText().isBlank() && !txtSslPassphraseHidden.getText().isBlank()) {
+                txtSslPassphraseHidden.getStyleClass().add("error-input");
+                throw new IllegalArgumentException("Cannot have a passphrase without a key path");
+            } else {
+                txtSslPassphraseHidden.getStyleClass().remove("error-input");
+            }
+
+            File keyFile = new File(txtSslKeyPath.getText());
+            if (!keyFile.exists()) { // TODO: check file extension
+                txtSslKeyPath.getStyleClass().add("error-input");
+                throw new IllegalArgumentException("Invalid key file");
+            } else {
+                txtSslKeyPath.getStyleClass().remove("error-input");
+            }
+        }
     }
 
     /**
@@ -359,7 +391,7 @@ public class ControllerEditRepo implements Initializable, ErrorDisplay, MasterPa
      * @return True, if changed
      */
     private boolean wasAuthChanged() {
-        return httpsCredentialsChanged; // TODO: || sslInfoChanged
+        return authInfoChanged;
     }
 
     private void updateRepoInformation() {
@@ -368,6 +400,10 @@ public class ControllerEditRepo implements Initializable, ErrorDisplay, MasterPa
         editedRepo.setName(txtName.getText());
         editedRepo.setMergeStrategy(cbBoxMergeStrat.getValue());
         editedRepo.setRequiresAuthentication(!defaultAuthValuesSet());
+        if (authContainerSSL.isVisible()) {
+            editedRepo.setSslKeyPath(txtSslKeyPath.getText());
+        }
+
         fileManager.editRepo(originalPath, editedRepo);
 
         if (chkBoxMergeStratApplyAll.isSelected()) {
@@ -412,14 +448,15 @@ public class ControllerEditRepo implements Initializable, ErrorDisplay, MasterPa
     @FXML
     public void onBtnTestConnClick(ActionEvent actionEvent) {
         btnTestConnection.setDisable(true);
+        // if credentials are stored but not loaded, prompt the user to input Master Password and load them
+        // (if user aborts MP input, abort connection test)
+        // else use text from TextFields
+        boolean credentialsSet = true;
+        if (btnLoadCredentials.isVisible() && !authInfoChanged) {
+            credentialsSet = onBtnLoadCredentialsClick(actionEvent);
+        }
+
         if (authContainerHTTPS.isVisible()) {
-            // if credentials are stored but not loaded, prompt the user to input Master Password and load them
-            // (if user aborts MP input, abort connection test)
-            // else use text from TextFields
-            boolean credentialsSet = true;
-            if (btnLoadCredentials.isVisible() && !httpsCredentialsChanged) {
-                credentialsSet = onBtnLoadCredentialsClick(actionEvent);
-            }
             if (credentialsSet) {
                 gitManager.testRepoConnectionHttpsAsync(repo, txtHttpsUsername.getText(), txtHttpsPasswordHidden.getText(),
                         status -> Platform.runLater(() -> {
@@ -429,17 +466,19 @@ public class ControllerEditRepo implements Initializable, ErrorDisplay, MasterPa
             } else {
                 btnTestConnection.setDisable(false);
             }
-        } else {
-            btnTestConnection.setDisable(true);
+        } else if (authContainerSSL.isVisible()) {
+            if (credentialsSet) {
+                String path = txtSslKeyPath.getText().isBlank() ? null : txtSslKeyPath.getText();
+                String passphrase = txtSslPassphraseHidden.getText().isBlank() ? null : txtSslPassphraseHidden.getText();
 
-            String path = txtSslKeyPath.getText().isBlank() ? null : txtSslKeyPath.getText();
-            String passphrase = txtSslPassphraseHidden.getText().isBlank() ? null : txtSslPassphraseHidden.getText();
-
-            gitManager.testRepoConnectionSslAsync(repo, path, passphrase,
-                    status -> Platform.runLater(() -> {
-                        setConnectionStatusDisplay(status);
-                        btnTestConnection.setDisable(false);
-                    }));
+                gitManager.testRepoConnectionSslAsync(repo, path, passphrase,
+                        status -> Platform.runLater(() -> {
+                            setConnectionStatusDisplay(status);
+                            btnTestConnection.setDisable(false);
+                        }));
+            } else {
+                btnTestConnection.setDisable(false);
+            }
         }
     }
 
@@ -489,12 +528,17 @@ public class ControllerEditRepo implements Initializable, ErrorDisplay, MasterPa
     }
 
     private void loadCredentials(String masterPW) throws IOException {
-        HttpsCredentials credentials = secureStorage.getHttpsCredentials(Utils.toCharOrNull(masterPW), repo.getID());
-        txtHttpsUsername.setText(credentials.getUsername());
-        txtHttpsPasswordHidden.setText(new String(credentials.getPassword()));
+        if (authContainerHTTPS.isVisible()) {
+            HttpsCredentials credentials = secureStorage.getHttpsCredentials(Utils.toCharOrNull(masterPW), repo.getID());
+            txtHttpsUsername.setText(credentials.getUsername());
+            txtHttpsPasswordHidden.setText(new String(credentials.getPassword()));
+        } else if (authContainerSSL.isVisible()) {
+            SSLInformation sslInfo = secureStorage.getSslInformation(Utils.toCharOrNull(masterPW), repo.getID());
+            txtSslPassphraseHidden.setText(sslInfo.getSslPassphrase());
+        }
         btnLoadCredentials.setVisible(false);
         // all previous changes are overwritten --> no changes made yet
-        httpsCredentialsChanged = false;
+        authInfoChanged = false;
     }
 
     public void onBtnChooseSslKeyPathClick(ActionEvent actionEvent) {

@@ -117,7 +117,7 @@
          </padding>
          <HBox AnchorPane.leftAnchor="10.0" AnchorPane.rightAnchor="10.0" AnchorPane.topAnchor="0.0">
             <HBox maxWidth="140.0" minWidth="140.0" prefWidth="140.0" HBox.hgrow="NEVER">
-               <Label text="SSL Key Path" HBox.hgrow="ALWAYS"/>
+               <Label text="SSL Private Key Path" HBox.hgrow="ALWAYS"/>
             </HBox>
             <HBox alignment="TOP_RIGHT" spacing="5.0" HBox.hgrow="ALWAYS">
                <TextField fx:id="txtSslKeyPath" promptText="Default location" HBox.hgrow="ALWAYS"/>
