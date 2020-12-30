@@ -313,7 +313,7 @@ public class GitManager {
         return commits;
     }
 
-    private MergeResult.MergeStatus pullRepo(String path, AuthInfo authInfo, ProgressMonitor progressMonitor) throws IOException, CredentialException, CheckoutConflictException {
+    private MergeResult.MergeStatus pullRepo(String path, AuthInfo authInfo, ProgressMonitor progressMonitor) throws IOException, CredentialException, CheckoutConflictException, WrongRepositoryStateException {
         Git git = getRepoGit(path);
         RepositoryInformation repoInfo = fileManager.getRepo(path);
 
@@ -332,6 +332,8 @@ public class GitManager {
             notifyPullListener(path, pullResult.getMergeResult().getMergeStatus());
             return pullResult.getMergeResult().getMergeStatus();
 
+        } catch (WrongRepositoryStateException ex) {
+            throw ex;
         } catch (InvalidConfigurationException ex) {
             throw new NoRemoteRepositoryException(new URIish(), "no remote");
         } catch (TransportException ex) {
@@ -372,6 +374,8 @@ public class GitManager {
             cb.failed(path, false);
         } else if (ex instanceof CheckoutConflictException) {
             cb.failed(path, MergeResult.MergeStatus.CHECKOUT_CONFLICT, ex, false);
+        } else if (ex instanceof WrongRepositoryStateException) {
+            cb.finished(path, MergeResult.MergeStatus.CONFLICTING, ex);
         } else {
             cb.finished(path, MergeResult.MergeStatus.FAILED, ex);
         }
