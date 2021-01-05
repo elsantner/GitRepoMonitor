@@ -168,6 +168,7 @@ public class ControllerSettings implements Initializable, ErrorDisplay, MasterPa
                     secStorage.updateMasterPassword(input.getKey().toCharArray(), input.getValue().toCharArray());
                 }
                 setMPButtonDisplay();
+                showInfoDialog("Master Password Changed", "The Master Password was successfully changed!");
             }
         } catch (SecurityException | AuthenticationException ex) {
             showError("Wrong Master Password");
@@ -209,11 +210,18 @@ public class ControllerSettings implements Initializable, ErrorDisplay, MasterPa
                     secStorage.resetMasterPassword();
                 }
                 setMPButtonDisplay();
-                // TODO: show success dialogs
+                showInfoDialog("Master Password Reset", "The Master Password was reset and all stored credentials deleted!");
             }
         } catch (Exception ex) {
             showError(ex.getMessage());
         }
+    }
+
+    private void showInfoDialog(String title, String text) {
+        Alert alert = new Alert(Alert.AlertType.INFORMATION);
+        alert.setTitle(title);
+        alert.setHeaderText(text);
+        alert.showAndWait();
     }
 
     private boolean showConfirmResetMPDialog() {
