@@ -243,7 +243,7 @@ public class SecureKeyringStorage extends SecureStorage {
     }
 
     @Override
-    public void storeSslInformation(char[] masterPW, UUID repoID, String sslPassphrase) throws IOException {
+    public void storeSslInformation(char[] masterPW, UUID repoID, byte[] sslPassphrase) throws IOException {
         synchronized (lockMasterPasswordReset) {
             try {
                 masterPW = getAndCheckMasterPassword(masterPW);
@@ -259,7 +259,7 @@ public class SecureKeyringStorage extends SecureStorage {
     }
 
     @Override
-    public void storeSslInformation(UUID repoID, String sslPassphrase) throws IOException {
+    public void storeSslInformation(UUID repoID, byte[] sslPassphrase) throws IOException {
         storeSslInformation(null, repoID, sslPassphrase);
     }
 

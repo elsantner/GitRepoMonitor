@@ -11,13 +11,13 @@ import org.eclipse.jgit.util.FS;
 public class SSLTransportConfigCallback implements TransportConfigCallback {
 
     private String sslKeyPath;
-    private String sslKeyPassphrase;
+    private byte[] sslKeyPassphrase;
 
     public SSLTransportConfigCallback() {
 
     }
 
-    public SSLTransportConfigCallback(String sslKeyPath, String sslKeyPassphrase) {
+    public SSLTransportConfigCallback(String sslKeyPath, byte[] sslKeyPassphrase) {
         this.sslKeyPath = sslKeyPath;
         this.sslKeyPassphrase = sslKeyPassphrase;
     }

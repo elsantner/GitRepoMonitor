@@ -195,9 +195,9 @@ public abstract class SecureStorage {
 
     public abstract Map<UUID, UsernamePasswordCredentialsProvider> getHttpsCredentialProviders(List<RepositoryInformation> repos) throws IOException;
 
-    public abstract void storeSslInformation(char[] masterPW, UUID repoID, String sslPassphrase) throws IOException;
+    public abstract void storeSslInformation(char[] masterPW, UUID repoID, byte[] sslPassphrase) throws IOException;
 
-    public abstract void storeSslInformation(UUID repoID, String sslPassphrase) throws IOException;
+    public abstract void storeSslInformation(UUID repoID, byte[] sslPassphrase) throws IOException;
 
     public abstract void deleteSslInformation(char[] masterPW, UUID repoID) throws IOException;
 

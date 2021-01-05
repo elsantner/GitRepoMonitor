@@ -357,7 +357,7 @@ public class ControllerEditRepo implements Initializable, ErrorDisplay, MasterPa
                 secureStorage.deleteSslInformation(Utils.toCharOrNull(masterPW), repo.getID());
             } else {
                 secureStorage.storeSslInformation(Utils.toCharOrNull(masterPW), repo.getID(),
-                        txtSslPassphraseHidden.getText());
+                        txtSslPassphraseHidden.getText().getBytes());
             }
         }
     }
@@ -466,7 +466,7 @@ public class ControllerEditRepo implements Initializable, ErrorDisplay, MasterPa
                 String path = txtSslKeyPath.getText().isBlank() ? null : txtSslKeyPath.getText();
                 String passphrase = txtSslPassphraseHidden.getText().isBlank() ? null : txtSslPassphraseHidden.getText();
 
-                gitManager.testRepoConnectionSslAsync(repo, path, passphrase,
+                gitManager.testRepoConnectionSslAsync(repo, path, Utils.toBytesOrNull(passphrase),
                         status -> Platform.runLater(() -> {
                             setConnectionStatusDisplay(status);
                             btnTestConnection.setDisable(false);
@@ -529,7 +529,7 @@ public class ControllerEditRepo implements Initializable, ErrorDisplay, MasterPa
             txtHttpsPasswordHidden.setText(new String(credentials.getPassword()));
         } else if (authContainerSSL.isVisible()) {
             SSLInformation sslInfo = secureStorage.getSslInformation(Utils.toCharOrNull(masterPW), repo.getID());
-            txtSslPassphraseHidden.setText(sslInfo.getSslPassphrase());
+            txtSslPassphraseHidden.setText(new String(sslInfo.getSslPassphrase()));
         }
         btnLoadCredentials.setVisible(false);
         // all previous changes are overwritten --> no changes made yet

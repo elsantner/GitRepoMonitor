@@ -218,7 +218,7 @@ public class SecureFileStorage extends SecureStorage {
     }
 
     @Override
-    public void storeSslInformation(char[] masterPW, UUID repoID, String sslPassphrase) throws IOException {
+    public void storeSslInformation(char[] masterPW, UUID repoID, byte[] sslPassphrase) throws IOException {
         synchronized (lockMasterPasswordReset) {
             masterPW = getCachedMasterPasswordHashIfPossible(masterPW);
             CredentialWrapper allCredentials = readCredentials(masterPW);
@@ -233,7 +233,7 @@ public class SecureFileStorage extends SecureStorage {
     }
 
     @Override
-    public void storeSslInformation(UUID repoID, String sslPassphrase) throws IOException {
+    public void storeSslInformation(UUID repoID, byte[] sslPassphrase) throws IOException {
         throwIfMasterPasswordNotCached();
         storeSslInformation(null, repoID, sslPassphrase);
     }

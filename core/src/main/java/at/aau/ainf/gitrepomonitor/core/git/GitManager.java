@@ -224,7 +224,7 @@ public class GitManager {
                 new AuthInfo(new UsernamePasswordCredentialsProvider(httpsUsername, httpsPassword)))));
     }
 
-    public void testRepoConnectionSslAsync(RepositoryInformation repo, String sslKeyPath, String sslPassphrase,
+    public void testRepoConnectionSslAsync(RepositoryInformation repo, String sslKeyPath, byte[] sslPassphrase,
                                         ConnectionTestCallback cb) {
         executor.submit(() -> cb.finished(testRepoConnection(repo,
                 new AuthInfo(new SSLTransportConfigCallback(sslKeyPath, sslPassphrase)))));

@@ -25,6 +25,10 @@ public abstract class Utils {
         return str != null ? str.toCharArray() : null;
     }
 
+    public static byte[] toBytesOrNull(String str) {
+        return str != null ? str.getBytes() : null;
+    }
+
     public static char[] sha3_256(char[] m) {
         try {
             MessageDigest digest = MessageDigest.getInstance("SHA3-256");
