@@ -99,10 +99,14 @@ public class SecureKeyringStorage extends SecureStorage {
             }
 
             for (RepositoryInformation repo : affectedRepos) {
+                AuthenticationInformation authInfo = null;
                 if (repo.getAuthMethod() == RepositoryInformation.AuthMethod.HTTPS) {
-                    HttpsCredentials creds = readHttpsCredentials(hashedCurrentPW, repo.getID());
-                    writeAuthenticationInformation(hashedNewPW, new HttpsCredentials(
-                            repo.getID(), creds.getUsername(), creds.getPassword()));
+                    authInfo = readHttpsCredentials(hashedCurrentPW, repo.getID());
+                } else if (repo.getAuthMethod() == RepositoryInformation.AuthMethod.SSL) {
+                    authInfo = readSslInformation(hashedCurrentPW, repo.getID());
+                }
+                if (authInfo != null) {
+                    writeAuthenticationInformation(hashedNewPW, authInfo);
                 }
             }
             keyring.setPassword(getServiceName(), MP_SET, encrypt(new String(hashedNewPW), hashedNewPW));
@@ -172,7 +176,7 @@ public class SecureKeyringStorage extends SecureStorage {
             });
         } catch (PasswordAccessException ex) {
             throw new IOException(ex);
-        } catch (BadPaddingException | IllegalBlockSizeException e) {
+        } catch (BadPaddingException | IllegalBlockSizeException e) { e.printStackTrace();
             throw new SecurityException("authentication failed");
         }
     }
@@ -310,8 +314,15 @@ public class SecureKeyringStorage extends SecureStorage {
                         map.put(repo.getID(), new AuthInfo(credProv));
                     } else if (repo.getAuthMethod() == RepositoryInformation.AuthMethod.SSL) {
                         if (repo.getSslKeyPath() != null && !repo.getSslKeyPath().isBlank()) {
-                            SSLInformation sslInfo = readSslInformation(masterPW, repo.getID());
-                            SSLTransportConfigCallback sslConfig = new SSLTransportConfigCallback(repo.getSslKeyPath(), sslInfo.getSslPassphrase());
+                            SSLInformation sslInfo = null;
+                            try {
+                                sslInfo = readSslInformation(masterPW, repo.getID());
+                            } catch (Exception ex) {
+                                // ssl passphrase could not be loaded
+                            }
+                            // set passphrase only if it could be loaded
+                            SSLTransportConfigCallback sslConfig = new SSLTransportConfigCallback(repo.getSslKeyPath(),
+                                    sslInfo != null ? sslInfo.getSslPassphrase(): null);
                             map.put(repo.getID(), new AuthInfo(sslConfig));
                         }
                     }
@@ -323,6 +334,24 @@ public class SecureKeyringStorage extends SecureStorage {
             clearMasterPasswordIfRequired();
             return map;
         }
+    }
+
+    @Override
+    public void resetMasterPassword() throws IOException {
+        for (RepositoryInformation repo : FileManager.getInstance().getAllRepos()) {
+            try {
+                keyring.deletePassword(SERVICE, repo.getID().toString());
+            } catch (PasswordAccessException e) {
+                e.printStackTrace();
+            }
+        }
+        try {
+            keyring.deletePassword(SERVICE, MP_SET);
+            FileManager.getInstance().clearAllAuthRequirements();
+        } catch (PasswordAccessException e) {
+            throw new IOException(e);
+        }
+        clearCachedMasterPassword();
     }
 
     private SSLInformation readSslInformation(char[] masterPW, UUID repoID) throws IOException {

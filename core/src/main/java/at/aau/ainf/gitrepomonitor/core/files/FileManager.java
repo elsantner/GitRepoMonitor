@@ -3,16 +3,13 @@ package at.aau.ainf.gitrepomonitor.core.files;
 import at.aau.ainf.gitrepomonitor.core.files.authentication.SecureStorage;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.dataformat.xml.XmlMapper;
-import org.eclipse.jgit.errors.ConfigInvalidException;
 import org.eclipse.jgit.lib.Repository;
 import org.eclipse.jgit.storage.file.FileRepositoryBuilder;
 
 import java.beans.PropertyChangeListener;
 import java.io.File;
 import java.io.IOException;
-import java.util.Calendar;
-import java.util.List;
-import java.util.NoSuchElementException;
+import java.util.*;
 import java.util.logging.Logger;
 
 import static at.aau.ainf.gitrepomonitor.core.files.RepoListWrapper.RepoList.FOUND;
@@ -26,6 +23,21 @@ public class FileManager {
     private RepoListWrapper repoListWrapper;
     private boolean repoListInitialized = false;
     private final SecureStorage secureStorage;
+
+    public static void setAuthMethod(RepositoryInformation repoInfo) throws IOException {
+        Repository repo = new FileRepositoryBuilder()
+                .setGitDir(new File(repoInfo.getPath() + "/.git"))
+                .build();
+
+        String originURL = repo.getConfig().getString("remote", "origin", "url");
+        if (originURL == null) {
+            repoInfo.setAuthMethod(RepositoryInformation.AuthMethod.NONE);
+        } else if (originURL.contains("https://")) {
+            repoInfo.setAuthMethod(RepositoryInformation.AuthMethod.HTTPS);
+        } else {
+            repoInfo.setAuthMethod(RepositoryInformation.AuthMethod.SSL);
+        }
+    }
 
     public static synchronized FileManager getInstance() {
         if (instance == null) {
@@ -50,7 +62,7 @@ public class FileManager {
      */
     public synchronized boolean init() throws IOException {
         try {
-            repoListWrapper = mapper.readValue(fileRepoLists, new TypeReference<RepoListWrapper>(){});
+            repoListWrapper = mapper.readValue(fileRepoLists, new TypeReference<>() {});
         } catch (IOException e) {
             fileRepoLists.getParentFile().mkdirs();
             fileRepoLists.createNewFile();
@@ -62,19 +74,11 @@ public class FileManager {
         return !checkCredentials();
     }
 
-    public static void setAuthMethod(RepositoryInformation repoInfo) throws IOException {
-        Repository repo = new FileRepositoryBuilder()
-                .setGitDir(new File(repoInfo.getPath() + "/.git"))
-                .build();
-
-        String originURL = repo.getConfig().getString("remote", "origin", "url");
-        if (originURL == null) {
-            repoInfo.setAuthMethod(RepositoryInformation.AuthMethod.NONE);
-        } else if (originURL.contains("https://")) {
-            repoInfo.setAuthMethod(RepositoryInformation.AuthMethod.HTTPS);
-        } else {
-            repoInfo.setAuthMethod(RepositoryInformation.AuthMethod.SSL);
+    public void clearAllAuthRequirements() {
+        for (RepositoryInformation repo : repoListWrapper.getAllRepos()) {
+            repo.setAuthenticated(false);
         }
+        persistRepoLists();
     }
 
     /**
@@ -232,6 +236,10 @@ public class FileManager {
 
     public List<RepositoryInformation> getAllAuthenticatedRepos() {
         return repoListWrapper.getAuthenticatedRepos();
+    }
+
+    public Set<RepositoryInformation> getAllRepos() {
+        return repoListWrapper.getAllRepos();
     }
 
     public void applyMergeStratToAllRepos(RepositoryInformation.MergeStrategy strat) {

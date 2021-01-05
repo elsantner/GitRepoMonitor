@@ -53,6 +53,10 @@ public class RepositoryInformationContextMenu extends ContextMenu implements Err
             String masterPW = null;
             if (item.isAuthenticated() && !secureStorage.isMasterPasswordCached()) {
                 masterPW = showMasterPasswordInputDialog(false);
+                // abort if input dialog was cancelled
+                if (masterPW == null) {
+                    return;
+                }
             }
 
             setStatus(ResourceStore.getString("status.update_repo_status"));
@@ -72,6 +76,10 @@ public class RepositoryInformationContextMenu extends ContextMenu implements Err
             String masterPW = null;
             if (item.isAuthenticated() && !secureStorage.isMasterPasswordCached()) {
                 masterPW = showMasterPasswordInputDialog(false);
+                // abort if input dialog was cancelled
+                if (masterPW == null) {
+                    return;
+                }
             }
             gitManager.pullRepoAsync(item.getPath(), Utils.toCharOrNull(masterPW), (results, pullsSuccess,
                                                                                     pullsFailed, wrongMP) -> {

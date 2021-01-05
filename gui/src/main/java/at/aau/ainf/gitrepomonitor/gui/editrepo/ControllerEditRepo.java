@@ -182,18 +182,6 @@ public class ControllerEditRepo implements Initializable, ErrorDisplay, MasterPa
         return validateTextFieldPath();
     }
 
-    private void validateHttpsCredentials() {
-        // Removed for now since it's not needed anymore
-        /*if (authContainerHTTPS.isVisible()) {
-            if (txtHttpsUsername.getText().isBlank()) {
-                txtHttpsUsername.getStyleClass().add("error-input");
-                throw new IllegalArgumentException("HTTPS username must not be empty");
-            } else {
-                txtHttpsUsername.getStyleClass().remove("error-input");
-            }
-        }*/
-    }
-
     private boolean validateTextFieldPath() {
         boolean status;
         if (status = Utils.validateRepositoryPath(txtPath.getText())) {
@@ -329,7 +317,7 @@ public class ControllerEditRepo implements Initializable, ErrorDisplay, MasterPa
         Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
         alert.setTitle("Confirm Apply All");
         alert.setHeaderText("The selected Merge Strategy will be applied to ALL other repositories.");
-        alert.setContentText("Are you sure you want this to happen?");
+        alert.setContentText("Are you sure you want to continue?");
 
         Optional<ButtonType> res = alert.showAndWait();
         return res.isPresent() && res.get() == ButtonType.OK;
@@ -357,13 +345,20 @@ public class ControllerEditRepo implements Initializable, ErrorDisplay, MasterPa
         }
 
         if (authContainerHTTPS.isVisible()) {
-            validateHttpsCredentials();
-            secureStorage.storeHttpsCredentials(Utils.toCharOrNull(masterPW), repo.getID(),
-                    txtHttpsUsername.getText(), txtHttpsPasswordHidden.getText().toCharArray());
+            if (txtHttpsUsername.getText().isBlank() && txtHttpsPasswordHidden.getText().isBlank()) {
+                secureStorage.deleteHttpsCredentials(Utils.toCharOrNull(masterPW), repo.getID());
+            } else {
+                secureStorage.storeHttpsCredentials(Utils.toCharOrNull(masterPW), repo.getID(),
+                        txtHttpsUsername.getText(), txtHttpsPasswordHidden.getText().toCharArray());
+            }
         } else if (authContainerSSL.isVisible()) {
             validateSslInformation();
-            secureStorage.storeSslInformation(Utils.toCharOrNull(masterPW), repo.getID(),
-                    txtSslPassphraseHidden.getText());
+            if (txtSslPassphraseHidden.getText().isBlank()) {
+                secureStorage.deleteSslInformation(Utils.toCharOrNull(masterPW), repo.getID());
+            } else {
+                secureStorage.storeSslInformation(Utils.toCharOrNull(masterPW), repo.getID(),
+                        txtSslPassphraseHidden.getText());
+            }
         }
     }
 
@@ -399,7 +394,7 @@ public class ControllerEditRepo implements Initializable, ErrorDisplay, MasterPa
         editedRepo.setPath(txtPath.getText());
         editedRepo.setName(txtName.getText());
         editedRepo.setMergeStrategy(cbBoxMergeStrat.getValue());
-        editedRepo.setRequiresAuthentication(!defaultAuthValuesSet());
+        editedRepo.setAuthenticated(!defaultAuthValuesSet());
         if (authContainerSSL.isVisible()) {
             editedRepo.setSslKeyPath(txtSslKeyPath.getText());
         }
@@ -415,7 +410,7 @@ public class ControllerEditRepo implements Initializable, ErrorDisplay, MasterPa
         if (authContainerHTTPS.isVisible()) {
             return txtHttpsUsername.getText().isBlank() && txtHttpsPasswordHidden.getText().isBlank();
         } else if (authContainerSSL.isVisible())  {
-            return txtSslKeyPath.getText().isBlank() && txtSslPassphraseHidden.getText().isBlank();
+            return txtSslPassphraseHidden.getText().isBlank();
         } else {
             // no remote --> no auth info
             return true;

@@ -18,7 +18,7 @@ public class RepositoryInformation implements Comparable<RepositoryInformation>,
     private String name;
     private Date dateAdded;
     private String sslKeyPath;
-    private boolean requiresAuthentication;
+    private boolean authenticated;
     private AuthMethod authMethod;
     private MergeStrategy mergeStrategy = MergeStrategy.RECURSIVE;
 
@@ -100,10 +100,6 @@ public class RepositoryInformation implements Comparable<RepositoryInformation>,
     }
 
     @JsonIgnore
-    public boolean isAuthenticated() {
-        return requiresAuthentication;
-    }
-    @JsonIgnore
     public RepoStatus getStatus() {
         return status;
     }
@@ -157,12 +153,13 @@ public class RepositoryInformation implements Comparable<RepositoryInformation>,
         this.sslKeyPath = sslKeyPath;
     }
 
-    public boolean isRequiresAuthentication() {
-        return requiresAuthentication;
+    public void setAuthenticated(boolean authenticated) {
+        this.authenticated = authenticated;
+        this.persistentValueChanged = true;
     }
 
-    public void setRequiresAuthentication(boolean requiresAuthentication) {
-        this.requiresAuthentication = requiresAuthentication;
+    public boolean isAuthenticated() {
+        return authenticated;
     }
 
     public String getName() {

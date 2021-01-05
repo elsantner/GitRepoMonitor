@@ -62,7 +62,7 @@ public abstract class SecureStorage {
 
     private static void loadSettings() {
         try {
-            settings = mapper.readValue(fileSettings, new TypeReference<SecureStorageSettings>(){});
+            settings = mapper.readValue(fileSettings, new TypeReference<>() {});
         } catch (IOException e) {
             e.printStackTrace();
             settings = new SecureStorageSettings();
@@ -209,6 +209,8 @@ public abstract class SecureStorage {
 
     public abstract Map<UUID, AuthInfo> getAuthInfos(char[] masterPW, List<RepositoryInformation> repos) throws IOException;
 
+    public abstract void resetMasterPassword() throws IOException;
+
     protected byte[] encryptToBytes(String plaintext, char[] key) {
         try {
             Cipher cipher = getCipherInstantiation(Cipher.ENCRYPT_MODE, key);
@@ -254,8 +256,6 @@ public abstract class SecureStorage {
             throw new RuntimeException(ex);
         }
     }
-
-
 
     public abstract boolean isIntact(List<RepositoryInformation> authRequiredRepos);
 

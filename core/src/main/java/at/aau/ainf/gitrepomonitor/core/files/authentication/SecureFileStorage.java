@@ -1,5 +1,6 @@
 package at.aau.ainf.gitrepomonitor.core.files.authentication;
 
+import at.aau.ainf.gitrepomonitor.core.files.FileManager;
 import at.aau.ainf.gitrepomonitor.core.files.RepositoryInformation;
 import at.aau.ainf.gitrepomonitor.core.files.Utils;
 import at.aau.ainf.gitrepomonitor.core.git.SSLTransportConfigCallback;
@@ -289,7 +290,7 @@ public class SecureFileStorage extends SecureStorage {
                     if (repo.getSslKeyPath() != null && !repo.getSslKeyPath().isBlank()) {
                         SSLInformation sslInfo = allCredentials.getSslInformation(repo.getID());
                         map.put(repo.getID(), new AuthInfo(new SSLTransportConfigCallback(
-                                repo.getSslKeyPath(), sslInfo.getSslPassphrase())));
+                                repo.getSslKeyPath(), sslInfo != null ? sslInfo.getSslPassphrase() : null)));
                     }
                 }
             }
@@ -299,6 +300,13 @@ public class SecureFileStorage extends SecureStorage {
             clearMasterPasswordIfRequired();
             return map;
         }
+    }
+
+    @Override
+    public void resetMasterPassword() throws IOException {
+        openCredentialsFile().delete();
+        FileManager.getInstance().clearAllAuthRequirements();
+        clearCachedMasterPassword();
     }
 
     @Override

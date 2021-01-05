@@ -332,14 +332,12 @@ public class GitManager {
             notifyPullListener(path, pullResult.getMergeResult().getMergeStatus());
             return pullResult.getMergeResult().getMergeStatus();
 
-        } catch (WrongRepositoryStateException ex) {
+        } catch (WrongRepositoryStateException | CheckoutConflictException ex) {
             throw ex;
         } catch (InvalidConfigurationException ex) {
             throw new NoRemoteRepositoryException(new URIish(), "no remote");
         } catch (TransportException ex) {
             throw new CredentialException("invalid https credentials");
-        } catch (CheckoutConflictException ex) {
-            throw ex;
         } catch (GitAPIException ex) {
             throw new SecurityException("authentication failed");
         } finally {

@@ -10,10 +10,7 @@ import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.fxml.Initializable;
-import javafx.scene.control.Button;
-import javafx.scene.control.CheckBox;
-import javafx.scene.control.RadioButton;
-import javafx.scene.control.TextField;
+import javafx.scene.control.*;
 import javafx.scene.layout.AnchorPane;
 import javafx.scene.layout.HBox;
 import javafx.stage.Stage;
@@ -21,6 +18,7 @@ import javafx.util.Pair;
 
 import javax.naming.AuthenticationException;
 import java.net.URL;
+import java.util.Optional;
 import java.util.ResourceBundle;
 import java.util.regex.Pattern;
 
@@ -48,6 +46,12 @@ public class ControllerSettings implements Initializable, ErrorDisplay, MasterPa
     public Button btnSave;
     @FXML
     public Button btnChangeMP;
+    @FXML
+    public Button btnResetMP;
+    @FXML
+    public HBox containerMPisSet;
+    @FXML
+    public Button btnSetMP;
 
     private SecureStorage secStorage;
     private final String REGEX_INTEGER_ONLY = "^\\d+$";
@@ -61,19 +65,24 @@ public class ControllerSettings implements Initializable, ErrorDisplay, MasterPa
     public void initialize(URL location, ResourceBundle resources) {
         secStorage = SecureStorage.getImplementation();
         setupUI();
-        setMPButtonText();
+        setMPButtonDisplay();
         loadSettings();
     }
 
-    private void setMPButtonText() {
+    private void setMPButtonDisplay() {
         if (!secStorage.isMasterPasswordSet()) {
-            btnChangeMP.setText("Set Master Password");
+            btnSetMP.setVisible(true);
+            containerMPisSet.setVisible(false);
         } else {
-            btnChangeMP.setText("Change Master Password");
+            btnSetMP.setVisible(false);
+            containerMPisSet.setVisible(true);
         }
     }
 
     private void setupUI() {
+        btnChangeMP.managedProperty().bind(btnChangeMP.visibleProperty());
+        containerMPisSet.managedProperty().bind(containerMPisSet.visibleProperty());
+
         containerMaxUses.managedProperty().bind(containerMaxUses.visibleProperty());
         containerMaxUses.visibleProperty().bind(radioBtnMaxUses.selectedProperty());
         containerExpiryTime.managedProperty().bind(containerExpiryTime.visibleProperty());
@@ -153,18 +162,13 @@ public class ControllerSettings implements Initializable, ErrorDisplay, MasterPa
     @FXML
     public void onBtnChangeMPClick(ActionEvent actionEvent) {
         try {
-            if (!secStorage.isMasterPasswordSet()) {
-                String masterPW = showMasterPasswordInputDialog(true);
-                if (masterPW != null) {
-                    secStorage.setMasterPassword(Utils.toCharOrNull(masterPW));
-                }
-            } else {
+            if (secStorage.isMasterPasswordSet()) {
                 Pair<String, String> input = showChangeMasterPasswordInputDialog();
                 if (input != null) {
                     secStorage.updateMasterPassword(input.getKey().toCharArray(), input.getValue().toCharArray());
                 }
+                setMPButtonDisplay();
             }
-            setMPButtonText();
         } catch (SecurityException | AuthenticationException ex) {
             showError("Wrong Master Password");
         } catch (Exception ex) {
@@ -180,5 +184,45 @@ public class ControllerSettings implements Initializable, ErrorDisplay, MasterPa
         } else if (radioBtnExpirationTime.isSelected()) {
             btnSave.setDisable(!Pattern.matches(REGEX_INTEGER_ONLY, txtExpirationTime.getText()));
         }
+    }
+
+    @FXML
+    public void onBtnSetMPClick(ActionEvent actionEvent) {
+        try {
+            if (!secStorage.isMasterPasswordSet()) {
+                String masterPW = showMasterPasswordInputDialog(true);
+                if (masterPW != null) {
+                    secStorage.setMasterPassword(Utils.toCharOrNull(masterPW));
+                }
+                setMPButtonDisplay();
+            }
+        } catch (Exception ex) {
+            showError(ex.getMessage());
+        }
+    }
+
+    @FXML
+    public void onBtnResetMPClick(ActionEvent actionEvent) {
+        try {
+            if (secStorage.isMasterPasswordSet()) {
+                if (showConfirmResetMPDialog()) {
+                    secStorage.resetMasterPassword();
+                }
+                setMPButtonDisplay();
+                // TODO: show success dialogs
+            }
+        } catch (Exception ex) {
+            showError(ex.getMessage());
+        }
+    }
+
+    private boolean showConfirmResetMPDialog() {
+        Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
+        alert.setTitle("Confirm Reset Master Password");
+        alert.setHeaderText("Resetting the MP will delete ALL stored credential information.");
+        alert.setContentText("Are you sure you want to continue?");
+
+        Optional<ButtonType> res = alert.showAndWait();
+        return res.isPresent() && res.get() == ButtonType.OK;
     }
 }

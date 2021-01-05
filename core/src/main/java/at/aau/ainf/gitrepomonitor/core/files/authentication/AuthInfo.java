@@ -36,13 +36,19 @@ public class AuthInfo {
     public static AuthInfo getFor(RepositoryInformation repo, char[] masterPW) throws IOException {
         switch (repo.getAuthMethod()) {
             case HTTPS:
-                return new AuthInfo(secureStorage.getHttpsCredentialProvider(masterPW, repo.getID()));
+                if (repo.isAuthenticated()) {
+                    return new AuthInfo(secureStorage.getHttpsCredentialProvider(masterPW, repo.getID()));
+                } else {
+                    return new AuthInfo();
+                }
             case SSL:
-                // TODO: add custom ssl path support
+                // read ssl passphrase only if repo requires it (i.e. is authenticated), otherwise use custom ssl path if specified
                 SSLTransportConfigCallback sslConfig;
-                if (repo.getSslKeyPath() != null) {
-                    sslConfig = new SSLTransportConfigCallback(repo.getSslKeyPath(),
-                            secureStorage.getSslInformation(masterPW, repo.getID()).getSslPassphrase());
+                if (repo.isAuthenticated() && repo.getSslKeyPath() != null) {
+                    SSLInformation sslInfo = secureStorage.getSslInformation(masterPW, repo.getID());
+                    sslConfig = new SSLTransportConfigCallback(repo.getSslKeyPath(), sslInfo.getSslPassphrase());
+                } else if (repo.getSslKeyPath() != null) {
+                    sslConfig = new SSLTransportConfigCallback(repo.getSslKeyPath(), null);
                 } else {
                     sslConfig = new SSLTransportConfigCallback();
                 }
