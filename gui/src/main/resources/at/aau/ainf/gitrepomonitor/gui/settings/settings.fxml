@@ -16,41 +16,41 @@
    <padding>
       <Insets bottom="10.0" left="10.0" right="10.0" top="10.0" />
    </padding>
-   <Button fx:id="btnSetMP" layoutX="20.0" layoutY="35.0" mnemonicParsing="false" onAction="#onBtnSetMPClick" text="Set Master Password" AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="0.0" />
+   <Button fx:id="btnSetMP" layoutX="20.0" layoutY="35.0" mnemonicParsing="false" onAction="#onBtnSetMPClick" text="%settings.set_mp" AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="0.0" />
    <HBox fx:id="containerMPisSet" AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="0.0">
       <HBox alignment="CENTER_LEFT" HBox.hgrow="ALWAYS">
          <Button fx:id="btnChangeMP" mnemonicParsing="false" onAction="#onBtnChangeMPClick"
-                 text="Change Master Password" HBox.hgrow="ALWAYS"/>
+                 text="%settings.change_mp" HBox.hgrow="ALWAYS"/>
       </HBox>
       <HBox alignment="CENTER_RIGHT" HBox.hgrow="ALWAYS">
          <Button fx:id="btnResetMP" alignment="CENTER_RIGHT" mnemonicParsing="false" onAction="#onBtnResetMPClick"
-                 text="Reset Master Password" HBox.hgrow="ALWAYS"/>
+                 text="%settings.reset_mp" HBox.hgrow="ALWAYS"/>
       </HBox>
    </HBox>
    <Separator layoutX="10.0" layoutY="87.0" prefWidth="200.0" AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="35.0" />
-   <CheckBox fx:id="ckboxCacheMP" layoutX="10.0" layoutY="10.0" mnemonicParsing="false" text="Cache Master Password" AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="40.0" />
+   <CheckBox fx:id="ckboxCacheMP" layoutX="10.0" layoutY="10.0" mnemonicParsing="false" text="%settings.cache_mp" AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="40.0" />
    <AnchorPane fx:id="containerCacheSettings" AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="65.0">
       <HBox spacing="10.0" AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="0.0">
-         <RadioButton fx:id="radioBtnDontClear" mnemonicParsing="false" selected="true" text="Do not clear">
+         <RadioButton fx:id="radioBtnDontClear" mnemonicParsing="false" selected="true" text="%settings.cache.no_clear">
             <toggleGroup>
                <ToggleGroup fx:id="cacheLifespanMode" />
             </toggleGroup>
          </RadioButton>
-         <RadioButton fx:id="radioBtnMaxUses" mnemonicParsing="false" text="Max Uses" toggleGroup="$cacheLifespanMode" />
-         <RadioButton fx:id="radioBtnExpirationTime" mnemonicParsing="false" text="Expiration Time" toggleGroup="$cacheLifespanMode" />
+         <RadioButton fx:id="radioBtnMaxUses" mnemonicParsing="false" text="%settings.cache.max_uses" toggleGroup="$cacheLifespanMode" />
+         <RadioButton fx:id="radioBtnExpirationTime" mnemonicParsing="false" text="%settings.cache.expiration_time" toggleGroup="$cacheLifespanMode" />
       </HBox>
       <HBox fx:id="containerMaxUses" alignment="CENTER_LEFT" spacing="10.0" AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="25.0">
-         <Label text="Number of uses:">
+         <Label text="%settings.cache.num_uses">
             <tooltip>
-               <Tooltip text="Number of uses before Master Password is queried again" />
+               <Tooltip text="%settings.cache.num.uses.tooltip" />
             </tooltip>
          </Label>
          <TextField fx:id="txtMaxNumUses" />
       </HBox>
       <HBox fx:id="containerExpiryTime" alignment="CENTER_LEFT" layoutX="10.0" layoutY="10.0" spacing="10.0" AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="25.0">
-         <Label text="Expiration time in minutes">
+         <Label text="%settings.cache.expiration_time_in_mins">
             <tooltip>
-               <Tooltip text="Minutes before the Master Password has to be input again" />
+               <Tooltip text="%settings.cache.expiration_time_in_mins.tooltip" />
             </tooltip>
          </Label>
          <TextField fx:id="txtExpirationTime" />

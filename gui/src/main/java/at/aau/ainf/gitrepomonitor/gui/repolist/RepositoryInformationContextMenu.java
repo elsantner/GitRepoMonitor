@@ -24,7 +24,6 @@ import org.eclipse.jgit.api.MergeResult;
 import org.eclipse.jgit.api.errors.InvalidConfigurationException;
 import org.eclipse.jgit.lib.ProgressMonitor;
 
-import javax.security.auth.login.CredentialException;
 import java.awt.*;
 import java.io.File;
 import java.io.IOException;
@@ -87,14 +86,14 @@ public class RepositoryInformationContextMenu extends ContextMenu implements Err
                     setStatus(ResourceStore.getString("status.wrong_master_password"));
                     showError(ResourceStore.getString("status.wrong_master_password"));
                 } else if (pullsFailed == 1 && results.isEmpty()) {
-                    setStatus("Repository not accessible (wrong credentials?)");
+                    setStatus(ResourceStore.getString("status.repo.not_accessible"));
                 } else {
                     PullCallback.PullResult result = results.get(0);
                     String statusMsg = getStatusMessage(result.getStatus());
                     if (statusMsg != null) {
                         setStatus(statusMsg);
                     } else if (result.getEx() instanceof InvalidConfigurationException) {
-                        showError("Repository has no remote");
+                        showError(ResourceStore.getString("status.repo.no_remote"));
                     }
                 }
             }, progressMonitor);

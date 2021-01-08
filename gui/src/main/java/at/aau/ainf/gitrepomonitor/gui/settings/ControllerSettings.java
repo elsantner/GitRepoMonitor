@@ -132,7 +132,7 @@ public class ControllerSettings implements Initializable, ErrorDisplay, MasterPa
             Stage stage = (Stage) ckboxCacheMP.getScene().getWindow();
             stage.close();
         } catch (SecurityException ex) {
-            showError("Wrong Master Password");
+            showError(ResourceStore.getString("status.wrong_master_password"));
         } catch (Exception ex) {
             showError(ex.getMessage());
             ex.printStackTrace();
@@ -168,10 +168,11 @@ public class ControllerSettings implements Initializable, ErrorDisplay, MasterPa
                     secStorage.updateMasterPassword(input.getKey().toCharArray(), input.getValue().toCharArray());
                 }
                 setMPButtonDisplay();
-                showInfoDialog("Master Password Changed", "The Master Password was successfully changed!");
+                showInfoDialog(ResourceStore.getString("settings.mp_changed"),
+                        ResourceStore.getString("settings.mp_changed.content"));
             }
         } catch (SecurityException | AuthenticationException ex) {
-            showError("Wrong Master Password");
+            showError(ResourceStore.getString("status.wrong_master_password"));
         } catch (Exception ex) {
             showError(ex.getMessage());
         }
@@ -210,7 +211,8 @@ public class ControllerSettings implements Initializable, ErrorDisplay, MasterPa
                     secStorage.resetMasterPassword();
                 }
                 setMPButtonDisplay();
-                showInfoDialog("Master Password Reset", "The Master Password was reset and all stored credentials deleted!");
+                showInfoDialog(ResourceStore.getString("settings.mp_reset"),
+                        ResourceStore.getString("settings.mp_reset.content"));
             }
         } catch (Exception ex) {
             showError(ex.getMessage());
@@ -226,9 +228,9 @@ public class ControllerSettings implements Initializable, ErrorDisplay, MasterPa
 
     private boolean showConfirmResetMPDialog() {
         Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
-        alert.setTitle("Confirm Reset Master Password");
-        alert.setHeaderText("Resetting the MP will delete ALL stored credential information.");
-        alert.setContentText("Are you sure you want to continue?");
+        alert.setTitle(ResourceStore.getString("settings.confirm_reset_mp.title"));
+        alert.setHeaderText(ResourceStore.getString("settings.confirm_reset_mp.header"));
+        alert.setContentText(ResourceStore.getString("settings.confirm_reset_mp.content"));
 
         Optional<ButtonType> res = alert.showAndWait();
         return res.isPresent() && res.get() == ButtonType.OK;

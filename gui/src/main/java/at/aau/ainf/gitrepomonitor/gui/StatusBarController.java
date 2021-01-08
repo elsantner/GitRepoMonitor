@@ -6,11 +6,7 @@ import javafx.animation.Transition;
 import javafx.application.Platform;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
-import javafx.geometry.Insets;
 import javafx.scene.control.Label;
-import javafx.scene.layout.Background;
-import javafx.scene.layout.BackgroundFill;
-import javafx.scene.layout.CornerRadii;
 import javafx.scene.paint.Color;
 import javafx.util.Duration;
 import org.eclipse.jgit.lib.ProgressMonitor;
@@ -63,13 +59,13 @@ public class StatusBarController implements Initializable, StatusDisplay {
 
         @Override
         public void beginTask(String title, int totalWork) {
-            displayStatus("Pull started ...");
+            displayStatus(ResourceStore.getString("status.pull_started"));
             this.totalWork = totalWork;
         }
 
         @Override
         public void update(int completed) {
-            displayStatus("Status : " + df.format((double) completed/totalWork));
+            displayStatus(ResourceStore.getString("status.percent", df.format((double) completed/totalWork)));
         }
 
         @Override

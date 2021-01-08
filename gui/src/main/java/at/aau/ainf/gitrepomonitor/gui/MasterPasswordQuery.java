@@ -6,7 +6,6 @@ import javafx.beans.value.ObservableValue;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.control.*;
-import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
@@ -24,7 +23,7 @@ public interface MasterPasswordQuery {
 
     default String showMasterPasswordInputDialog(boolean requireConfirmInput) {
         Dialog<String> dialog = new Dialog<>();
-        dialog.setTitle("Enter Master Password");
+        dialog.setTitle(ResourceStore.getString("dialog.enter_mp"));
         ImageView icon = new ImageView(ResourceStore.getImage("icon_key.png"));
         icon.setPreserveRatio(true);
         icon.setFitHeight(50);
@@ -42,7 +41,7 @@ public interface MasterPasswordQuery {
 
     default Pair<String, String> showChangeMasterPasswordInputDialog() {
         Dialog<Pair<String, String>> dialog = new Dialog<>();
-        dialog.setTitle("Change Master Password");
+        dialog.setTitle(ResourceStore.getString("settings.change_mp"));
         ImageView icon = new ImageView(ResourceStore.getImage("icon_key.png"));
         icon.setPreserveRatio(true);
         icon.setFitHeight(50);
@@ -55,18 +54,18 @@ public interface MasterPasswordQuery {
     }
 
     private static  void setupChangeDialog(Dialog<Pair<String, String>> dialog) {
-        dialog.setHeaderText("Enter current and new Master Password information below.");
+        dialog.setHeaderText(ResourceStore.getString("dialog.change_mp.header"));
 
         VBox container = new VBox();
         container.setPadding(new Insets(5));
         PasswordField pwFieldCurrent = new PasswordField();
-        HBox row0 = getRow(new Label("Current Master Password: "), pwFieldCurrent);
+        HBox row0 = getRow(new Label(ResourceStore.getString("dialog.change_mp.current_mp")), pwFieldCurrent);
 
         PasswordField pwFieldNew = new PasswordField();
-        HBox row1 = getRow(new Label("New Master Password: "), pwFieldNew);
+        HBox row1 = getRow(new Label(ResourceStore.getString("dialog.change_mp.new_mp")), pwFieldNew);
 
         PasswordField pwFieldConfirmNew = new PasswordField();
-        HBox row2 = getRow(new Label("Confirm new Master Password: "), pwFieldConfirmNew);
+        HBox row2 = getRow(new Label(ResourceStore.getString("dialog.change_mp.confirm_new_mp")), pwFieldConfirmNew);
 
         HBox row3 = new HBox();
         Label lblHint = new Label();
@@ -90,12 +89,12 @@ public interface MasterPasswordQuery {
     }
 
     private static void setupDialogSingleInput(Dialog<String> dialog) {
-        dialog.setHeaderText("Please enter the Master Password");
+        dialog.setHeaderText(ResourceStore.getString("dialog.enter_mp.header"));
 
         VBox container = new VBox();
         container.setPadding(new Insets(5));
         HBox row = new HBox();
-        Label lblPW = new Label("Master Password: ");
+        Label lblPW = new Label(ResourceStore.getString("dialog.enter_mp.enter_mp"));
         PasswordField pwField = new PasswordField();
         row.getChildren().addAll(lblPW, pwField);
         container.getChildren().add(row);
@@ -116,15 +115,15 @@ public interface MasterPasswordQuery {
     }
 
     private static void setupDialogConfirmInput(Dialog<String> dialog) {
-        dialog.setHeaderText("A Master Password is required for this action.\nPlease enter your new Master Password below.");
+        dialog.setHeaderText(ResourceStore.getString("dialog.set_mp.header"));
 
         VBox container = new VBox();
         container.setPadding(new Insets(5));
         PasswordField pwField = new PasswordField();
-        HBox row1 = getRow(new Label("Master Password: "), pwField);
+        HBox row1 = getRow(new Label(ResourceStore.getString("dialog.enter_mp.enter_mp")), pwField);
 
         PasswordField pwFieldConfirm = new PasswordField();
-        HBox row2 = getRow(new Label("Confirm Master Password: "), pwFieldConfirm);
+        HBox row2 = getRow(new Label(ResourceStore.getString("dialog.enter_mp.confirm_mp")), pwFieldConfirm);
 
         HBox row3 = new HBox();
         Label lblHint = new Label();
@@ -178,9 +177,9 @@ public interface MasterPasswordQuery {
             boolean fulfillsCriteria = Pattern.matches(REGEX_PW, newValue);
             boolean samePW = newValue.equals(otherPwField.getText());
             if (!samePW) {
-                lblHint.setText("Passwords do not match");
+                lblHint.setText(ResourceStore.getString("dialog.set_mp.mismatch"));
             } else if (!fulfillsCriteria) {
-                lblHint.setText("Passwords need to be between 8-25 characters");
+                lblHint.setText(ResourceStore.getString("dialog.set_mp.wrong_length"));
             } else {
                 lblHint.setText(null);
             }

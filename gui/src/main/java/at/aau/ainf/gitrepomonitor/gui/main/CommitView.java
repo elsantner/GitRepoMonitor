@@ -1,6 +1,5 @@
 package at.aau.ainf.gitrepomonitor.gui.main;
 
-import at.aau.ainf.gitrepomonitor.core.files.Utils;
 import at.aau.ainf.gitrepomonitor.core.git.CommitChange;
 import at.aau.ainf.gitrepomonitor.gui.ResourceStore;
 import javafx.fxml.FXML;
@@ -14,7 +13,6 @@ import javafx.scene.layout.HBox;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
-import javafx.scene.paint.Paint;
 import org.eclipse.jgit.diff.DiffEntry;
 import org.eclipse.jgit.lib.PersonIdent;
 
@@ -33,9 +31,9 @@ public class CommitView extends Region {
     private static final Image iconRemoved;
 
     static {
-        iconAdded = new Image("/at/aau/ainf/gitrepomonitor/gui/icons/icon_added.png");
-        iconEdited = new Image("/at/aau/ainf/gitrepomonitor/gui/icons/icon_edited.png");
-        iconRemoved = new Image("/at/aau/ainf/gitrepomonitor/gui/icons/icon_removed.png");
+        iconAdded = ResourceStore.getImage("icon_added.png");
+        iconEdited = ResourceStore.getImage("icon_edited.png");
+        iconRemoved = ResourceStore.getImage("icon_removed.png");
     }
 
     @FXML
@@ -58,7 +56,7 @@ public class CommitView extends Region {
     private Label lblNewChange;
 
     private FXMLLoader loader;
-    private static DateFormat df = new SimpleDateFormat("dd.MM.yyyy HH:mm");
+    private static DateFormat df = new SimpleDateFormat(ResourceStore.getString("date_time_format"));
 
     public CommitView(CommitChange commitChange) {
         if (loader == null) {

@@ -14,10 +14,9 @@ public class RepositoryInformationCellFactory
 
     private StatusDisplay statusDisplay;
     private ProgressMonitor progressMonitor;
-    private GitManager gitManager;
 
     public RepositoryInformationCellFactory() {
-        this.gitManager = GitManager.getInstance();
+        super();
     }
 
     public RepositoryInformationCellFactory(StatusDisplay statusDisplay, ProgressMonitor progressMonitor) {

@@ -216,17 +216,17 @@ public class ControllerEditRepo implements Initializable, ErrorDisplay, MasterPa
                 try {
                     loadCredentials(null);
                 } catch (SecurityException e) {
-                    showError("Wrong Master Password");
+                    showError(ResourceStore.getString("status.wrong_master_password"));
                 } catch (Exception ex) {
                     ex.printStackTrace();
                     showError(ex.getMessage());
                 }
             } else {
-                txtHttpsUsername.setPromptText("Stored Username");
-                txtHttpsPasswordHidden.setPromptText("Stored Password");
-                txtHttpsPasswordShown.setPromptText("Stored Password");
-                txtSslPassphraseHidden.setPromptText("Stored Passphrase");
-                txtSslPassphraseShown.setPromptText("Stored Passphrase");
+                txtHttpsUsername.setPromptText(ResourceStore.getString("edit_repo.stored_username"));
+                txtHttpsPasswordHidden.setPromptText(ResourceStore.getString("edit_repo.stored_password"));
+                txtHttpsPasswordShown.setPromptText(ResourceStore.getString("edit_repo.stored_password"));
+                txtSslPassphraseHidden.setPromptText(ResourceStore.getString("edit_repo.stored_passphrase"));
+                txtSslPassphraseShown.setPromptText(ResourceStore.getString("edit_repo.stored_passphrase"));
             }
         }
     }
@@ -304,7 +304,7 @@ public class ControllerEditRepo implements Initializable, ErrorDisplay, MasterPa
             Stage stage = (Stage) txtName.getScene().getWindow();
             stage.close();
         } catch (SecurityException ex) {
-            showError("Wrong Master Password");
+            showError(ResourceStore.getString("status.wrong_master_password"));
         } catch (AuthenticationException ex) {
             // abort method
         } catch (Exception ex) {
@@ -315,9 +315,9 @@ public class ControllerEditRepo implements Initializable, ErrorDisplay, MasterPa
 
     private boolean showConfirmMergeStratApplyAllDialog() {
         Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
-        alert.setTitle("Confirm Apply All");
-        alert.setHeaderText("The selected Merge Strategy will be applied to ALL other repositories.");
-        alert.setContentText("Are you sure you want to continue?");
+        alert.setTitle(ResourceStore.getString("edit_repo.merge_strat_apply_all.title"));
+        alert.setHeaderText(ResourceStore.getString("edit_repo.merge_strat_apply_all.header"));
+        alert.setContentText(ResourceStore.getString("edit_repo.merge_strat_apply_all.content"));
 
         Optional<ButtonType> res = alert.showAndWait();
         return res.isPresent() && res.get() == ButtonType.OK;
@@ -331,7 +331,7 @@ public class ControllerEditRepo implements Initializable, ErrorDisplay, MasterPa
                 masterPW = showMasterPasswordInputDialog(false);
                 // if master password dialog was aborted, abort method
                 if (masterPW == null) {
-                    throw new AuthenticationException("Master Password input aborted");
+                    throw new AuthenticationException(ResourceStore.getString("errormsg.mp_dialog_aborted"));
                 }
             }
         } else {
@@ -340,7 +340,7 @@ public class ControllerEditRepo implements Initializable, ErrorDisplay, MasterPa
                 secureStorage.setMasterPassword(Utils.toCharOrNull(masterPW));
             } else {
                 // if master password dialog was aborted, abort method
-                throw new AuthenticationException("Master Password input aborted");
+                throw new AuthenticationException(ResourceStore.getString("errormsg.mp_dialog_aborted"));
             }
         }
 
@@ -366,15 +366,15 @@ public class ControllerEditRepo implements Initializable, ErrorDisplay, MasterPa
         if (authContainerSSL.isVisible()) {
             if (txtSslKeyPath.getText().isBlank() && !txtSslPassphraseHidden.getText().isBlank()) {
                 txtSslPassphraseHidden.getStyleClass().add("error-input");
-                throw new IllegalArgumentException("Cannot have a passphrase without a key path");
+                throw new IllegalArgumentException(ResourceStore.getString("errormsg.ssl_passphrase_no_path"));
             } else {
                 txtSslPassphraseHidden.getStyleClass().remove("error-input");
             }
 
             File keyFile = new File(txtSslKeyPath.getText());
-            if (!keyFile.exists()) { // TODO: check file extension
+            if (!keyFile.exists()) {
                 txtSslKeyPath.getStyleClass().add("error-input");
-                throw new IllegalArgumentException("Invalid key file");
+                throw new IllegalArgumentException(ResourceStore.getString("errormsg.ssl_invalid_key_file"));
             } else {
                 txtSslKeyPath.getStyleClass().remove("error-input");
             }
@@ -514,7 +514,7 @@ public class ControllerEditRepo implements Initializable, ErrorDisplay, MasterPa
                 return false;
             }
         } catch (SecurityException e) {
-            showError("Wrong Master Password");
+            showError(ResourceStore.getString("status.wrong_master_password"));
             return false;
         } catch (Exception e) {
             showError(e.getMessage());

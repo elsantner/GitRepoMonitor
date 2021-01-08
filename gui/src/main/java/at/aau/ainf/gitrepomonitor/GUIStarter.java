@@ -28,6 +28,7 @@ public class GUIStarter extends Application {
     @Override
     public void start(Stage primaryStage) throws Exception {
         this.primaryStage = primaryStage;
+        // set resource bundle for easy access
         ResourceStore.setResourceBundle(
                 ResourceBundle.getBundle("at.aau.ainf.gitrepomonitor.localization.lang", Locale.ENGLISH));
 
@@ -35,7 +36,7 @@ public class GUIStarter extends Application {
         Parent root = loader.load();
         ((ControllerMain)loader.getController()).setStage(primaryStage);
 
-        primaryStage.setTitle("Git Repository Monitor");
+        primaryStage.setTitle(ResourceStore.getString("app_title"));
         primaryStage.setScene(new Scene(root, 800, 500));
         primaryStage.setOnCloseRequest(confirmCloseEventHandler);
         primaryStage.show();

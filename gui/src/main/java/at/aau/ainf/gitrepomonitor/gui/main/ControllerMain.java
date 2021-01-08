@@ -76,7 +76,7 @@ public class ControllerMain extends StatusBarController implements Initializable
         fileManager = FileManager.getInstance();
         try {
             if (fileManager.init()) {
-                showWarning("Authentication was reset on all repos (missing credentials file)");
+                showWarning(ResourceStore.getString("warning.credentials_reset"));
             }
         } catch (IOException e) {
            Logger.getLogger(getClass().getName()).log(Level.SEVERE, "error occurred during file manager init", e);
@@ -263,7 +263,7 @@ public class ControllerMain extends StatusBarController implements Initializable
         btnPullAll.setDisable(true);
         gitManager.pullWatchlistAsync(Utils.toCharOrNull(masterPW), (results, pullsSuccess, pullsFailed, wrongMasterPW) -> {
             if (results.isEmpty()) {
-                displayStatus("No changes to pull");
+                displayStatus(ResourceStore.getString("status.pull_no_changes"));
             } else {
                 if (wrongMasterPW) {
                     displayStatus(ResourceStore.getString("status.pulled_n_of_m_repo_status_wrong_mp",
