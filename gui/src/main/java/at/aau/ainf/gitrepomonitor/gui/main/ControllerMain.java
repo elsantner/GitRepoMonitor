@@ -26,6 +26,7 @@ import javafx.stage.Stage;
 import javafx.stage.StageStyle;
 import javafx.util.Callback;
 import org.eclipse.jgit.api.MergeResult;
+import org.eclipse.jgit.api.errors.CheckoutConflictException;
 
 import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
@@ -114,6 +115,9 @@ public class ControllerMain extends StatusBarController implements Initializable
                     }
                     updateCommitLog(repo);
                 }
+            } catch (CheckoutConflictException ex) {
+                cbBoxBranch.getSelectionModel().select(oldValue);
+                showError(ex.getLocalizedMessage());
             } catch (Exception e) {
                 e.printStackTrace();
             }
