@@ -70,9 +70,17 @@ public class AuthInfo {
         return cp != null || ssl != null;
     }
 
+    /**
+     * Clear all stored credential information
+     */
     public void destroy() {
-        cp.clear();
-        cp = null;
-        ssl = null;
+        if (cp != null) {
+            cp.clear();
+            cp = null;
+        }
+        if (ssl != null) {
+            ssl.clear();
+            ssl = null;
+        }
     }
 }

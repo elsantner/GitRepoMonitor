@@ -132,6 +132,7 @@ public class GitManager {
                 updateRepoStatus(path, masterPW);
                 cb.finished(true, 1, 0,null);
             } catch (Exception e) {
+                e.printStackTrace();
                 cb.finished(false, 0, 1, e);
             }
         });
@@ -407,12 +408,16 @@ public class GitManager {
     private void updateRepoStatus(String path, char[] masterPW) throws IOException {
         RepositoryInformation repoInfo = fileManager.getRepo(path);
         // if master password is provided & repo has authentication method specified, use those credentials
+        AuthInfo authInfo = null;
         try {
-            AuthInfo authInfo = AuthInfo.getFor(repoInfo, masterPW);
+            authInfo = AuthInfo.getFor(repoInfo, masterPW);
             updateRepoStatus(path, authInfo);
         } catch (SecurityException ex) {
             fileManager.updateRepoStatus(repoInfo.getPath(), WRONG_MASTER_PW);
             throw ex;
+        } finally {
+            if (authInfo != null)
+                authInfo.destroy();
         }
     }
 

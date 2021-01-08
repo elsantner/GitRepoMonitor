@@ -1,5 +1,6 @@
 package at.aau.ainf.gitrepomonitor.core.git;
 
+import at.aau.ainf.gitrepomonitor.core.files.Utils;
 import com.jcraft.jsch.JSch;
 import com.jcraft.jsch.JSchException;
 import org.eclipse.jgit.api.TransportConfigCallback;
@@ -12,6 +13,7 @@ public class SSLTransportConfigCallback implements TransportConfigCallback {
 
     private String sslKeyPath;
     private byte[] sslKeyPassphrase;
+    private JSch defaultJSch;
 
     public SSLTransportConfigCallback() {
 
@@ -28,12 +30,26 @@ public class SSLTransportConfigCallback implements TransportConfigCallback {
         sshTransport.setSshSessionFactory( new JschConfigSessionFactory() {
             @Override
             protected JSch createDefaultJSch(FS fs) throws JSchException {
-                JSch defaultJSch = super.createDefaultJSch(fs);
+                defaultJSch = super.createDefaultJSch(fs);
                 if (sslKeyPath != null) {
                     defaultJSch.addIdentity(sslKeyPath, sslKeyPassphrase);
                 }
                 return defaultJSch;
             }
         });
+    }
+
+    /**
+     * Clear the sslPassphrase stored in this object and the wrapped SSL identity.
+     */
+    public void clear() {
+        Utils.clearArray(sslKeyPassphrase);
+        sslKeyPassphrase = null;
+        try {
+            // removing a identity clears the ssl passphrase buffer.
+            defaultJSch.removeAllIdentity();
+        } catch (JSchException e) {
+            // should not happen
+        }
     }
 }
