@@ -24,6 +24,7 @@ import org.eclipse.jgit.api.MergeResult;
 import org.eclipse.jgit.api.errors.InvalidConfigurationException;
 import org.eclipse.jgit.lib.ProgressMonitor;
 
+import javax.security.auth.login.CredentialException;
 import java.awt.*;
 import java.io.File;
 import java.io.IOException;
@@ -52,6 +53,10 @@ public class RepositoryInformationContextMenu extends ContextMenu implements Err
             String masterPW = null;
             if (item.isAuthenticated() && !secureStorage.isMasterPasswordCached()) {
                 masterPW = showMasterPasswordInputDialog(false);
+                // abort if input dialog was cancelled
+                if (masterPW == null) {
+                    return;
+                }
             }
 
             setStatus(ResourceStore.getString("status.update_repo_status"));
@@ -71,13 +76,17 @@ public class RepositoryInformationContextMenu extends ContextMenu implements Err
             String masterPW = null;
             if (item.isAuthenticated() && !secureStorage.isMasterPasswordCached()) {
                 masterPW = showMasterPasswordInputDialog(false);
+                // abort if input dialog was cancelled
+                if (masterPW == null) {
+                    return;
+                }
             }
             gitManager.pullRepoAsync(item.getPath(), Utils.toCharOrNull(masterPW), (results, pullsSuccess,
                                                                                     pullsFailed, wrongMP) -> {
                 if (wrongMP) {
                     setStatus(ResourceStore.getString("status.wrong_master_password"));
                     showError(ResourceStore.getString("status.wrong_master_password"));
-                } else if (pullsFailed == 1 && results.get(0) == null) {
+                } else if (pullsFailed == 1 && results.isEmpty()) {
                     setStatus("Repository not accessible (wrong credentials?)");
                 } else {
                     PullCallback.PullResult result = results.get(0);

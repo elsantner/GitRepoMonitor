@@ -3,13 +3,13 @@ package at.aau.ainf.gitrepomonitor.core.files.authentication;
 import at.aau.ainf.gitrepomonitor.core.files.FileManager;
 import at.aau.ainf.gitrepomonitor.core.files.RepositoryInformation;
 import at.aau.ainf.gitrepomonitor.core.files.Utils;
+import at.aau.ainf.gitrepomonitor.core.git.SSLTransportConfigCallback;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.github.javakeyring.BackendNotSupportedException;
 import com.github.javakeyring.Keyring;
 import com.github.javakeyring.KeyringStorageType;
 import com.github.javakeyring.PasswordAccessException;
-import org.eclipse.jgit.transport.CredentialsProvider;
 import org.eclipse.jgit.transport.UsernamePasswordCredentialsProvider;
 
 import javax.crypto.BadPaddingException;
@@ -73,9 +73,9 @@ public class SecureKeyringStorage extends SecureStorage {
     public void setMasterPassword(char[] masterPW) throws IOException {
         try {
             char[] hashedMP = Utils.sha3_256(masterPW);
-            clearCharArray(masterPW);
+            Utils.clearArray(masterPW);
             keyring.setPassword(getServiceName(), MP_SET, encrypt(new String(hashedMP), hashedMP));
-            clearCharArray(hashedMP);
+            Utils.clearArray(hashedMP);
         } catch (PasswordAccessException e) {
             throw new IOException(e);
         }
@@ -99,9 +99,14 @@ public class SecureKeyringStorage extends SecureStorage {
             }
 
             for (RepositoryInformation repo : affectedRepos) {
+                AuthenticationInformation authInfo = null;
                 if (repo.getAuthMethod() == RepositoryInformation.AuthMethod.HTTPS) {
-                    HttpsCredentials creds = readHttpsCredentials(hashedCurrentPW, repo.getID());
-                    writeHttpsCredentials(hashedNewPW, repo.getID(), creds.getUsername(), creds.getPassword());
+                    authInfo = readHttpsCredentials(hashedCurrentPW, repo.getID());
+                } else if (repo.getAuthMethod() == RepositoryInformation.AuthMethod.SSL) {
+                    authInfo = readSslInformation(hashedCurrentPW, repo.getID());
+                }
+                if (authInfo != null) {
+                    writeAuthenticationInformation(hashedNewPW, authInfo);
                 }
             }
             keyring.setPassword(getServiceName(), MP_SET, encrypt(new String(hashedNewPW), hashedNewPW));
@@ -119,21 +124,21 @@ public class SecureKeyringStorage extends SecureStorage {
         synchronized (lockMasterPasswordReset) {
             try {
                 masterPW = getAndCheckMasterPassword(masterPW);
-                writeHttpsCredentials(masterPW, repoID, httpsUsername, httpsPassword);
+                writeAuthenticationInformation(masterPW, new HttpsCredentials(repoID, httpsUsername, httpsPassword));
                 cacheMasterPasswordIfEnabled(masterPW);
                 clearMasterPasswordIfRequired();
             } catch (PasswordAccessException e) {
                 throw new IOException("could not store credentials");
             } finally {
-                clearCharArray(masterPW);
-                clearCharArray(httpsPassword);
+                Utils.clearArray(masterPW);
+                Utils.clearArray(httpsPassword);
             }
         }
     }
 
-    private void writeHttpsCredentials(char[] masterPW, UUID repoID, String httpsUsername, char[] httpsPassword) throws JsonProcessingException, PasswordAccessException {
-        String xml = mapper.writeValueAsString(new HttpsCredentials(repoID, httpsUsername, httpsPassword));
-        keyring.setPassword(getServiceName(), repoID.toString(), encrypt(xml, masterPW));
+    private void writeAuthenticationInformation(char[] masterPW, AuthenticationInformation info) throws JsonProcessingException, PasswordAccessException {
+        String xml = mapper.writeValueAsString(info);
+        keyring.setPassword(getServiceName(), info.getRepoID().toString(), encrypt(xml, masterPW));
     }
 
     @Override
@@ -152,7 +157,7 @@ public class SecureKeyringStorage extends SecureStorage {
             } catch (PasswordAccessException ex) {
                 throw new IOException(ex);
             } finally {
-                clearCharArray(masterPW);
+                Utils.clearArray(masterPW);
             }
         }
     }
@@ -167,10 +172,11 @@ public class SecureKeyringStorage extends SecureStorage {
         try {
             String credsCipher = keyring.getPassword(getServiceName(), repoID.toString());
             String xml = decrypt(credsCipher, masterPW);
-            return mapper.readValue(xml, new TypeReference<HttpsCredentials>(){});
+            return mapper.readValue(xml, new TypeReference<>() {
+            });
         } catch (PasswordAccessException ex) {
             throw new IOException(ex);
-        } catch (BadPaddingException | IllegalBlockSizeException e) {
+        } catch (BadPaddingException | IllegalBlockSizeException e) { e.printStackTrace();
             throw new SecurityException("authentication failed");
         }
     }
@@ -193,7 +199,7 @@ public class SecureKeyringStorage extends SecureStorage {
     }
 
     @Override
-    public CredentialsProvider getHttpsCredentialProvider(char[] masterPW, UUID repoID) throws IOException {
+    public UsernamePasswordCredentialsProvider getHttpsCredentialProvider(char[] masterPW, UUID repoID) throws IOException {
         synchronized (lockMasterPasswordReset) {
             masterPW = getCachedMasterPasswordHashIfPossible(masterPW);
             HttpsCredentials credentials = readHttpsCredentials(masterPW, repoID);
@@ -204,21 +210,21 @@ public class SecureKeyringStorage extends SecureStorage {
     }
 
     @Override
-    public CredentialsProvider getHttpsCredentialProvider(UUID repoID) throws IOException {
+    public UsernamePasswordCredentialsProvider getHttpsCredentialProvider(UUID repoID) throws IOException {
         return getHttpsCredentialProvider(null, repoID);
     }
 
     @Override
-    public Map<UUID, CredentialsProvider> getHttpsCredentialProviders(char[] masterPW, List<RepositoryInformation> repos) {
+    public Map<UUID, UsernamePasswordCredentialsProvider> getHttpsCredentialProviders(char[] masterPW, List<RepositoryInformation> repos) {
         synchronized (lockMasterPasswordReset) {
-            Map<UUID, CredentialsProvider> map = new HashMap<>();
+            Map<UUID, UsernamePasswordCredentialsProvider> map = new HashMap<>();
 
             masterPW = getCachedMasterPasswordHashIfPossible(masterPW);
             for (RepositoryInformation repo : repos) {
                 try {
                     if (repo.isAuthenticated()) {
                         HttpsCredentials credentials = readHttpsCredentials(masterPW, repo.getID());
-                        CredentialsProvider credProv = new UsernamePasswordCredentialsProvider(credentials.getUsername(), credentials.getPassword());
+                        UsernamePasswordCredentialsProvider credProv = new UsernamePasswordCredentialsProvider(credentials.getUsername(), credentials.getPassword());
                         map.put(repo.getID(), credProv);
                     }
                 } catch (IOException ex) {
@@ -232,8 +238,133 @@ public class SecureKeyringStorage extends SecureStorage {
     }
 
     @Override
-    public Map<UUID, CredentialsProvider> getHttpsCredentialProviders(List<RepositoryInformation> repos) {
+    public Map<UUID, UsernamePasswordCredentialsProvider> getHttpsCredentialProviders(List<RepositoryInformation> repos) {
         return getHttpsCredentialProviders(null, repos);
+    }
+
+    @Override
+    public void storeSslInformation(char[] masterPW, UUID repoID, byte[] sslPassphrase) throws IOException {
+        synchronized (lockMasterPasswordReset) {
+            try {
+                masterPW = getAndCheckMasterPassword(masterPW);
+                writeAuthenticationInformation(masterPW, new SSLInformation(repoID, sslPassphrase));
+                cacheMasterPasswordIfEnabled(masterPW);
+                clearMasterPasswordIfRequired();
+            } catch (PasswordAccessException | JsonProcessingException e) {
+                throw new IOException("could not store credentials");
+            } finally {
+                Utils.clearArray(masterPW);
+                Utils.clearArray(sslPassphrase);
+            }
+        }
+    }
+
+    @Override
+    public void storeSslInformation(UUID repoID, byte[] sslPassphrase) throws IOException {
+        storeSslInformation(null, repoID, sslPassphrase);
+    }
+
+    @Override
+    public void deleteSslInformation(char[] masterPW, UUID repoID) throws IOException {
+        synchronized (lockMasterPasswordReset) {
+            try {
+                masterPW = getAndCheckMasterPassword(masterPW);
+                keyring.deletePassword(getServiceName(), repoID.toString());
+                cacheMasterPasswordIfEnabled(masterPW);
+                clearMasterPasswordIfRequired();
+            } catch (PasswordAccessException ex) {
+                throw new IOException(ex);
+            } finally {
+                Utils.clearArray(masterPW);
+            }
+        }
+    }
+
+    @Override
+    public void deleteSslInformation(UUID repoID) throws IOException {
+        deleteSslInformation(null, repoID);
+    }
+
+    @Override
+    public SSLInformation getSslInformation(char[] masterPW, UUID repoID) throws IOException {
+        synchronized (lockMasterPasswordReset) {
+            masterPW = getAndCheckMasterPassword(masterPW);
+            SSLInformation creds = readSslInformation(masterPW, repoID);
+            cacheMasterPasswordIfEnabled(masterPW);
+            clearMasterPasswordIfRequired();
+            return creds;
+        }
+    }
+
+    @Override
+    public SSLInformation getSslInformation(UUID repoID) throws IOException {
+        return getSslInformation(null, repoID);
+    }
+
+    @Override
+    public Map<UUID, AuthInfo> getAuthInfos(char[] masterPW, List<RepositoryInformation> repos) {
+        synchronized (lockMasterPasswordReset) {
+            Map<UUID, AuthInfo> map = new HashMap<>();
+
+            masterPW = getCachedMasterPasswordHashIfPossible(masterPW);
+            for (RepositoryInformation repo : repos) {
+                try {
+                    if (repo.getAuthMethod() == RepositoryInformation.AuthMethod.HTTPS) {
+                        HttpsCredentials credentials = readHttpsCredentials(masterPW, repo.getID());
+                        UsernamePasswordCredentialsProvider credProv = new UsernamePasswordCredentialsProvider(credentials.getUsername(), credentials.getPassword());
+                        map.put(repo.getID(), new AuthInfo(credProv));
+                    } else if (repo.getAuthMethod() == RepositoryInformation.AuthMethod.SSL) {
+                        if (repo.getSslKeyPath() != null && !repo.getSslKeyPath().isBlank()) {
+                            SSLInformation sslInfo = null;
+                            try {
+                                sslInfo = readSslInformation(masterPW, repo.getID());
+                            } catch (Exception ex) {
+                                // ssl passphrase could not be loaded
+                            }
+                            // set passphrase only if it could be loaded
+                            SSLTransportConfigCallback sslConfig = new SSLTransportConfigCallback(repo.getSslKeyPath(),
+                                    sslInfo != null ? sslInfo.getSslPassphrase(): null);
+                            map.put(repo.getID(), new AuthInfo(sslConfig));
+                        }
+                    }
+                } catch (IOException ex) {
+                    // means that repo has no stored credentials, continue loop
+                }
+            }
+            cacheMasterPasswordIfEnabled(masterPW);
+            clearMasterPasswordIfRequired();
+            return map;
+        }
+    }
+
+    @Override
+    public void resetMasterPassword() throws IOException {
+        for (RepositoryInformation repo : FileManager.getInstance().getAllRepos()) {
+            try {
+                keyring.deletePassword(SERVICE, repo.getID().toString());
+            } catch (PasswordAccessException e) {
+                e.printStackTrace();
+            }
+        }
+        try {
+            keyring.deletePassword(SERVICE, MP_SET);
+            FileManager.getInstance().clearAllAuthRequirements();
+        } catch (PasswordAccessException e) {
+            throw new IOException(e);
+        }
+        clearCachedMasterPassword();
+    }
+
+    private SSLInformation readSslInformation(char[] masterPW, UUID repoID) throws IOException {
+        try {
+            String credsCipher = keyring.getPassword(getServiceName(), repoID.toString());
+            String xml = decrypt(credsCipher, masterPW);
+            return mapper.readValue(xml, new TypeReference<>() {});
+        } catch (PasswordAccessException ex) {
+            throw new IOException(ex);
+        } catch (BadPaddingException | IllegalBlockSizeException e) {
+            throw new SecurityException("authentication failed");
+        }
     }
 
     /**
@@ -288,7 +419,7 @@ public class SecureKeyringStorage extends SecureStorage {
         } else {
             if (masterPW != null && !isHashed) {
                 char[] hashedPW = Utils.sha3_256(masterPW);
-                clearCharArray(masterPW);
+                Utils.clearArray(masterPW);
                 masterPW = hashedPW;
             }
             throwIfMasterPasswordIncorrect(masterPW);

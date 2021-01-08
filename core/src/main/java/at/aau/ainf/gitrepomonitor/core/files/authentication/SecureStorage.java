@@ -4,7 +4,7 @@ import at.aau.ainf.gitrepomonitor.core.files.RepositoryInformation;
 import at.aau.ainf.gitrepomonitor.core.files.Utils;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.dataformat.xml.XmlMapper;
-import org.eclipse.jgit.transport.CredentialsProvider;
+import org.eclipse.jgit.transport.UsernamePasswordCredentialsProvider;
 
 import javax.crypto.BadPaddingException;
 import javax.crypto.Cipher;
@@ -16,10 +16,7 @@ import javax.crypto.spec.SecretKeySpec;
 import javax.naming.AuthenticationException;
 import java.io.File;
 import java.io.IOException;
-import java.nio.ByteBuffer;
-import java.nio.CharBuffer;
 import java.nio.charset.StandardCharsets;
-import java.security.MessageDigest;
 import java.security.spec.KeySpec;
 import java.util.*;
 import java.util.logging.Logger;
@@ -65,7 +62,7 @@ public abstract class SecureStorage {
 
     private static void loadSettings() {
         try {
-            settings = mapper.readValue(fileSettings, new TypeReference<SecureStorageSettings>(){});
+            settings = mapper.readValue(fileSettings, new TypeReference<>() {});
         } catch (IOException e) {
             e.printStackTrace();
             settings = new SecureStorageSettings();
@@ -134,14 +131,8 @@ public abstract class SecureStorage {
 
     public void clearCachedMasterPassword() {
         if (masterPassword != null) {
-            clearCharArray(masterPassword);
+            Utils.clearArray(masterPassword);
             masterPassword = null;
-        }
-    }
-
-    protected void clearCharArray(char[] a) {
-        if (a != null) {
-            Arrays.fill(a, (char) 0);
         }
     }
 
@@ -163,7 +154,7 @@ public abstract class SecureStorage {
             return Arrays.copyOf(masterPassword, masterPassword.length);
         }
         char[] hashedPW = Utils.sha3_256(mp);
-        clearCharArray(mp);
+        Utils.clearArray(mp);
         return hashedPW;
     }
 
@@ -190,13 +181,29 @@ public abstract class SecureStorage {
 
     public abstract HttpsCredentials getHttpsCredentials(UUID repoID) throws IOException;
 
-    public abstract CredentialsProvider getHttpsCredentialProvider(char[] masterPW, UUID repoID) throws IOException;
+    public abstract UsernamePasswordCredentialsProvider getHttpsCredentialProvider(char[] masterPW, UUID repoID) throws IOException;
 
-    public abstract CredentialsProvider getHttpsCredentialProvider(UUID repoID) throws IOException;
+    public abstract UsernamePasswordCredentialsProvider getHttpsCredentialProvider(UUID repoID) throws IOException;
 
-    public abstract Map<UUID, CredentialsProvider> getHttpsCredentialProviders(char[] masterPW, List<RepositoryInformation> repos) throws IOException;
+    public abstract Map<UUID, UsernamePasswordCredentialsProvider> getHttpsCredentialProviders(char[] masterPW, List<RepositoryInformation> repos) throws IOException;
 
-    public abstract Map<UUID, CredentialsProvider> getHttpsCredentialProviders(List<RepositoryInformation> repos) throws IOException;
+    public abstract Map<UUID, UsernamePasswordCredentialsProvider> getHttpsCredentialProviders(List<RepositoryInformation> repos) throws IOException;
+
+    public abstract void storeSslInformation(char[] masterPW, UUID repoID, byte[] sslPassphrase) throws IOException;
+
+    public abstract void storeSslInformation(UUID repoID, byte[] sslPassphrase) throws IOException;
+
+    public abstract void deleteSslInformation(char[] masterPW, UUID repoID) throws IOException;
+
+    public abstract void deleteSslInformation(UUID repoID) throws IOException;
+
+    public abstract SSLInformation getSslInformation(char[] masterPW, UUID repoID) throws IOException;
+
+    public abstract SSLInformation getSslInformation(UUID repoID) throws IOException;
+
+    public abstract Map<UUID, AuthInfo> getAuthInfos(char[] masterPW, List<RepositoryInformation> repos) throws IOException;
+
+    public abstract void resetMasterPassword() throws IOException;
 
     protected byte[] encryptToBytes(String plaintext, char[] key) {
         try {
@@ -243,8 +250,6 @@ public abstract class SecureStorage {
             throw new RuntimeException(ex);
         }
     }
-
-
 
     public abstract boolean isIntact(List<RepositoryInformation> authRequiredRepos);
 

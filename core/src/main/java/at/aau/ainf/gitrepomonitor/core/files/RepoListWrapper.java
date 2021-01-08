@@ -1,7 +1,10 @@
 package at.aau.ainf.gitrepomonitor.core.files;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+
 import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
+import java.io.IOException;
 import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -20,29 +23,29 @@ class RepoListWrapper {
         this.listenersFoundRepos = new ArrayList<>();
         this.listenersRepoStatus = new ArrayList<>();
     }
-
+    @JsonIgnore
     public void addWatchlistListener(PropertyChangeListener l) { listenersWatchlist.add(l); }
-
+    @JsonIgnore
     public void addFoundReposListener(PropertyChangeListener l) { listenersFoundRepos.add(l); }
-
+    @JsonIgnore
     public void addRepoStatusListener(PropertyChangeListener l) { listenersRepoStatus.add(l); }
-
+    @JsonIgnore
     public boolean removeWatchlistListener(PropertyChangeListener l) { return listenersWatchlist.remove(l); }
-
+    @JsonIgnore
     public boolean removeFoundReposListener(PropertyChangeListener l) { return listenersFoundRepos.remove(l); }
-
+    @JsonIgnore
     public boolean removeRepoStatusListener(PropertyChangeListener l) { return listenersRepoStatus.remove(l); }
-
+    @JsonIgnore
     private void notifyWatchlistChanged() {
         listenersWatchlist.forEach(propertyChangeListener ->
                 propertyChangeListener.propertyChange(new PropertyChangeEvent(this, "watchlist", null, getWatchlist())));
     }
-
+    @JsonIgnore
     private void notifyFoundReposChanged() {
         listenersFoundRepos.forEach(propertyChangeListener ->
                 propertyChangeListener.propertyChange(new PropertyChangeEvent(this, "foundRepos", null, getFoundRepos())));
     }
-
+    @JsonIgnore
     private void notifyRepoStatusChanged(RepositoryInformation repo) {
         listenersRepoStatus.forEach(propertyChangeListener ->
                 propertyChangeListener.propertyChange(new PropertyChangeEvent(this, "repoStatus", null, repo)));
@@ -76,19 +79,23 @@ class RepoListWrapper {
         }
     }
 
+    @JsonIgnore
     public Set<RepositoryInformation> getAllRepos() {
         return Stream.concat(watchlist.values().stream(),
                 foundRepos.values().stream()).collect(Collectors.toSet());
     }
 
+    @JsonIgnore
     public boolean exists(RepositoryInformation repo) {
         return getListName(repo) != null;
     }
 
+    @JsonIgnore
     public RepoList getListName(String repoURL) {
         return getListName(new RepositoryInformation(repoURL));
     }
 
+    @JsonIgnore
     public RepoList getListName(RepositoryInformation repo) {
         if (watchlist.containsKey(repo.getPath())) {
             return RepoList.WATCH;
@@ -99,6 +106,7 @@ class RepoListWrapper {
         }
     }
 
+    @JsonIgnore
     public void addToList(RepoList list, Collection<RepositoryInformation> repos) {
         checkRepoPathValidity(repos);
         switch (list) {
@@ -113,10 +121,12 @@ class RepoListWrapper {
         }
     }
 
+    @JsonIgnore
     public void addToList(RepoList list, RepositoryInformation repo) {
         addToList(list, Collections.singletonList(repo));
     }
 
+    @JsonIgnore
     public void removeFromList(RepoList list, Collection<RepositoryInformation> repos) {
         switch (list) {
             case WATCH:
@@ -130,6 +140,7 @@ class RepoListWrapper {
         }
     }
 
+    @JsonIgnore
     public void removeFromList(RepoList list, RepositoryInformation repo) {
         removeFromList(list, Collections.singletonList(repo));
     }
@@ -137,19 +148,24 @@ class RepoListWrapper {
     /**
      * Sets pathValid property of all repos
      */
+    @JsonIgnore
     public void checkRepoPathValidity() {
         checkRepoPathValidity(Stream.concat(watchlist.values().stream(),
                 foundRepos.values().stream()).collect(Collectors.toList()));
     }
 
+    @JsonIgnore
     private void checkRepoPathValidity(Collection<RepositoryInformation> reposToCheck) {
-        for (RepositoryInformation repo : reposToCheck) {
-            if (!Utils.validateRepositoryPath(repo.getPath())) {
-                repo.setStatus(RepositoryInformation.RepoStatus.PATH_INVALID);
+        for (RepositoryInformation repoInfo : reposToCheck) {
+            try {
+                FileManager.setAuthMethod(repoInfo);
+            } catch (IOException e) {
+                repoInfo.setStatus(RepositoryInformation.RepoStatus.PATH_INVALID);
             }
         }
     }
 
+    @JsonIgnore
     public RepositoryInformation getRepo(String path) {
         RepositoryInformation repo = watchlist.get(path);
         if (repo == null) {
@@ -158,6 +174,7 @@ class RepoListWrapper {
         return repo;
     }
 
+    @JsonIgnore
     public void updateRepoStatus(String path, RepositoryInformation.RepoStatus status) {
         RepositoryInformation repo = getRepo(path);
         if (repo == null) {
@@ -167,6 +184,7 @@ class RepoListWrapper {
         notifyRepoStatusChanged(repo);
     }
 
+    @JsonIgnore
     public void setNewChanges(String path, int newCommitCount) {
         RepositoryInformation repo = getRepo(path);
         if (repo == null) {
@@ -176,6 +194,7 @@ class RepoListWrapper {
         notifyRepoStatusChanged(repo);
     }
 
+    @JsonIgnore
     public Set<RepositoryInformation> getList(RepoList list) {
         if (list == RepoList.FOUND)
             return getFoundRepos();
@@ -185,6 +204,7 @@ class RepoListWrapper {
             return new HashSet<>();
     }
 
+    @JsonIgnore
     public List<RepositoryInformation> getAuthenticatedRepos() {
         List<RepositoryInformation> authRepos = new ArrayList<>();
         for (RepositoryInformation repo : getAllRepos()) {
@@ -196,9 +216,10 @@ class RepoListWrapper {
         return authRepos;
     }
 
+    @JsonIgnore
     public void resetAuthMethodAll() {
         for (RepositoryInformation repo : getAllRepos()) {
-            repo.setAuthMethod(RepositoryInformation.AuthMethod.NONE);
+            repo.setAuthenticated(false);
         }
     }
 
