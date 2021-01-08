@@ -6,6 +6,7 @@ import at.aau.ainf.gitrepomonitor.core.files.Utils;
 import at.aau.ainf.gitrepomonitor.core.files.authentication.SecureStorage;
 import at.aau.ainf.gitrepomonitor.core.git.Branch;
 import at.aau.ainf.gitrepomonitor.core.git.GitManager;
+import at.aau.ainf.gitrepomonitor.core.git.PullCallback;
 import at.aau.ainf.gitrepomonitor.core.git.PullListener;
 import at.aau.ainf.gitrepomonitor.gui.*;
 import at.aau.ainf.gitrepomonitor.gui.repolist.RepositoryInformationCellFactory;
@@ -17,9 +18,11 @@ import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.fxml.Initializable;
+import javafx.geometry.Bounds;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
+import javafx.scene.input.MouseEvent;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
 import javafx.stage.StageStyle;
@@ -52,9 +55,20 @@ public class ControllerMain extends StatusBarController implements Initializable
     @FXML
     private Label lblCommitLog;
 
+    /**
+     * Stage in which the gui is rendered. Used to display child stages.
+     */
+    private Stage stage;
+
     private FileManager fileManager;
     private GitManager gitManager;
     private SecureStorage secureStorage;
+    private List<PullCallback.PullResult> pullResults;
+
+    public static FXMLLoader getLoader() {
+        return new FXMLLoader(ControllerScan.class.getResource("/at/aau/ainf/gitrepomonitor/gui/main/main.fxml"),
+                ResourceStore.getResourceBundle());
+    }
 
     @Override
     public void initialize(URL url, ResourceBundle resourceBundle) {
@@ -259,6 +273,8 @@ public class ControllerMain extends StatusBarController implements Initializable
                             pullsSuccess, (pullsSuccess + pullsFailed)));
                 }
             }
+            // store results for detailed display
+            this.pullResults = results;
             btnPullAll.setDisable(false);
         }, progessMonitor);
     }
@@ -285,5 +301,54 @@ public class ControllerMain extends StatusBarController implements Initializable
         stage.show();
         stage.setMinWidth(stage.getWidth());
         stage.setMinHeight(stage.getHeight());
+    }
+
+    @Override
+    public void displayStatus(String status) {
+        super.displayStatus(status);
+        this.pullResults = null;
+    }
+
+    /**
+     * Open pull details window when clicking on status bar after pull all
+     */
+    @FXML
+    public void onLabelStatusClicked(MouseEvent mouseEvent) {
+        try {
+            if (this.pullResults != null) {
+                FXMLLoader loader = ControllerPullResults.getLoader();
+                Parent root = loader.load();
+                ((ControllerPullResults) loader.getController()).setDisplay(pullResults);
+                // get absolute coordinates of label on screen
+                Bounds boundsInScreen = lblStatus.localToScreen(lblStatus.getBoundsInLocal());
+
+                Stage stage = new Stage();
+                stage.initModality(Modality.NONE);
+                stage.initStyle(StageStyle.UNDECORATED);
+                // show in the same window as the rest of the GUI
+                stage.initOwner(this.stage);
+                stage.setScene(new Scene(root));
+                stage.sizeToScene();
+                stage.show();
+                stage.setMinWidth(stage.getWidth());
+                stage.setMinHeight(stage.getHeight());
+                // display on top of label
+                stage.setX(boundsInScreen.getMinX());
+                stage.setY(boundsInScreen.getMinY()-stage.getHeight());
+
+                // close window if clicked outside
+                stage.focusedProperty().addListener((observable, oldValue, newValue) -> {
+                    if (!newValue) {
+                        stage.hide();
+                    }
+                });
+            }
+        } catch (Exception ex) {
+            ex.printStackTrace();
+        }
+    }
+
+    public void setStage(Stage stage) {
+        this.stage = stage;
     }
 }

@@ -2,6 +2,7 @@ package at.aau.ainf.gitrepomonitor;
 
 import at.aau.ainf.gitrepomonitor.core.files.authentication.SecureStorage;
 import at.aau.ainf.gitrepomonitor.gui.ResourceStore;
+import at.aau.ainf.gitrepomonitor.gui.main.ControllerMain;
 import at.aau.ainf.gitrepomonitor.gui.reposcan.ControllerScan;
 import javafx.application.Application;
 import javafx.event.EventHandler;
@@ -27,12 +28,13 @@ public class GUIStarter extends Application {
     @Override
     public void start(Stage primaryStage) throws Exception {
         this.primaryStage = primaryStage;
-
         ResourceStore.setResourceBundle(
                 ResourceBundle.getBundle("at.aau.ainf.gitrepomonitor.localization.lang", Locale.ENGLISH));
 
-        Parent root = FXMLLoader.load(getClass().getResource(
-                "/at/aau/ainf/gitrepomonitor/gui/main/main.fxml"), ResourceStore.getResourceBundle());
+        FXMLLoader loader = ControllerMain.getLoader();
+        Parent root = loader.load();
+        ((ControllerMain)loader.getController()).setStage(primaryStage);
+
         primaryStage.setTitle("Git Repository Monitor");
         primaryStage.setScene(new Scene(root, 800, 500));
         primaryStage.setOnCloseRequest(confirmCloseEventHandler);

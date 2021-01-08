@@ -3,7 +3,6 @@ package at.aau.ainf.gitrepomonitor.core.git;
 import at.aau.ainf.gitrepomonitor.core.files.FileManager;
 import at.aau.ainf.gitrepomonitor.core.files.RepositoryInformation;
 import at.aau.ainf.gitrepomonitor.core.files.authentication.AuthInfo;
-import at.aau.ainf.gitrepomonitor.core.files.authentication.SecureStorage;
 import org.eclipse.jgit.api.*;
 import org.eclipse.jgit.api.errors.*;
 import org.eclipse.jgit.diff.DiffEntry;
@@ -125,7 +124,6 @@ public class GitManager {
         });
     }
 
-
     public void updateRepoStatusAsync(String path, char[] masterPW, UpdateStatusCallback cb) {
         executor.submit(() -> {
             try {
@@ -155,14 +153,16 @@ public class GitManager {
         for (RepositoryInformation repo : watchlist) {
             pullRepoAsync(repo.getPath(), Optional.ofNullable(authInfo.get(repo.getID())).orElse(new AuthInfo()),
                     (results, pullsSuccessCount, pullsFailedCount, wrongMP) -> {
-                pullsFinished.value++;
-                pullResults.addAll(results);
-                pullsSuccess.value += pullsSuccessCount;
-                pullsFailed.value += pullsFailedCount;
-                wrongMasterPW.set(wrongMasterPW.get() || wrongMP);
-                // once all pulls have finished, call callback
-                if (pullsFinished.value == watchlist.size()) {
-                    cb.finished(pullResults, pullsSuccess.value, pullsFailed.value, wrongMasterPW.get());
+                synchronized (cb) {
+                    pullsFinished.value++;
+                    pullResults.addAll(results);
+                    pullsSuccess.value += pullsSuccessCount;
+                    pullsFailed.value += pullsFailedCount;
+                    wrongMasterPW.set(wrongMasterPW.get() || wrongMP);
+                    // once all pulls have finished, call callback
+                    if (pullsFinished.value == watchlist.size()) {
+                        cb.finished(pullResults, pullsSuccess.value, pullsFailed.value, wrongMasterPW.get());
+                    }
                 }
             }, progressMonitor);
         }
@@ -366,14 +366,19 @@ public class GitManager {
     }
 
     private void handlePullException(Exception ex, PullCallback cb, String path) {
+        // wrong master password
         if (ex instanceof SecurityException) {
-            cb.failed(path, true);
+            cb.failed(path, MergeResult.MergeStatus.FAILED, ex, true);
+        // wrong credentials or no remote
         } else if (ex instanceof CredentialException || ex instanceof  NoRemoteRepositoryException) {
-            cb.failed(path, false);
+            cb.failed(path, MergeResult.MergeStatus.FAILED, ex,false);
+        // checkout failed
         } else if (ex instanceof CheckoutConflictException) {
             cb.failed(path, MergeResult.MergeStatus.CHECKOUT_CONFLICT, ex, false);
+        // repository is in a bad state (e.g. merging)
         } else if (ex instanceof WrongRepositoryStateException) {
             cb.finished(path, MergeResult.MergeStatus.CONFLICTING, ex);
+        // other error
         } else {
             cb.finished(path, MergeResult.MergeStatus.FAILED, ex);
         }
