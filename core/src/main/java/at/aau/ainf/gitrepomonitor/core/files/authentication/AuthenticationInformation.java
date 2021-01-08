@@ -19,4 +19,6 @@ public abstract class AuthenticationInformation {
     public void setRepoID(UUID repoID) {
         this.repoID = repoID;
     }
+
+    public abstract void destroy();
 }

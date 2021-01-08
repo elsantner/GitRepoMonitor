@@ -131,14 +131,8 @@ public abstract class SecureStorage {
 
     public void clearCachedMasterPassword() {
         if (masterPassword != null) {
-            clearCharArray(masterPassword);
+            Utils.clearArray(masterPassword);
             masterPassword = null;
-        }
-    }
-
-    protected void clearCharArray(char[] a) {
-        if (a != null) {
-            Arrays.fill(a, (char) 0);
         }
     }
 
@@ -160,7 +154,7 @@ public abstract class SecureStorage {
             return Arrays.copyOf(masterPassword, masterPassword.length);
         }
         char[] hashedPW = Utils.sha3_256(mp);
-        clearCharArray(mp);
+        Utils.clearArray(mp);
         return hashedPW;
     }
 

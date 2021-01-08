@@ -12,7 +12,6 @@ import org.eclipse.jgit.lib.*;
 import org.eclipse.jgit.revwalk.RevCommit;
 import org.eclipse.jgit.revwalk.RevWalk;
 import org.eclipse.jgit.storage.file.FileRepositoryBuilder;
-import org.eclipse.jgit.transport.CredentialsProvider;
 import org.eclipse.jgit.transport.URIish;
 import org.eclipse.jgit.transport.UsernamePasswordCredentialsProvider;
 import org.eclipse.jgit.treewalk.CanonicalTreeParser;
@@ -43,14 +42,12 @@ public class GitManager {
 
     private final HashMap<String, Git> repoCache;
     private final FileManager fileManager;
-    private final SecureStorage secureStorage;
     private final ThreadPoolExecutor executor;
     private PullListener pullListener;
 
     private GitManager() {
         this.repoCache = new HashMap<>();
         this.fileManager = FileManager.getInstance();
-        this.secureStorage = SecureStorage.getImplementation();
         this.executor = (ThreadPoolExecutor) Executors.newFixedThreadPool(10, r -> {
             Thread t = Executors.defaultThreadFactory().newThread(r);
             t.setDaemon(true);
@@ -122,6 +119,8 @@ public class GitManager {
                 cb.finished(true, 1, 0, null);
             } catch (Exception e) {
                 cb.finished(false, 0, 1, e);
+            } finally {
+                authInfo.destroy();
             }
         });
     }

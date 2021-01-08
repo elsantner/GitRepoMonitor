@@ -73,9 +73,9 @@ public class SecureKeyringStorage extends SecureStorage {
     public void setMasterPassword(char[] masterPW) throws IOException {
         try {
             char[] hashedMP = Utils.sha3_256(masterPW);
-            clearCharArray(masterPW);
+            Utils.clearArray(masterPW);
             keyring.setPassword(getServiceName(), MP_SET, encrypt(new String(hashedMP), hashedMP));
-            clearCharArray(hashedMP);
+            Utils.clearArray(hashedMP);
         } catch (PasswordAccessException e) {
             throw new IOException(e);
         }
@@ -130,8 +130,8 @@ public class SecureKeyringStorage extends SecureStorage {
             } catch (PasswordAccessException e) {
                 throw new IOException("could not store credentials");
             } finally {
-                clearCharArray(masterPW);
-                clearCharArray(httpsPassword);
+                Utils.clearArray(masterPW);
+                Utils.clearArray(httpsPassword);
             }
         }
     }
@@ -157,7 +157,7 @@ public class SecureKeyringStorage extends SecureStorage {
             } catch (PasswordAccessException ex) {
                 throw new IOException(ex);
             } finally {
-                clearCharArray(masterPW);
+                Utils.clearArray(masterPW);
             }
         }
     }
@@ -253,7 +253,8 @@ public class SecureKeyringStorage extends SecureStorage {
             } catch (PasswordAccessException | JsonProcessingException e) {
                 throw new IOException("could not store credentials");
             } finally {
-                clearCharArray(masterPW);
+                Utils.clearArray(masterPW);
+                Utils.clearArray(sslPassphrase);
             }
         }
     }
@@ -274,7 +275,7 @@ public class SecureKeyringStorage extends SecureStorage {
             } catch (PasswordAccessException ex) {
                 throw new IOException(ex);
             } finally {
-                clearCharArray(masterPW);
+                Utils.clearArray(masterPW);
             }
         }
     }
@@ -418,7 +419,7 @@ public class SecureKeyringStorage extends SecureStorage {
         } else {
             if (masterPW != null && !isHashed) {
                 char[] hashedPW = Utils.sha3_256(masterPW);
-                clearCharArray(masterPW);
+                Utils.clearArray(masterPW);
                 masterPW = hashedPW;
             }
             throwIfMasterPasswordIncorrect(masterPW);

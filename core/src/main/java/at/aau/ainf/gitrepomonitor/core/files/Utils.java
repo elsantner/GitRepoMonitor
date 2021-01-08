@@ -17,6 +17,18 @@ public abstract class Utils {
         }
     }
 
+    public static void clearArray(char[] a) {
+        if (a != null) {
+            Arrays.fill(a, (char) 0);
+        }
+    }
+
+    public static void clearArray(byte[] a) {
+        if (a != null) {
+            Arrays.fill(a, (byte) 0);
+        }
+    }
+
     public static String getProgramHomeDir() {
         return System.getenv("APPDATA") + "/GitRepoMonitor/";
     }

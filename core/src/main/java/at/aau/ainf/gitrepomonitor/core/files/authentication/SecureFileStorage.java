@@ -6,28 +6,15 @@ import at.aau.ainf.gitrepomonitor.core.files.Utils;
 import at.aau.ainf.gitrepomonitor.core.git.SSLTransportConfigCallback;
 import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.dataformat.xml.XmlMapper;
-import org.eclipse.jgit.transport.CredentialsProvider;
 import org.eclipse.jgit.transport.UsernamePasswordCredentialsProvider;
 
 import javax.crypto.BadPaddingException;
-import javax.crypto.Cipher;
 import javax.crypto.IllegalBlockSizeException;
-import javax.crypto.SecretKeyFactory;
-import javax.crypto.spec.IvParameterSpec;
-import javax.crypto.spec.PBEKeySpec;
-import javax.crypto.spec.SecretKeySpec;
 import javax.naming.AuthenticationException;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.nio.ByteBuffer;
-import java.nio.CharBuffer;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.security.MessageDigest;
-import java.security.spec.KeySpec;
 import java.util.*;
 
 
@@ -81,8 +68,8 @@ public class SecureFileStorage extends SecureStorage {
         }
         char[] hashedPW = Utils.sha3_256(masterPW);
         writeCredentials(new CredentialWrapper(), hashedPW);
-        clearCharArray(masterPW);
-        clearCharArray(hashedPW);
+        Utils.clearArray(masterPW);
+        Utils.clearArray(hashedPW);
     }
 
     @Override
@@ -94,9 +81,9 @@ public class SecureFileStorage extends SecureStorage {
         char[] hashedNewPW = Utils.sha3_256(newMasterPW);
         CredentialWrapper wrapper = readCredentials(hashedCurrentPW);
         writeCredentials(wrapper, hashedNewPW);
-        clearCharArray(currentMasterPW);
-        clearCharArray(newMasterPW);
-        clearCharArray(hashedCurrentPW);
+        Utils.clearArray(currentMasterPW);
+        Utils.clearArray(newMasterPW);
+        Utils.clearArray(hashedCurrentPW);
         cacheMasterPasswordIfEnabled(hashedNewPW);
         // reset mp clear mechanisms
         resetMPUseCount();
@@ -114,8 +101,8 @@ public class SecureFileStorage extends SecureStorage {
             writeCredentials(allCredentials, masterPW);
 
             cacheMasterPasswordIfEnabled(masterPW);
-            clearCharArray(masterPW);
-            clearCharArray(httpsPassword);
+            Utils.clearArray(masterPW);
+            Utils.clearArray(httpsPassword);
             clearMasterPasswordIfRequired();
         }
     }
@@ -133,7 +120,7 @@ public class SecureFileStorage extends SecureStorage {
             writeCredentials(allCredentials, masterPW);
 
             cacheMasterPasswordIfEnabled(masterPW);
-            clearCharArray(masterPW);
+            Utils.clearArray(masterPW);
             clearMasterPasswordIfRequired();
         }
     }
@@ -156,7 +143,7 @@ public class SecureFileStorage extends SecureStorage {
         CredentialWrapper allCredentials = readCredentials(masterPWHash);
         HttpsCredentials credentials = allCredentials.getCredentials(repoID);
         cacheMasterPasswordIfEnabled(masterPWHash);
-        clearCharArray(masterPWHash);
+        Utils.clearArray(masterPWHash);
         return credentials;
     }
 
@@ -164,7 +151,7 @@ public class SecureFileStorage extends SecureStorage {
         CredentialWrapper allCredentials = readCredentials(masterPWHash);
         SSLInformation sslInformation = allCredentials.getSslInformation(repoID);
         cacheMasterPasswordIfEnabled(masterPWHash);
-        clearCharArray(masterPWHash);
+        Utils.clearArray(masterPWHash);
         return sslInformation;
     }
 
@@ -180,7 +167,7 @@ public class SecureFileStorage extends SecureStorage {
             HttpsCredentials credentials = getHttpsCredentialsHashed(masterPW, repoID);
             UsernamePasswordCredentialsProvider cp = new UsernamePasswordCredentialsProvider(credentials.getUsername(), credentials.getPassword());
             cacheMasterPasswordIfEnabled(masterPwCopy);
-            clearCharArray(masterPwCopy);
+            Utils.clearArray(masterPwCopy);
             clearMasterPasswordIfRequired();
             return cp;
         }
@@ -206,7 +193,7 @@ public class SecureFileStorage extends SecureStorage {
                 }
             }
             cacheMasterPasswordIfEnabled(masterPW);
-            clearCharArray(masterPW);
+            Utils.clearArray(masterPW);
             clearMasterPasswordIfRequired();
             return map;
         }
@@ -227,7 +214,8 @@ public class SecureFileStorage extends SecureStorage {
             writeCredentials(allCredentials, masterPW);
 
             cacheMasterPasswordIfEnabled(masterPW);
-            clearCharArray(masterPW);
+            Utils.clearArray(masterPW);
+            Utils.clearArray(sslPassphrase);
             clearMasterPasswordIfRequired();
         }
     }
@@ -247,7 +235,7 @@ public class SecureFileStorage extends SecureStorage {
             writeCredentials(allCredentials, masterPW);
 
             cacheMasterPasswordIfEnabled(masterPW);
-            clearCharArray(masterPW);
+            Utils.clearArray(masterPW);
             clearMasterPasswordIfRequired();
         }
     }
@@ -296,7 +284,7 @@ public class SecureFileStorage extends SecureStorage {
             }
 
             cacheMasterPasswordIfEnabled(masterPW);
-            clearCharArray(masterPW);
+            Utils.clearArray(masterPW);
             clearMasterPasswordIfRequired();
             return map;
         }
