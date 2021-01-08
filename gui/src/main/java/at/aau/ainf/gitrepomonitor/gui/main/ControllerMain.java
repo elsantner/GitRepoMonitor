@@ -4,6 +4,7 @@ import at.aau.ainf.gitrepomonitor.core.files.FileManager;
 import at.aau.ainf.gitrepomonitor.core.files.RepositoryInformation;
 import at.aau.ainf.gitrepomonitor.core.files.Utils;
 import at.aau.ainf.gitrepomonitor.core.files.authentication.SecureStorage;
+import at.aau.ainf.gitrepomonitor.core.git.Branch;
 import at.aau.ainf.gitrepomonitor.core.git.GitManager;
 import at.aau.ainf.gitrepomonitor.core.git.PullListener;
 import at.aau.ainf.gitrepomonitor.gui.*;
@@ -19,10 +20,11 @@ import javafx.fxml.Initializable;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
-import javafx.scene.layout.HBox;
+import javafx.scene.image.ImageView;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
 import javafx.stage.StageStyle;
+import javafx.util.Callback;
 import org.eclipse.jgit.api.MergeResult;
 
 import java.beans.PropertyChangeEvent;
@@ -39,7 +41,7 @@ public class ControllerMain extends StatusBarController implements Initializable
     @FXML
     public Button btnPullAll;
     @FXML
-    public ComboBox<String> cbBoxBranch;
+    public ComboBox<Branch> cbBoxBranch;
     @FXML
     private ProgressIndicator indicatorScanRunning;
     @FXML
@@ -101,14 +103,22 @@ public class ControllerMain extends StatusBarController implements Initializable
         cbBoxBranch.getSelectionModel().selectedItemProperty().addListener((observable, oldValue, newValue) -> {
             try {
                 RepositoryInformation repo = watchlist.getSelectionModel().getSelectedItem();
-                if (repo != null && newValue != null) {
-                    gitManager.checkout(repo.getPath(), newValue);
+                if (oldValue != null && repo != null && newValue != null) {
+                    // if remote branch was selected, create it locally before checkout
+                    if (newValue.isRemoteOnly()) {
+                        gitManager.createBranch(repo.getPath(), newValue.getShortName());
+                        gitManager.checkout(repo.getPath(), newValue.getShortName());
+                        updateBranches(repo);
+                    } else {
+                        gitManager.checkout(repo.getPath(), newValue.getShortName());
+                    }
                     updateCommitLog(repo);
                 }
             } catch (Exception e) {
                 e.printStackTrace();
             }
         });
+        cbBoxBranch.setCellFactory(param -> new BranchListCell());
     }
 
     private void setupCommitLogDisplay() {
@@ -128,14 +138,16 @@ public class ControllerMain extends StatusBarController implements Initializable
      */
     private void updateBranches(RepositoryInformation repo) {
         try {
-            List<String> branchNames;
+            Collection<Branch> branchNames;
             try {
                 branchNames = gitManager.getBranchNames(repo.getPath());
             } catch (Exception e) {
                 branchNames = new ArrayList<>();
             }
             if (!branchNames.isEmpty()) {
-                cbBoxBranch.setItems(new ImmutableObservableList<>(branchNames.toArray(new String[0])));
+                Branch[] branches = branchNames.toArray(new Branch[0]);
+                Arrays.sort(branches);
+                cbBoxBranch.setItems(new ImmutableObservableList<>(branches));
                 cbBoxBranch.getSelectionModel().select(gitManager.getSelectedBranch(repo.getPath()));
                 cbBoxBranch.setDisable(false);
             } else {
@@ -233,16 +245,16 @@ public class ControllerMain extends StatusBarController implements Initializable
             masterPW = showMasterPasswordInputDialog(false);
         }
         btnPullAll.setDisable(true);
-        gitManager.pullWatchlistAsync(Utils.toCharOrNull(masterPW), (results, pullsFailed, wrongMasterPW) -> {
+        gitManager.pullWatchlistAsync(Utils.toCharOrNull(masterPW), (results, pullsSuccess, pullsFailed, wrongMasterPW) -> {
             if (results.isEmpty()) {
                 displayStatus("No changes to pull");
             } else {
                 if (wrongMasterPW) {
                     displayStatus(ResourceStore.getString("status.pulled_n_of_m_repo_status_wrong_mp",
-                            results.size(), (results.size() + pullsFailed)));
+                            pullsSuccess, (pullsSuccess + pullsFailed)));
                 } else {
                     displayStatus(ResourceStore.getString("status.pulled_n_of_m_repo_status",
-                            results.size(), (results.size() + pullsFailed)));
+                            pullsSuccess, (pullsSuccess + pullsFailed)));
                 }
             }
             btnPullAll.setDisable(false);

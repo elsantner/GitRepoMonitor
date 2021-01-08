@@ -3,7 +3,6 @@ package at.aau.ainf.gitrepomonitor.gui.repolist;
 import at.aau.ainf.gitrepomonitor.core.files.FileManager;
 import at.aau.ainf.gitrepomonitor.core.files.RepositoryInformation;
 import at.aau.ainf.gitrepomonitor.core.files.Utils;
-import at.aau.ainf.gitrepomonitor.core.files.authentication.SecureFileStorage;
 import at.aau.ainf.gitrepomonitor.core.files.authentication.SecureStorage;
 import at.aau.ainf.gitrepomonitor.core.git.GitManager;
 import at.aau.ainf.gitrepomonitor.core.git.PullCallback;
@@ -22,7 +21,6 @@ import javafx.stage.Modality;
 import javafx.stage.Stage;
 import javafx.stage.StageStyle;
 import org.eclipse.jgit.api.MergeResult;
-import org.eclipse.jgit.api.errors.GitAPIException;
 import org.eclipse.jgit.api.errors.InvalidConfigurationException;
 import org.eclipse.jgit.lib.ProgressMonitor;
 
@@ -74,14 +72,13 @@ public class RepositoryInformationContextMenu extends ContextMenu implements Err
             if (item.isAuthenticated() && !secureStorage.isMasterPasswordCached()) {
                 masterPW = showMasterPasswordInputDialog(false);
             }
-            gitManager.pullRepoAsync(item.getPath(), Utils.toCharOrNull(masterPW), (results, pullsFailed, wrongMP) -> {
-                if (pullsFailed == 1) {
-                    if (!wrongMP) {
-                        setStatus("Repository not accessible (wrong credentials?)");
-                    } else {
-                        setStatus(ResourceStore.getString("status.wrong_master_password"));
-                        showError(ResourceStore.getString("status.wrong_master_password"));
-                    }
+            gitManager.pullRepoAsync(item.getPath(), Utils.toCharOrNull(masterPW), (results, pullsSuccess,
+                                                                                    pullsFailed, wrongMP) -> {
+                if (wrongMP) {
+                    setStatus(ResourceStore.getString("status.wrong_master_password"));
+                    showError(ResourceStore.getString("status.wrong_master_password"));
+                } else if (pullsFailed == 1 && results.get(0) == null) {
+                    setStatus("Repository not accessible (wrong credentials?)");
                 } else {
                     PullCallback.PullResult result = results.get(0);
                     String statusMsg = getStatusMessage(result.getStatus());
@@ -150,6 +147,8 @@ public class RepositoryInformationContextMenu extends ContextMenu implements Err
             statusMsg = ResourceStore.getString("status.pull_no_changes");
         } else if(status == MergeResult.MergeStatus.CONFLICTING) {
             statusMsg = ResourceStore.getString("status.pull_conflict");
+        } else if(status == MergeResult.MergeStatus.CHECKOUT_CONFLICT) {
+            statusMsg = ResourceStore.getString("status.pull_checkout_conflict");
         } else if(status == MergeResult.MergeStatus.FAILED) {
             statusMsg = ResourceStore.getString("status.pull_failed");
         }

@@ -3,16 +3,19 @@ package at.aau.ainf.gitrepomonitor.core.git;
 import at.aau.ainf.gitrepomonitor.core.files.FileManager;
 import at.aau.ainf.gitrepomonitor.core.files.RepositoryInformation;
 import at.aau.ainf.gitrepomonitor.core.files.authentication.SecureStorage;
-import org.eclipse.jgit.api.*;
+import org.eclipse.jgit.api.Git;
+import org.eclipse.jgit.api.ListBranchCommand;
+import org.eclipse.jgit.api.MergeResult;
+import org.eclipse.jgit.api.PullResult;
 import org.eclipse.jgit.api.errors.*;
 import org.eclipse.jgit.diff.DiffEntry;
 import org.eclipse.jgit.errors.NoRemoteRepositoryException;
 import org.eclipse.jgit.lib.*;
-import org.eclipse.jgit.merge.MergeStrategy;
 import org.eclipse.jgit.revwalk.RevCommit;
 import org.eclipse.jgit.revwalk.RevWalk;
 import org.eclipse.jgit.storage.file.FileRepositoryBuilder;
 import org.eclipse.jgit.transport.CredentialsProvider;
+import org.eclipse.jgit.transport.TrackingRefUpdate;
 import org.eclipse.jgit.transport.URIish;
 import org.eclipse.jgit.transport.UsernamePasswordCredentialsProvider;
 import org.eclipse.jgit.treewalk.CanonicalTreeParser;
@@ -26,11 +29,13 @@ import java.util.*;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.regex.Pattern;
 
 import static at.aau.ainf.gitrepomonitor.core.files.RepositoryInformation.RepoStatus.*;
 
 public class GitManager {
     private static GitManager instance;
+    private static final String PATTERN_HEAD_COMMIT = ".*HEAD$";
 
     public static synchronized GitManager getInstance() {
         if (instance == null) {
@@ -84,19 +89,31 @@ public class GitManager {
         return repoGit;
     }
 
+    private List<RevCommit> getCommitsInRange(Git git, ObjectId from, ObjectId to) {
+        List<RevCommit> commits = new ArrayList<>();
+        try {
+            git.log().addRange(from, to).call().forEach(commits::add);
+        } catch(Exception ex) {
+            return new ArrayList<>();
+        }
+        return commits;
+    }
+
     private MergeResult.MergeStatus pullRepo(String path, CredentialsProvider cp, ProgressMonitor progressMonitor) throws IOException, CredentialException, CheckoutConflictException {
         Git git = getRepoGit(path);
         RepositoryInformation repoInfo = fileManager.getRepo(path);
 
         try {
+            ObjectId oldHead = git.getRepository().resolve("HEAD");
             PullResult pullResult = git.pull()
                     .setCredentialsProvider(cp)
                     .setStrategy(repoInfo.getMergeStrategy().getJgitStrat())
                     .setProgressMonitor(progressMonitor)
                     .call();
+            ObjectId head = git.getRepository().resolve("HEAD");
 
             // set new update count
-            fileManager.setNewChanges(path, pullResult.getFetchResult().getTrackingRefUpdates().size());
+            fileManager.setNewChanges(path, getCommitsInRange(git, oldHead, head).size());
 
             notifyPullListener(path, pullResult.getMergeResult().getMergeStatus());
             return pullResult.getMergeResult().getMergeStatus();
@@ -157,11 +174,11 @@ public class GitManager {
 
     private void handlePullException(Exception ex, PullCallback cb, String path) {
         if (ex instanceof SecurityException) {
-            cb.failed(true);
+            cb.failed(path, true);
         } else if (ex instanceof CredentialException || ex instanceof  NoRemoteRepositoryException) {
-            cb.failed(false);
+            cb.failed(path, false);
         } else if (ex instanceof CheckoutConflictException) {
-            cb.finished(path, MergeResult.MergeStatus.CONFLICTING, ex);
+            cb.failed(path, MergeResult.MergeStatus.CHECKOUT_CONFLICT, ex, false);
         } else {
             cb.finished(path, MergeResult.MergeStatus.FAILED, ex);
         }
@@ -250,6 +267,8 @@ public class GitManager {
         List<RepositoryInformation> watchlist = fileManager.getWatchlist();
         MutableInteger pullsFinished = new MutableInteger();
         pullsFinished.value = 0;
+        MutableInteger pullsSuccess = new MutableInteger();
+        pullsSuccess.value = 0;
         MutableInteger pullsFailed = new MutableInteger();
         pullsFailed.value = 0;
         AtomicBoolean wrongMasterPW = new AtomicBoolean(false);
@@ -259,20 +278,21 @@ public class GitManager {
 
         List<PullCallback.PullResult> pullResults = new ArrayList<>();
         for (RepositoryInformation repo : watchlist) {
-
-            pullRepoAsync(repo.getPath(), credentials.get(repo.getID()), (results, pullsFailedCount, wrongMP) -> {
+            pullRepoAsync(repo.getPath(), credentials.get(repo.getID()), (results, pullsSuccessCount,
+                                                                          pullsFailedCount, wrongMP) -> {
                 pullsFinished.value++;
                 pullResults.addAll(results);
+                pullsSuccess.value += pullsSuccessCount;
                 pullsFailed.value += pullsFailedCount;
                 wrongMasterPW.set(wrongMasterPW.get() || wrongMP);
                 // once all pulls have finished, call callback
                 if (pullsFinished.value == watchlist.size()) {
-                    cb.finished(pullResults, pullsFailed.value, wrongMasterPW.get());
+                    cb.finished(pullResults, pullsSuccess.value, pullsFailed.value, wrongMasterPW.get());
                 }
             }, progressMonitor);
         }
         if (watchlist.isEmpty()) {
-            cb.finished(new ArrayList<>(), 0, false);
+            cb.finished(new ArrayList<>(), 0,0, false);
         }
     }
 
@@ -484,26 +504,52 @@ public class GitManager {
         return status;
     }
 
-    public List<String> getBranchNames(String path) throws IOException, GitAPIException {
-        List<String> branchNames = new ArrayList<>();
+    public Collection<Branch> getBranchNames(String path) throws IOException, GitAPIException {
+        Map<String, Branch> branches = new HashMap<>();
         Git repoGit = getRepoGit(path);
-        List<Ref> branches = repoGit
+        // add all local branches to list
+        List<Ref> localBranches = repoGit
                 .branchList()
                 .call();
-
-        for (Ref b : branches) {
-            branchNames.add(b.getName().replace("refs/heads/", ""));
+        for (Ref b : localBranches) {
+            Branch branch = new Branch(b.getName(), false);
+            branches.put(branch.getShortName(), branch);
         }
-        return branchNames;
+
+        // add all remote branches which are not also local
+        List<Ref> remoteBranches = repoGit
+                .branchList()
+                .setListMode(ListBranchCommand.ListMode.REMOTE)
+                .call();
+        for (Ref b : remoteBranches) {
+            if (!Pattern.matches(PATTERN_HEAD_COMMIT, b.getName())) {
+                Branch branch = new Branch(b.getName(), true);
+                if (!branches.containsKey(branch.getShortName())) {
+                    branches.put(branch.getShortName(), branch);
+                }
+            }
+        }
+
+        return branches.values();
     }
 
-    public String getSelectedBranch(String path) throws IOException {
+    public Branch getSelectedBranch(String path) throws IOException {
         Git repoGit = getRepoGit(path);
-        return repoGit.getRepository().getBranch();
+        // selected branch is always local
+        return new Branch("refs/heads/" + repoGit.getRepository().getBranch(), false);
     }
 
     public void checkout(String path, String branchName) throws IOException, GitAPIException {
         Git repoGit = getRepoGit(path);
-        repoGit.checkout().setName(branchName).call();
+        repoGit.checkout()
+                .setName(branchName)
+                .call();
+    }
+
+    public void createBranch(String path, String branchName) throws IOException, GitAPIException {
+        Git repoGit = getRepoGit(path);
+        repoGit.branchCreate()
+                .setName(branchName)
+                .call();
     }
 }
