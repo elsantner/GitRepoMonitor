@@ -345,7 +345,7 @@ public class ControllerEditRepo implements Initializable, ErrorDisplay, MasterPa
         }
 
         if (authContainerHTTPS.isVisible()) {
-            if (txtHttpsUsername.getText().isBlank() && txtHttpsPasswordHidden.getText().isBlank()) {
+            if (defaultAuthValuesSet()) {
                 secureStorage.deleteHttpsCredentials(Utils.toCharOrNull(masterPW), repo.getID());
             } else {
                 secureStorage.storeHttpsCredentials(Utils.toCharOrNull(masterPW), repo.getID(),
@@ -353,7 +353,7 @@ public class ControllerEditRepo implements Initializable, ErrorDisplay, MasterPa
             }
         } else if (authContainerSSL.isVisible()) {
             validateSslInformation();
-            if (txtSslPassphraseHidden.getText().isBlank()) {
+            if (defaultAuthValuesSet()) {
                 secureStorage.deleteSslInformation(Utils.toCharOrNull(masterPW), repo.getID());
             } else {
                 secureStorage.storeSslInformation(Utils.toCharOrNull(masterPW), repo.getID(),
@@ -393,8 +393,11 @@ public class ControllerEditRepo implements Initializable, ErrorDisplay, MasterPa
         RepositoryInformation editedRepo = (RepositoryInformation) repo.clone();
         editedRepo.setPath(txtPath.getText());
         editedRepo.setName(txtName.getText());
+        // only set authentication if auth was changed
+        if (wasAuthChanged()) {
+            editedRepo.setAuthenticated(!defaultAuthValuesSet());
+        }
         editedRepo.setMergeStrategy(cbBoxMergeStrat.getValue());
-        editedRepo.setAuthenticated(!defaultAuthValuesSet());
         if (authContainerSSL.isVisible()) {
             editedRepo.setSslKeyPath(txtSslKeyPath.getText());
         }
