@@ -15,7 +15,7 @@
 <?import javafx.scene.layout.VBox?>
 
 <?import at.aau.ainf.gitrepomonitor.gui.main.CommitLogView?>
-<AnchorPane maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="379.0" prefWidth="672.0" xmlns="http://javafx.com/javafx/8.0.171" xmlns:fx="http://javafx.com/fxml/1" fx:controller="at.aau.ainf.gitrepomonitor.gui.main.ControllerMain">
+<AnchorPane stylesheets="@main.css" maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="379.0" prefWidth="672.0" xmlns="http://javafx.com/javafx/8.0.171" xmlns:fx="http://javafx.com/fxml/1" fx:controller="at.aau.ainf.gitrepomonitor.gui.main.ControllerMain">
     <HBox AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="0.0">
         <padding>
             <Insets left="10.0" right="10.0" />

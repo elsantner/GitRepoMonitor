@@ -332,6 +332,7 @@ public class ControllerMain extends StatusBarController implements Initializable
                 stage.setScene(new Scene(root));
                 stage.sizeToScene();
                 stage.show();
+                stage.setWidth(lblStatus.getWidth());
                 stage.setMinWidth(stage.getWidth());
                 stage.setMinHeight(stage.getHeight());
                 // display on top of label
