@@ -211,6 +211,7 @@ public class ControllerMain extends StatusBarController implements Initializable
         stage.initModality(Modality.APPLICATION_MODAL);
         stage.initStyle(StageStyle.DECORATED);
         stage.setTitle(ResourceStore.getString("scanpc"));
+        stage.getIcons().add(ResourceStore.getImage("icon_app.png"));
         stage.setScene(new Scene(root));
         stage.setOnHidden(event -> controller.cleanup());
         stage.show();
@@ -296,6 +297,7 @@ public class ControllerMain extends StatusBarController implements Initializable
         stage.initModality(Modality.APPLICATION_MODAL);
         stage.initStyle(StageStyle.DECORATED);
         stage.setTitle(ResourceStore.getString("settings"));
+        stage.getIcons().add(ResourceStore.getImage("icon_app.png"));
         stage.setScene(new Scene(root));
         stage.sizeToScene();
         stage.show();

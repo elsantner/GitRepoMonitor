@@ -37,6 +37,7 @@ public class GUIStarter extends Application {
         ((ControllerMain)loader.getController()).setStage(primaryStage);
 
         primaryStage.setTitle(ResourceStore.getString("app_title"));
+        primaryStage.getIcons().add(ResourceStore.getImage("icon_app.png"));
         primaryStage.setScene(new Scene(root, 800, 500));
         primaryStage.setOnCloseRequest(confirmCloseEventHandler);
         primaryStage.show();

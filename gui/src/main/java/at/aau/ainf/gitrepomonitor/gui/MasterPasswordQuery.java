@@ -10,6 +10,7 @@ import javafx.scene.image.ImageView;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.VBox;
+import javafx.stage.Stage;
 import javafx.util.Pair;
 
 import java.util.Optional;
@@ -55,6 +56,7 @@ public interface MasterPasswordQuery {
 
     private static  void setupChangeDialog(Dialog<Pair<String, String>> dialog) {
         dialog.setHeaderText(ResourceStore.getString("dialog.change_mp.header"));
+        ((Stage) dialog.getDialogPane().getScene().getWindow()).getIcons().add(ResourceStore.getImage("icon_app.png"));
 
         VBox container = new VBox();
         container.setPadding(new Insets(5));
@@ -90,6 +92,7 @@ public interface MasterPasswordQuery {
 
     private static void setupDialogSingleInput(Dialog<String> dialog) {
         dialog.setHeaderText(ResourceStore.getString("dialog.enter_mp.header"));
+        ((Stage) dialog.getDialogPane().getScene().getWindow()).getIcons().add(ResourceStore.getImage("icon_app.png"));
 
         VBox container = new VBox();
         container.setPadding(new Insets(5));
@@ -116,6 +119,7 @@ public interface MasterPasswordQuery {
 
     private static void setupDialogConfirmInput(Dialog<String> dialog) {
         dialog.setHeaderText(ResourceStore.getString("dialog.set_mp.header"));
+        ((Stage) dialog.getDialogPane().getScene().getWindow()).getIcons().add(ResourceStore.getImage("icon_app.png"));
 
         VBox container = new VBox();
         container.setPadding(new Insets(5));

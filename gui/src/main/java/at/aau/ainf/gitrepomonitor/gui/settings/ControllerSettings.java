@@ -209,10 +209,10 @@ public class ControllerSettings implements Initializable, ErrorDisplay, MasterPa
             if (secStorage.isMasterPasswordSet()) {
                 if (showConfirmResetMPDialog()) {
                     secStorage.resetMasterPassword();
+                    showInfoDialog(ResourceStore.getString("settings.mp_reset"),
+                            ResourceStore.getString("settings.mp_reset.content"));
                 }
                 setMPButtonDisplay();
-                showInfoDialog(ResourceStore.getString("settings.mp_reset"),
-                        ResourceStore.getString("settings.mp_reset.content"));
             }
         } catch (Exception ex) {
             showError(ex.getMessage());
@@ -221,6 +221,7 @@ public class ControllerSettings implements Initializable, ErrorDisplay, MasterPa
 
     private void showInfoDialog(String title, String text) {
         Alert alert = new Alert(Alert.AlertType.INFORMATION);
+        ((Stage) alert.getDialogPane().getScene().getWindow()).getIcons().add(ResourceStore.getImage("icon_app.png"));
         alert.setTitle(title);
         alert.setHeaderText(text);
         alert.showAndWait();
@@ -228,6 +229,7 @@ public class ControllerSettings implements Initializable, ErrorDisplay, MasterPa
 
     private boolean showConfirmResetMPDialog() {
         Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
+        ((Stage) alert.getDialogPane().getScene().getWindow()).getIcons().add(ResourceStore.getImage("icon_app.png"));
         alert.setTitle(ResourceStore.getString("settings.confirm_reset_mp.title"));
         alert.setHeaderText(ResourceStore.getString("settings.confirm_reset_mp.header"));
         alert.setContentText(ResourceStore.getString("settings.confirm_reset_mp.content"));

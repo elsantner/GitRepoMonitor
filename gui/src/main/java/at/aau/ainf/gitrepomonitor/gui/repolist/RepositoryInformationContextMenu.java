@@ -17,6 +17,8 @@ import javafx.scene.Scene;
 import javafx.scene.control.ContextMenu;
 import javafx.scene.control.ListCell;
 import javafx.scene.control.MenuItem;
+import javafx.scene.effect.ColorAdjust;
+import javafx.scene.image.ImageView;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
 import javafx.stage.StageStyle;
@@ -48,6 +50,7 @@ public class RepositoryInformationContextMenu extends ContextMenu implements Err
     private void setupMenuItems() {
         MenuItem checkStatusItem = new MenuItem();
         checkStatusItem.setText(ResourceStore.getString("ctxmenu.check_status"));
+        checkStatusItem.setGraphic(getCtxMenuIcon("icon_update_status.png"));
         checkStatusItem.setOnAction(event -> {
             String masterPW = null;
             if (item.isAuthenticated() && !secureStorage.isMasterPasswordCached()) {
@@ -71,6 +74,7 @@ public class RepositoryInformationContextMenu extends ContextMenu implements Err
 
         MenuItem pullItem = new MenuItem();
         pullItem.setText(ResourceStore.getString("ctxmenu.pull"));
+        pullItem.setGraphic(getCtxMenuIcon("icon_pull.png"));
         pullItem.setOnAction(event -> {
             String masterPW = null;
             if (item.isAuthenticated() && !secureStorage.isMasterPasswordCached()) {
@@ -101,6 +105,7 @@ public class RepositoryInformationContextMenu extends ContextMenu implements Err
 
         MenuItem editItem = new MenuItem();
         editItem.setText(ResourceStore.getString("ctxmenu.edit"));
+        editItem.setGraphic(getCtxMenuIcon("icon_edit.png"));
         editItem.setOnAction(event -> {
             try {
                 openEditWindow(item);
@@ -111,6 +116,7 @@ public class RepositoryInformationContextMenu extends ContextMenu implements Err
 
         MenuItem deleteItem = new MenuItem();
         deleteItem.setText(ResourceStore.getString("ctxmenu.remove"));
+        deleteItem.setGraphic(getCtxMenuIcon("icon_delete.png"));
         deleteItem.setOnAction(event -> {
             try {
                 if (item.isAuthenticated()) {
@@ -132,6 +138,7 @@ public class RepositoryInformationContextMenu extends ContextMenu implements Err
 
         MenuItem showInExplorerItem = new MenuItem();
         showInExplorerItem.setText(ResourceStore.getString("ctxmenu.show_in_explorer"));
+        showInExplorerItem.setGraphic(getCtxMenuIcon("icon_explorer.png"));
         showInExplorerItem.setOnAction(event -> {
             try {
                 Desktop.getDesktop().open(new File(item.getPath()));
@@ -178,10 +185,22 @@ public class RepositoryInformationContextMenu extends ContextMenu implements Err
         stage.initModality(Modality.APPLICATION_MODAL);
         stage.initStyle(StageStyle.DECORATED);
         stage.setTitle(ResourceStore.getString("edit_repo"));
+        stage.getIcons().add(ResourceStore.getImage("icon_app.png"));
         stage.setScene(new Scene(root));
         stage.sizeToScene();
         stage.show();
         stage.setMinWidth(stage.getWidth());
         stage.setMinHeight(stage.getHeight());
+    }
+
+    private ImageView getCtxMenuIcon(String iconName) {
+        ImageView icon = new ImageView(ResourceStore.getImage(iconName));
+        icon.setFitWidth(18);
+        icon.setFitHeight(18);
+        // make icons black
+        ColorAdjust colorAdjust = new ColorAdjust();
+        colorAdjust.setBrightness(-1);
+        icon.setEffect(colorAdjust);
+        return icon;
     }
 }
