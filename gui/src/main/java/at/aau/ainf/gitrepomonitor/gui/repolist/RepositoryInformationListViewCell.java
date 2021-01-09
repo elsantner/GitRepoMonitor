@@ -71,6 +71,10 @@ public class RepositoryInformationListViewCell extends ListCell<RepositoryInform
                 imgPath = "icon_missing_folder.png";
                 tooltipKey = "status.repo.invalid_path";
                 break;
+            case PULL_PUSH_AVAILABLE:
+                imgPath = "icon_pull_push.png";
+                tooltipKey = "status.repo.pull_push_available";
+                break;
             case PULL_AVAILABLE:
                 imgPath = "icon_pull.png";
                 tooltipKey = "status.repo.pull_available";

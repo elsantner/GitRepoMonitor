@@ -62,6 +62,7 @@ public class RepositoryInformation implements Comparable<RepositoryInformation>,
         WRONG_MASTER_PW,
         PULL_AVAILABLE,
         PUSH_AVAILABLE,
+        PULL_PUSH_AVAILABLE,
         MERGE_NEEDED,
         UNKNOWN_ERROR,
     }

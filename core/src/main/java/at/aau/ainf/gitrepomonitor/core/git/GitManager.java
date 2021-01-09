@@ -455,20 +455,16 @@ public class GitManager {
             // query remote heads
             LsRemoteCommand cmd = repoGit.lsRemote().setHeads(true);
             authInfo.configure(cmd);
-            Map<String, Ref> refs = cmd.callAsMap();
-
-            Ref remoteHead = refs.get(repoGit.getRepository().getFullBranch());
-            Ref localHead = repoGit.getRepository().findRef("HEAD");
-
-            int commitTimeRemote = getCommit(repoGit.getRepository(), remoteHead.getObjectId()).getCommitTime();
-            int commitTimeLocal = getCommit(repoGit.getRepository(), localHead.getObjectId()).getCommitTime();
-            boolean equalHeads = remoteHead.getObjectId().equals(localHead.getObjectId());
+            boolean pullAvailable = remoteChangesAvailable(repoGit);
+            boolean pushAvailable = localChangesAvailable(repoGit);
 
             if (repoGit.getRepository().readMergeHeads() != null) {
                 status = MERGE_NEEDED;
-            } else if (!equalHeads && commitTimeRemote >= commitTimeLocal) {
+            } else if (pullAvailable && pushAvailable) {
+                status = PULL_PUSH_AVAILABLE;
+            } else if (pullAvailable) {
                 status = PULL_AVAILABLE;
-            } else if (!equalHeads) {
+            } else if (pushAvailable) {
                 status = PUSH_AVAILABLE;
             } else {
                 status = UP_TO_DATE;
@@ -489,6 +485,59 @@ public class GitManager {
         }
 
         return status;
+    }
+
+    /**
+     * Check if local changes are available to pull.
+     * @param git Git of repository
+     * @return True, if local changes are available.
+     * @throws IOException
+     * @throws GitAPIException
+     */
+    private boolean localChangesAvailable(Git git) throws IOException, GitAPIException {
+        Repository repository = git.getRepository();
+        String branch = repository.getBranch();
+        ObjectId fetchHead = repository.resolve("refs/remotes/origin/"+branch);
+        ObjectId head = repository.resolve("refs/heads/"+branch);
+        // check if there are any commits in local tree which are not in remote tree
+        return !getExclusiveCommits(git.log().add(fetchHead).call(), git.log().add(head).call()).isEmpty();
+    }
+
+    /**
+     * Check if remote changes are available to pull.
+     * @param git Git of repository
+     * @return True, if remote changes are available.
+     * @throws IOException
+     * @throws GitAPIException
+     */
+    private boolean remoteChangesAvailable(Git git) throws IOException, GitAPIException {
+        Repository repository = git.getRepository();
+        String branch = repository.getBranch();
+        ObjectId fetchHead = repository.resolve("refs/remotes/origin/"+branch);
+        ObjectId head = repository.resolve("refs/heads/"+branch);
+        // check if there are any commits in remote tree which are not in local tree
+        return !getExclusiveCommits(git.log().add(head).call(), git.log().add(fetchHead).call()).isEmpty();
+    }
+
+    /**
+     * Compare 'comparable' to 'base' and get the commits exclusive to 'comparable' (i.e. which do not exists in 'base')
+     * @param base
+     * @param comparable
+     * @return
+     */
+    private List<RevCommit> getExclusiveCommits(Iterable<RevCommit> base, Iterable<RevCommit> comparable) {
+        List<RevCommit> exclusiveCommits = new ArrayList<>();
+        Set<RevCommit> baseCommits = new HashSet<>();
+        base.forEach(baseCommits::add);
+        Set<RevCommit> comparableCommits = new HashSet<>();
+        comparable.forEach(comparableCommits::add);
+
+        for (RevCommit rc : comparableCommits) {
+            if (!baseCommits.contains(rc)) {
+                exclusiveCommits.add(rc);
+            }
+        }
+        return exclusiveCommits;
     }
 
     private RevCommit getCommit(Repository repo, ObjectId objectId) throws IOException {
