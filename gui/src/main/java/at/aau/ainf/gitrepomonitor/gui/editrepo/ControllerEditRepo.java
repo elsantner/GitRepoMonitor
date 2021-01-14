@@ -159,6 +159,26 @@ public class ControllerEditRepo implements Initializable, ErrorDisplay, MasterPa
                 };
             }
         });
+
+        txtPath.focusedProperty().addListener((observable, oldValue, newValue) -> {
+            if (oldValue && !newValue) {
+                handlePathChanged();
+            }
+        });
+    }
+
+    /**
+     * Validate the repo path and update the displayed authentication information.
+     */
+    private void handlePathChanged() {
+        validateTextFieldPath();
+        repo.setPath(txtPath.getText());
+        try {
+            FileManager.setAuthMethod(repo);
+            updateRepoDisplay(repo);
+        } catch (IOException e) {
+            // should not happen
+        }
     }
 
     private String getTooltipText(RepositoryInformation.MergeStrategy item) {
@@ -185,16 +205,30 @@ public class ControllerEditRepo implements Initializable, ErrorDisplay, MasterPa
     private boolean validateTextFieldPath() {
         boolean status;
         if (status = Utils.validateRepositoryPath(txtPath.getText())) {
-            txtPath.getStyleClass().remove("error-input");
+            // remove all occurrences of the style class (might be added multiple times due to timing of focus loss)
+            txtPath.getStyleClass().removeAll("error-input");
         } else {
             txtPath.getStyleClass().add("error-input");
         }
         return status;
     }
 
+    /**
+     * Sets the repository to be edited. Call this method only once per controller!
+     * @param repo Repository to be edited
+     */
     public void setRepo(RepositoryInformation repo) {
         this.repo = repo;
+        // remember original path before change
         this.originalPath = repo.getPath();
+        updateRepoDisplay(repo);
+    }
+
+    /**
+     * Update the displayed information.
+     * @param repo Repository information to be displayed.
+     */
+    private void updateRepoDisplay(RepositoryInformation repo) {
         this.txtName.setText(repo.getName());
         this.txtPath.setText(repo.getPath());
         this.cbBoxMergeStrat.getSelectionModel().select(repo.getMergeStrategy().ordinal());
@@ -205,17 +239,17 @@ public class ControllerEditRepo implements Initializable, ErrorDisplay, MasterPa
         validateTextFields();
 
         // if repo path is not valid, disable connection test
-        if (repo.getAuthMethod() == RepositoryInformation.AuthMethod.NONE) {
-            btnTestConnection.setVisible(false);
-        }
+        btnTestConnection.setVisible(repo.getAuthMethod() != RepositoryInformation.AuthMethod.NONE);
+        lblTestConnectionStatus.setVisible(repo.getAuthMethod() != RepositoryInformation.AuthMethod.NONE);
     }
 
     private void setupCredentials() {
         setAuthenticationMethod();
         // if auth method is not NONE, then there must be stored credentials
-        if (!repo.isAuthenticated() || repo.getAuthMethod() == RepositoryInformation.AuthMethod.NONE) {
-            btnLoadCredentials.setVisible(false);
-        } else {
+        boolean showCredentials = repo.isAuthenticated() && repo.getAuthMethod() != RepositoryInformation.AuthMethod.NONE;
+        btnLoadCredentials.setVisible(showCredentials);
+
+        if (showCredentials) {
             // load credentials if mp is cached
             if (secureStorage.isMasterPasswordCached()) {
                 try {
@@ -265,12 +299,8 @@ public class ControllerEditRepo implements Initializable, ErrorDisplay, MasterPa
             authInfoChanged = true;
             clearHttpsInputPrompts();
         });
-        txtSslKeyPath.textProperty().addListener((observable, oldValue, newValue) -> {
-            authInfoChanged = true;
-        });
-        txtSslPassphraseHidden.textProperty().addListener((observable, oldValue, newValue) -> {
-            authInfoChanged = true;
-        });
+        txtSslKeyPath.textProperty().addListener((observable, oldValue, newValue) -> authInfoChanged = true);
+        txtSslPassphraseHidden.textProperty().addListener((observable, oldValue, newValue) -> authInfoChanged = true);
     }
 
     private void clearHttpsInputPrompts() {
@@ -291,6 +321,12 @@ public class ControllerEditRepo implements Initializable, ErrorDisplay, MasterPa
         try {
             if (!Utils.validateRepositoryPath(txtPath.getText())) {
                 throw new IllegalArgumentException(ResourceStore.getString("errormsg.invalid_repo_path"));
+            }
+
+            if (repo.getAuthMethod() == RepositoryInformation.AuthMethod.NONE) {
+                if (!showNoRemoteWarningDialog()) {
+                    return;     // abort method if user does not confirm their intend
+                }
             }
 
             if (chkBoxMergeStratApplyAll.isSelected()) {
@@ -318,13 +354,17 @@ public class ControllerEditRepo implements Initializable, ErrorDisplay, MasterPa
     }
 
     private boolean showConfirmMergeStratApplyAllDialog() {
-        Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
-        alert.setTitle(ResourceStore.getString("edit_repo.merge_strat_apply_all.title"));
-        alert.setHeaderText(ResourceStore.getString("edit_repo.merge_strat_apply_all.header"));
-        alert.setContentText(ResourceStore.getString("edit_repo.merge_strat_apply_all.content"));
+        return showConfirmationDialog(Alert.AlertType.CONFIRMATION,
+                ResourceStore.getString("edit_repo.merge_strat_apply_all.title"),
+                ResourceStore.getString("edit_repo.merge_strat_apply_all.header"),
+                ResourceStore.getString("edit_repo.merge_strat_apply_all.content"));
+    }
 
-        Optional<ButtonType> res = alert.showAndWait();
-        return res.isPresent() && res.get() == ButtonType.OK;
+    private boolean showNoRemoteWarningDialog() {
+        return showConfirmationDialog(Alert.AlertType.WARNING,
+                ResourceStore.getString("edit_repo.warn_no_remote.title"),
+                ResourceStore.getString("edit_repo.warn_no_remote.header"),
+                ResourceStore.getString("edit_repo.warn_no_remote.content"));
     }
 
     private void handleAuthChanged() throws IOException, AuthenticationException {
@@ -436,6 +476,7 @@ public class ControllerEditRepo implements Initializable, ErrorDisplay, MasterPa
         return dir;
     }
 
+    @FXML
     public void onBtnChoosePathClick(ActionEvent actionEvent) {
         DirectoryChooser directoryChooser = new DirectoryChooser();
         directoryChooser.setTitle(ResourceStore.getString("edit_repo.selectdir.title"));
@@ -443,7 +484,7 @@ public class ControllerEditRepo implements Initializable, ErrorDisplay, MasterPa
         File selectedDirectory = directoryChooser.showDialog(txtName.getScene().getWindow());
         if (selectedDirectory != null) {
             txtPath.setText(selectedDirectory.getAbsolutePath());
-            validateTextFieldPath();
+            handlePathChanged();
         }
     }
 

@@ -166,10 +166,10 @@ public class ControllerSettings implements Initializable, ErrorDisplay, MasterPa
                 Pair<String, String> input = showChangeMasterPasswordInputDialog();
                 if (input != null) {
                     secStorage.updateMasterPassword(input.getKey().toCharArray(), input.getValue().toCharArray());
+                    showInformationDialog(ResourceStore.getString("settings.mp_changed"),
+                            ResourceStore.getString("settings.mp_changed.content"), "");
                 }
                 setMPButtonDisplay();
-                showInfoDialog(ResourceStore.getString("settings.mp_changed"),
-                        ResourceStore.getString("settings.mp_changed.content"));
             }
         } catch (SecurityException | AuthenticationException ex) {
             showError(ResourceStore.getString("status.wrong_master_password"));
@@ -209,8 +209,8 @@ public class ControllerSettings implements Initializable, ErrorDisplay, MasterPa
             if (secStorage.isMasterPasswordSet()) {
                 if (showConfirmResetMPDialog()) {
                     secStorage.resetMasterPassword();
-                    showInfoDialog(ResourceStore.getString("settings.mp_reset"),
-                            ResourceStore.getString("settings.mp_reset.content"));
+                    showInformationDialog(ResourceStore.getString("settings.mp_reset"),
+                            ResourceStore.getString("settings.mp_reset.content"), "");
                 }
                 setMPButtonDisplay();
             }
@@ -219,22 +219,10 @@ public class ControllerSettings implements Initializable, ErrorDisplay, MasterPa
         }
     }
 
-    private void showInfoDialog(String title, String text) {
-        Alert alert = new Alert(Alert.AlertType.INFORMATION);
-        ((Stage) alert.getDialogPane().getScene().getWindow()).getIcons().add(ResourceStore.getImage("icon_app.png"));
-        alert.setTitle(title);
-        alert.setHeaderText(text);
-        alert.showAndWait();
-    }
-
     private boolean showConfirmResetMPDialog() {
-        Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
-        ((Stage) alert.getDialogPane().getScene().getWindow()).getIcons().add(ResourceStore.getImage("icon_app.png"));
-        alert.setTitle(ResourceStore.getString("settings.confirm_reset_mp.title"));
-        alert.setHeaderText(ResourceStore.getString("settings.confirm_reset_mp.header"));
-        alert.setContentText(ResourceStore.getString("settings.confirm_reset_mp.content"));
-
-        Optional<ButtonType> res = alert.showAndWait();
-        return res.isPresent() && res.get() == ButtonType.OK;
+        return showConfirmationDialog(Alert.AlertType.WARNING,
+                ResourceStore.getString("settings.confirm_reset_mp.title"),
+                ResourceStore.getString("settings.confirm_reset_mp.header"),
+                ResourceStore.getString("settings.confirm_reset_mp.content"));
     }
 }
