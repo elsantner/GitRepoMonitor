@@ -6,6 +6,7 @@ import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.control.Label;
 import javafx.scene.control.ListCell;
+import javafx.scene.control.OverrunStyle;
 import javafx.scene.control.Tooltip;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.HBox;
@@ -51,6 +52,7 @@ public class RepositoryInformationListViewCell extends ListCell<RepositoryInform
             }
 
             // fill display elements with data
+            lblName.setTextOverrun(OverrunStyle.CENTER_WORD_ELLIPSIS);
             lblName.setText(item.toString());
             setIcon(item);
             setNewChange(item);
