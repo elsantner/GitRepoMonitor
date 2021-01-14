@@ -159,6 +159,9 @@ class RepoListWrapper {
         for (RepositoryInformation repoInfo : reposToCheck) {
             try {
                 FileManager.setAuthMethod(repoInfo);
+                if (!Utils.validateRepositoryPath(repoInfo.getPath())) {
+                    repoInfo.setStatus(RepositoryInformation.RepoStatus.PATH_INVALID);
+                }
             } catch (IOException e) {
                 repoInfo.setStatus(RepositoryInformation.RepoStatus.PATH_INVALID);
             }

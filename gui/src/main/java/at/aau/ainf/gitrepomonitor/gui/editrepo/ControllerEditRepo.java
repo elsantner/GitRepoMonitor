@@ -203,12 +203,17 @@ public class ControllerEditRepo implements Initializable, ErrorDisplay, MasterPa
         setupCredentials();
         setupCredentialChangeListener();
         validateTextFields();
+
+        // if repo path is not valid, disable connection test
+        if (repo.getAuthMethod() == RepositoryInformation.AuthMethod.NONE) {
+            btnTestConnection.setVisible(false);
+        }
     }
 
     private void setupCredentials() {
         setAuthenticationMethod();
         // if auth method is not NONE, then there must be stored credentials
-        if (!repo.isAuthenticated()) {
+        if (!repo.isAuthenticated() || repo.getAuthMethod() == RepositoryInformation.AuthMethod.NONE) {
             btnLoadCredentials.setVisible(false);
         } else {
             // load credentials if mp is cached
@@ -309,7 +314,6 @@ public class ControllerEditRepo implements Initializable, ErrorDisplay, MasterPa
             // abort method
         } catch (Exception ex) {
             showError(ex.getMessage());
-            ex.printStackTrace();
         }
     }
 

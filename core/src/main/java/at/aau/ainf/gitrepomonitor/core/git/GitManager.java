@@ -2,6 +2,7 @@ package at.aau.ainf.gitrepomonitor.core.git;
 
 import at.aau.ainf.gitrepomonitor.core.files.FileManager;
 import at.aau.ainf.gitrepomonitor.core.files.RepositoryInformation;
+import at.aau.ainf.gitrepomonitor.core.files.Utils;
 import at.aau.ainf.gitrepomonitor.core.files.authentication.AuthInfo;
 import org.eclipse.jgit.api.*;
 import org.eclipse.jgit.api.errors.*;
@@ -430,7 +431,9 @@ public class GitManager {
         RepositoryInformation repoInfo = fileManager.getRepo(path);
         RepositoryInformation.RepoStatus status = WRONG_MASTER_PW;
         try {
-            if (repoInfo.isAuthenticated() && !authInfo.hasInformation()) {
+            if (!Utils.validateRepositoryPath(repoInfo.getPath())) {
+                status = PATH_INVALID;
+            } else if (repoInfo.isAuthenticated() && !authInfo.hasInformation()) {
                 throw new SecurityException("wrong master password");
             } else {
                 status = getRepoStatus(getRepoGit(path), authInfo);
