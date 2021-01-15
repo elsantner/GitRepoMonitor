@@ -51,6 +51,8 @@ public class ControllerScan extends StatusBarController implements Initializable
     private Button btnAddToWatchlist;
     @FXML
     private Button btnRemoveFromWatchlist;
+    @FXML
+    public CheckBox ckboxExcludeRemote;
 
     private static final SimpleBooleanProperty scanRunningProperty = new SimpleBooleanProperty(null, "scanRunning", false);
     private static RepoSearchTask searchTask;
@@ -81,6 +83,7 @@ public class ControllerScan extends StatusBarController implements Initializable
 
         setupUI();
         setupSearchTask();
+        Platform.runLater(() -> btnStartScan.requestFocus());
     }
 
     private void setupUI() {
@@ -134,7 +137,7 @@ public class ControllerScan extends StatusBarController implements Initializable
 
     @FXML
     public void btnStartScanClicked(ActionEvent actionEvent) {
-        searchTask = new RepoSearchTask(rootDir);
+        searchTask = new RepoSearchTask(rootDir, ckboxExcludeRemote.isSelected());
         setupSearchTask();
         setScanRunningMode(true);
         scanRunningProperty.set(true);
@@ -177,6 +180,7 @@ public class ControllerScan extends StatusBarController implements Initializable
         btnCancelScan.setVisible(scanRunning);
         btnSelectDir.setDisable(scanRunning);
         linkWholePC.setDisable(scanRunning);
+        ckboxExcludeRemote.setDisable(scanRunning);
         progressSpinner.setVisible(scanRunning);
     }
 

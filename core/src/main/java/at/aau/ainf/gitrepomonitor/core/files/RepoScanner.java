@@ -1,5 +1,7 @@
 package at.aau.ainf.gitrepomonitor.core.files;
 
+import at.aau.ainf.gitrepomonitor.core.git.GitManager;
+
 import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
@@ -7,11 +9,15 @@ import java.util.List;
 public class RepoScanner {
 
     private File rootDir;
+    private boolean excludeNoRemote;
     private boolean isStopped;
+    private GitManager gitManager;
 
-    public RepoScanner(File rootDir) {
+    public RepoScanner(File rootDir, boolean excludeNoRemote) {
         this.rootDir = rootDir;
+        this.excludeNoRemote = excludeNoRemote;
         this.isStopped = true;
+        this.gitManager = GitManager.getInstance();
     }
 
     public File getRootDir() {
@@ -47,9 +53,13 @@ public class RepoScanner {
 
     private void scanForReposRecursive(File rootDir, List<File> repos, RepoScanCallback cb) {
         if (!isStopped) {
+            // if repo found
             if (rootDir.getName().equals(".git")) {
-                repos.add(rootDir.getParentFile());     // add repo folder to list
-                cb.repoFound(rootDir.getParentFile());
+                // when excludeNoRemote is true, only add repo to found list if it has a valid remote
+                if (!excludeNoRemote || gitManager.hasRemoteRepository(rootDir.getParentFile().getAbsolutePath())) {
+                    repos.add(rootDir.getParentFile());     // add repo folder to list
+                    cb.repoFound(rootDir.getParentFile());
+                }
             } else {
                 cb.dirScanned();
                 File[] childDirs = rootDir.listFiles(File::isDirectory);

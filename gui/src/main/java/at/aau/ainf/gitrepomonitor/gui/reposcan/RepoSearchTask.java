@@ -11,14 +11,12 @@ import javafx.concurrent.Task;
 import java.io.File;
 
 public class RepoSearchTask extends Task<Integer> {
-    private File rootDir;
     private int scannedDirCount = 0;
     private int foundRepoCount = 0;
     private RepoScanner repoScanner;
 
-    public RepoSearchTask(File rootDir) {
-        this.rootDir = rootDir;
-        this.repoScanner = new RepoScanner(rootDir);
+    public RepoSearchTask(File rootDir, boolean excludeNoRemote) {
+        this.repoScanner = new RepoScanner(rootDir, excludeNoRemote);
     }
 
     @Override
