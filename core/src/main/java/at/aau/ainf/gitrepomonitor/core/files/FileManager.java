@@ -2,6 +2,7 @@ package at.aau.ainf.gitrepomonitor.core.files;
 
 import at.aau.ainf.gitrepomonitor.core.files.authentication.SecureStorage;
 import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.dataformat.xml.XmlMapper;
 import org.eclipse.jgit.lib.Repository;
 import org.eclipse.jgit.storage.file.FileRepositoryBuilder;
@@ -48,7 +49,7 @@ public class FileManager {
 
     private FileManager() {
         this.secureStorage = SecureStorage.getImplementation();
-        this.mapper = XmlMapper.xmlBuilder().build();
+        this.mapper = XmlMapper.xmlBuilder().configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false).build();
         this.fileRepoLists = new File(Utils.getProgramHomeDir() + "repolists.xml");
     }
 
@@ -129,7 +130,6 @@ public class FileManager {
 
     public synchronized void addToFoundRepos(RepositoryInformation repo) {
         if (!repoListWrapper.getWatchlist().contains(repo)) {
-            repo.setDateAdded(Calendar.getInstance().getTime());
             repoListWrapper.addToList(FOUND, repo);
             persistRepoLists();
         }

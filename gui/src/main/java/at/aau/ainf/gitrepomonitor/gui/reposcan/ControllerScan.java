@@ -2,6 +2,7 @@ package at.aau.ainf.gitrepomonitor.gui.reposcan;
 
 import at.aau.ainf.gitrepomonitor.core.files.FileManager;
 import at.aau.ainf.gitrepomonitor.core.files.RepositoryInformation;
+import at.aau.ainf.gitrepomonitor.core.files.Utils;
 import at.aau.ainf.gitrepomonitor.gui.ResourceStore;
 import at.aau.ainf.gitrepomonitor.gui.StatusBarController;
 import at.aau.ainf.gitrepomonitor.gui.repolist.RepositoryInformationCellFactory;
@@ -19,10 +20,7 @@ import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
 import java.io.File;
 import java.net.URL;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
-import java.util.ResourceBundle;
+import java.util.*;
 
 public class ControllerScan extends StatusBarController implements Initializable, PropertyChangeListener {
 
@@ -228,9 +226,13 @@ public class ControllerScan extends StatusBarController implements Initializable
     private synchronized void setFoundReposDisplay(Collection<RepositoryInformation> repoInfo) {
         listFoundRepos.getItems().clear();
         listFoundRepos.getItems().addAll(repoInfo);
+        for (RepositoryInformation repo : repoInfo) {
+            repo.setModifiedDate(Utils.getLastChangedDate(repo.getPath()));
+        }
+
         listFoundRepos.getItems().sort((o1, o2) -> {
             if (o1.equals(o2)) return 0;
-            int retVal = o2.getDateAdded().compareTo(o1.getDateAdded());
+            int retVal = o2.getModifiedDate().compareTo(o1.getModifiedDate());
             if (retVal == 0) {
                 retVal = o2.compareTo(o1);
             }

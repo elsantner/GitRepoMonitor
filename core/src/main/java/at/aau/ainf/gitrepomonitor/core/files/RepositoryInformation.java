@@ -16,7 +16,7 @@ public class RepositoryInformation implements Comparable<RepositoryInformation>,
     private final UUID id;
     private String path;
     private String name;
-    private Date dateAdded;
+    private Date modifiedDate;
     private String sslKeyPath;
     private boolean authenticated;
     private AuthMethod authMethod;
@@ -89,11 +89,6 @@ public class RepositoryInformation implements Comparable<RepositoryInformation>,
         this();
         this.path = path;
         this.name = name;
-    }
-
-    public RepositoryInformation(String path, String name, Date dateAdded) {
-        this(path, name);
-        this.dateAdded = dateAdded;
     }
 
     public UUID getID() {
@@ -171,14 +166,13 @@ public class RepositoryInformation implements Comparable<RepositoryInformation>,
         this.name = name;
         this.persistentValueChanged = true;
     }
-
-    public Date getDateAdded() {
-        return dateAdded;
+    @JsonIgnore
+    public Date getModifiedDate() {
+        return modifiedDate;
     }
-
-    public void setDateAdded(Date dateAdded) {
-        this.dateAdded = dateAdded;
-        this.persistentValueChanged = true;
+    @JsonIgnore
+    public void setModifiedDate(Date modifiedDate) {
+        this.modifiedDate = modifiedDate;
     }
 
     public MergeStrategy getMergeStrategy() {

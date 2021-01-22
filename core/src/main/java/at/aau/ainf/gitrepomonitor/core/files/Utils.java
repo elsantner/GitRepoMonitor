@@ -5,9 +5,23 @@ import java.nio.ByteBuffer;
 import java.nio.CharBuffer;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
-import java.util.Arrays;
+import java.text.DateFormat;
+import java.util.*;
 
 public abstract class Utils {
+    public static Date getLastChangedDate(String path) {
+        File dir = new File(path);
+        if (dir.isDirectory()) {
+            Optional<File> opFile = Arrays.stream(Objects.requireNonNull(dir.listFiles(File::isFile)))
+                    .max(Comparator.comparingLong(File::lastModified));
+
+            if (opFile.isPresent()){
+                return new Date(opFile.get().lastModified());
+            }
+        }
+        return new Date(0);
+    }
+
     public static boolean validateRepositoryPath(String path) {
         try {
             File dir = new File(path, ".git");
