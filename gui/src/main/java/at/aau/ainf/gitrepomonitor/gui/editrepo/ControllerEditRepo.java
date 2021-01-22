@@ -16,12 +16,12 @@ import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.fxml.Initializable;
+import javafx.scene.Parent;
+import javafx.scene.Scene;
 import javafx.scene.control.*;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.AnchorPane;
-import javafx.stage.DirectoryChooser;
-import javafx.stage.FileChooser;
-import javafx.stage.Stage;
+import javafx.stage.*;
 import javafx.util.Callback;
 
 import javax.naming.AuthenticationException;
@@ -72,6 +72,8 @@ public class ControllerEditRepo implements Initializable, ErrorDisplay, MasterPa
     @FXML
     public AnchorPane authContainerNone;
     @FXML
+    public TextField txtRemotePath;
+    @FXML
     private TextField txtName;
     @FXML
     private TextField txtPath;
@@ -91,6 +93,23 @@ public class ControllerEditRepo implements Initializable, ErrorDisplay, MasterPa
     public static FXMLLoader getLoader() {
         return new FXMLLoader(ControllerEditRepo.class.getResource("/at/aau/ainf/gitrepomonitor/gui/editrepo/edit_repo.fxml"),
                 ResourceStore.getResourceBundle());
+    }
+
+    public static void openWindow(RepositoryInformation repo) throws IOException {
+        FXMLLoader loader = ControllerEditRepo.getLoader();
+        Parent root = loader.load();
+        ((ControllerEditRepo)loader.getController()).setRepo(repo);     // set repo information to display
+
+        Stage stage = new Stage();
+        stage.initModality(Modality.APPLICATION_MODAL);
+        stage.initStyle(StageStyle.DECORATED);
+        stage.setTitle(ResourceStore.getString("edit_repo"));
+        stage.getIcons().add(ResourceStore.getImage("icon_app.png"));
+        stage.setScene(new Scene(root));
+        stage.sizeToScene();
+        stage.show();
+        stage.setMinWidth(stage.getWidth());
+        stage.setMinHeight(stage.getHeight());
     }
 
     @Override
@@ -231,6 +250,7 @@ public class ControllerEditRepo implements Initializable, ErrorDisplay, MasterPa
     private void updateRepoDisplay(RepositoryInformation repo) {
         this.txtName.setText(repo.getName());
         this.txtPath.setText(repo.getPath());
+        this.txtRemotePath.setText(gitManager.getRemoteURL(repo.getPath()));
         this.cbBoxMergeStrat.getSelectionModel().select(repo.getMergeStrategy().ordinal());
         this.txtSslKeyPath.setText(repo.getSslKeyPath());
 

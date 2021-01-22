@@ -38,7 +38,16 @@
          <Button mnemonicParsing="false" onAction="#onBtnChoosePathClick" prefHeight="25.0" prefWidth="25.0" text="..." />
       </HBox>
    </HBox>
-   <HBox layoutX="20.0" layoutY="20.0" AnchorPane.leftAnchor="10.0" AnchorPane.rightAnchor="10.0" AnchorPane.topAnchor="60.0">
+   <HBox layoutX="20.0" layoutY="20.0" AnchorPane.leftAnchor="10.0" AnchorPane.rightAnchor="10.0"
+         AnchorPane.topAnchor="60.0">
+      <HBox maxWidth="140.0" minWidth="140.0" prefWidth="140.0" HBox.hgrow="NEVER">
+         <Label text="%edit_repo.remote_path"/>
+      </HBox>
+      <HBox alignment="TOP_RIGHT" spacing="5.0" HBox.hgrow="ALWAYS">
+         <TextField fx:id="txtRemotePath" editable="false" HBox.hgrow="ALWAYS"/>
+      </HBox>
+   </HBox>
+   <HBox layoutX="20.0" layoutY="20.0" AnchorPane.leftAnchor="10.0" AnchorPane.rightAnchor="10.0" AnchorPane.topAnchor="90.0">
       <HBox maxWidth="140.0" minWidth="140.0" prefWidth="140.0" HBox.hgrow="NEVER">
          <Label text="%edit_repo.merge_strat" />
       </HBox>
@@ -50,8 +59,8 @@
          <CheckBox fx:id="chkBoxMergeStratApplyAll" mnemonicParsing="false" text="%edit_repo.merge_strat_apply_all" HBox.hgrow="ALWAYS" />
       </HBox>
    </HBox>
-   <Separator layoutX="10.0" layoutY="87.0" prefWidth="200.0" AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="95.0" />
-   <HBox layoutX="20.0" layoutY="20.0" AnchorPane.leftAnchor="10.0" AnchorPane.rightAnchor="10.0" AnchorPane.topAnchor="105.0">
+   <Separator layoutX="10.0" layoutY="87.0" prefWidth="200.0" AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="125.0" />
+   <HBox layoutX="20.0" layoutY="20.0" AnchorPane.leftAnchor="10.0" AnchorPane.rightAnchor="10.0" AnchorPane.topAnchor="135.0">
       <HBox alignment="CENTER_LEFT" spacing="10.0" HBox.hgrow="ALWAYS">
          <Label text="%edit_repo.auth_method" HBox.hgrow="ALWAYS" />
          <Button fx:id="btnLoadCredentials" mnemonicParsing="false" onAction="#onBtnLoadCredentialsClick">
@@ -66,13 +75,12 @@
          </Button>
       </HBox>
    </HBox>
-   <VBox spacing="20.0" AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="135.0">
+   <VBox spacing="20.0" AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="165.0">
       <AnchorPane fx:id="authContainerNone">
          <padding>
-            <Insets left="10.0" right="10.0"/>
+            <Insets left="10.0" right="10.0" />
          </padding>
-         <Label alignment="CENTER" contentDisplay="CENTER" text="%edit_repo.no_remote" AnchorPane.bottomAnchor="0.0"
-                AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="0.0"/>
+         <Label alignment="CENTER" contentDisplay="CENTER" text="%edit_repo.no_remote" AnchorPane.bottomAnchor="0.0" AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="0.0" />
       </AnchorPane>
       <AnchorPane fx:id="authContainerHTTPS">
          <VBox.margin>
@@ -113,37 +121,34 @@
       </AnchorPane>
       <AnchorPane fx:id="authContainerSSL">
          <padding>
-            <Insets left="10.0" right="10.0"/>
+            <Insets left="10.0" right="10.0" />
          </padding>
          <HBox AnchorPane.leftAnchor="10.0" AnchorPane.rightAnchor="10.0" AnchorPane.topAnchor="0.0">
             <HBox maxWidth="140.0" minWidth="140.0" prefWidth="140.0" HBox.hgrow="NEVER">
-               <Label text="%edit_repo.ssl_path" HBox.hgrow="ALWAYS"/>
+               <Label text="%edit_repo.ssl_path" HBox.hgrow="ALWAYS" />
             </HBox>
             <HBox alignment="TOP_RIGHT" spacing="5.0" HBox.hgrow="ALWAYS">
-               <TextField fx:id="txtSslKeyPath" promptText="%edit_repo.default_location" HBox.hgrow="ALWAYS"/>
-               <Button fx:id="btnChooseSslKeyPath" mnemonicParsing="false" onAction="#onBtnChooseSslKeyPathClick"
-                       prefHeight="25.0" prefWidth="25.0" text="..."/>
+               <TextField fx:id="txtSslKeyPath" promptText="%edit_repo.default_location" HBox.hgrow="ALWAYS" />
+               <Button fx:id="btnChooseSslKeyPath" mnemonicParsing="false" onAction="#onBtnChooseSslKeyPathClick" prefHeight="25.0" prefWidth="25.0" text="..." />
             </HBox>
          </HBox>
-         <HBox layoutX="10.0" layoutY="10.0" AnchorPane.leftAnchor="10.0" AnchorPane.rightAnchor="10.0"
-               AnchorPane.topAnchor="30.0">
+         <HBox layoutX="10.0" layoutY="10.0" AnchorPane.leftAnchor="10.0" AnchorPane.rightAnchor="10.0" AnchorPane.topAnchor="30.0">
             <HBox maxWidth="140.0" minWidth="140.0" prefWidth="140.0" HBox.hgrow="NEVER">
-               <Label text="%edit_repo.ssl_passphrase" HBox.hgrow="ALWAYS"/>
+               <Label text="%edit_repo.ssl_passphrase" HBox.hgrow="ALWAYS" />
             </HBox>
             <HBox alignment="TOP_RIGHT" spacing="5.0" HBox.hgrow="ALWAYS">
                <StackPane HBox.hgrow="ALWAYS">
-                  <PasswordField fx:id="txtSslPassphraseHidden"/>
-                  <TextField fx:id="txtSslPassphraseShown" visible="false"/>
+                  <PasswordField fx:id="txtSslPassphraseHidden" />
+                  <TextField fx:id="txtSslPassphraseShown" visible="false" />
                </StackPane>
                <ToggleButton fx:id="toggleShowSslPassphrase" mnemonicParsing="false" HBox.hgrow="ALWAYS">
                   <graphic>
-                     <ImageView fx:id="iconShowSslPassphrase" fitHeight="17.0" fitWidth="19.0" pickOnBounds="true"
-                                preserveRatio="true">
-                        <Image url="@../icons/icon_visible.png"/>
+                     <ImageView fx:id="iconShowSslPassphrase" fitHeight="17.0" fitWidth="19.0" pickOnBounds="true" preserveRatio="true">
+                        <Image url="@../icons/icon_visible.png" />
                      </ImageView>
                   </graphic>
                   <tooltip>
-                     <Tooltip fx:id="ttShowSslPassphrase" text="%edit_repo.show_password"/>
+                     <Tooltip fx:id="ttShowSslPassphrase" text="%edit_repo.show_password" />
                   </tooltip>
                </ToggleButton>
             </HBox>

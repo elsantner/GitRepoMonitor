@@ -610,11 +610,15 @@ public class GitManager {
     }
 
     public boolean hasRemoteRepository(String path) {
+        return getRemoteURL(path) != null;
+    }
+
+    public String getRemoteURL(String path) {
         try {
             Repository repo = getRepoGit(path).getRepository();
-            return repo.getConfig().getString("remote", "origin", "url") != null;
+            return repo.getConfig().getString("remote", "origin", "url");
         } catch (IOException e) {
-            return false;
+            return null;
         }
     }
 }
