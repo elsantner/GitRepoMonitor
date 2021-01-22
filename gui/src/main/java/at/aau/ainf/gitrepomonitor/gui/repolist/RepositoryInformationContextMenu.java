@@ -108,7 +108,7 @@ public class RepositoryInformationContextMenu extends ContextMenu implements Err
         editItem.setGraphic(getCtxMenuIcon("icon_edit.png"));
         editItem.setOnAction(event -> {
             try {
-                openEditWindow(item);
+                ControllerEditRepo.openWindow(item);
             } catch (IOException e) {
                 e.printStackTrace();
             }
@@ -174,23 +174,6 @@ public class RepositoryInformationContextMenu extends ContextMenu implements Err
         if (statusDisplay != null) {
             statusDisplay.displayStatus(status);
         }
-    }
-
-    private void openEditWindow(RepositoryInformation repo) throws IOException {
-        FXMLLoader loader = ControllerEditRepo.getLoader();
-        Parent root = loader.load();
-        ((ControllerEditRepo)loader.getController()).setRepo(repo);     // set repo information to display
-
-        Stage stage = new Stage();
-        stage.initModality(Modality.APPLICATION_MODAL);
-        stage.initStyle(StageStyle.DECORATED);
-        stage.setTitle(ResourceStore.getString("edit_repo"));
-        stage.getIcons().add(ResourceStore.getImage("icon_app.png"));
-        stage.setScene(new Scene(root));
-        stage.sizeToScene();
-        stage.show();
-        stage.setMinWidth(stage.getWidth());
-        stage.setMinHeight(stage.getHeight());
     }
 
     private ImageView getCtxMenuIcon(String iconName) {

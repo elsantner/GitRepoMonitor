@@ -102,7 +102,7 @@ public class ControllerMain extends StatusBarController implements Initializable
     }
 
     private void setupUI() {
-        watchlist.setCellFactory(new RepositoryInformationCellFactory(this, progessMonitor));
+        watchlist.setCellFactory(new RepositoryInformationCellFactory(this, progessMonitor, this.watchlist));
         watchlist.setPlaceholder(new Label(ResourceStore.getString("list.no_entries")));
         watchlist.getSelectionModel().setSelectionMode(SelectionMode.MULTIPLE);
         setWatchlistDisplay(fileManager.getWatchlist());
