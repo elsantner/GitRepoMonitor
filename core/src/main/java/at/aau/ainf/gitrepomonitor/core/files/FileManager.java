@@ -170,6 +170,17 @@ public class FileManager {
      * @param updatedInfo Updated RepositoryInformation
      */
     public synchronized void editRepo(String originalPath, RepositoryInformation updatedInfo) throws NoSuchElementException {
+        editRepo(originalPath, updatedInfo, true);
+    }
+
+    /**
+     * This method updates a given RepositoryInformation object in the persistent storage and
+     * informs all listeners of the change.
+     * @param originalPath Original path of this repository before editing
+     * @param updatedInfo Updated RepositoryInformation
+     * @param persist If repo data should be persisted right away (if persistent data was changed)
+     */
+    public synchronized void editRepo(String originalPath, RepositoryInformation updatedInfo, boolean persist) throws NoSuchElementException {
         RepoListWrapper.RepoList repoList = repoListWrapper.getListName(originalPath);
         if (repoList == null) {
             throw new NoSuchElementException("Repo at given path not found");
@@ -181,9 +192,16 @@ public class FileManager {
         repoListWrapper.addToList(repoList, updatedInfo);
 
         // only persist repo lists if persistent properties were changed
-        if (updatedInfo.isPersistentValueChanged()) {
+        if (persist && updatedInfo.isPersistentValueChanged()) {
             persistRepoLists();
             updatedInfo.setPersistentValueChanged(false);
+        }
+    }
+
+    public void persistData() {
+        persistRepoLists();
+        for (RepositoryInformation repo : getAllRepos()) {
+            repo.setPersistentValueChanged(false);
         }
     }
 

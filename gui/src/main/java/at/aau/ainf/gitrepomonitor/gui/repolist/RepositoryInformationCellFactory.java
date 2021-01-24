@@ -31,6 +31,7 @@ public class RepositoryInformationCellFactory
     private StatusDisplay statusDisplay;
     private ProgressMonitor progressMonitor;
     private Control keyListener;
+    private boolean isDraggable;
 
     public RepositoryInformationCellFactory() {
         super();
@@ -43,16 +44,17 @@ public class RepositoryInformationCellFactory
      * @param keyListener provides key-events for list cells
      */
     public RepositoryInformationCellFactory(StatusDisplay statusDisplay, ProgressMonitor progressMonitor,
-                                            Control keyListener) {
+                                            Control keyListener, boolean isDraggable) {
         this();
         this.statusDisplay = statusDisplay;
         this.progressMonitor = progressMonitor;
         this.keyListener = keyListener;
+        this.isDraggable = isDraggable;
     }
 
     @Override
     public ListCell<RepositoryInformation> call(ListView<RepositoryInformation> listView) {
-        ListCell<RepositoryInformation> cell = new RepositoryInformationListViewCell();
+        ListCell<RepositoryInformation> cell = new RepositoryInformationListViewCell(isDraggable);
 
         // ctx menu only on non-empty list entries
         cell.emptyProperty().addListener((obs, wasEmpty, isNowEmpty) -> {

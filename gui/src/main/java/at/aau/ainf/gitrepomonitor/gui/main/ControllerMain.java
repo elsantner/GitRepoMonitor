@@ -102,10 +102,11 @@ public class ControllerMain extends StatusBarController implements Initializable
     }
 
     private void setupUI() {
-        watchlist.setCellFactory(new RepositoryInformationCellFactory(this, progessMonitor, this.watchlist));
+        watchlist.setCellFactory(new RepositoryInformationCellFactory(this, progessMonitor, this.watchlist, true));
         watchlist.setPlaceholder(new Label(ResourceStore.getString("list.no_entries")));
         watchlist.getSelectionModel().setSelectionMode(SelectionMode.MULTIPLE);
         setWatchlistDisplay(fileManager.getWatchlist());
+        setWatchlistOrder();
         indicatorScanRunning.visibleProperty().bind(ControllerScan.scanRunningProperty());
         indicatorScanRunning.managedProperty().bind(indicatorScanRunning.visibleProperty());
         setupCommitLogDisplay();
@@ -253,6 +254,16 @@ public class ControllerMain extends StatusBarController implements Initializable
         watchlist.getItems().clear();
         watchlist.getItems().addAll(repoInfo);
         Collections.sort(watchlist.getItems());
+    }
+
+    /**
+     * Set the custom index property according to the current position in the rendered watchlist
+     * NOTE: This does NOT persist any data and is in it's own a temporary measure.
+     */
+    private void setWatchlistOrder() {
+        for (int i=0; i<watchlist.getItems().size(); i++) {
+            watchlist.getItems().get(i).setCustomOrderIndex(i);
+        }
     }
 
     @FXML

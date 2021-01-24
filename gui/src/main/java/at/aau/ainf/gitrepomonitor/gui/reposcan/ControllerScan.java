@@ -95,10 +95,10 @@ public class ControllerScan extends StatusBarController implements Initializable
         btnAddToWatchlist.disableProperty().bind(listFoundRepos.getSelectionModel().selectedItemProperty().isNull());
         btnRemoveFromWatchlist.disableProperty().bind(listWatchlist.getSelectionModel().selectedItemProperty().isNull());
 
-        listFoundRepos.setCellFactory(new RepositoryInformationCellFactory(this, progessMonitor, listFoundRepos));
+        listFoundRepos.setCellFactory(new RepositoryInformationCellFactory(this, progessMonitor, listFoundRepos, false));
         listFoundRepos.setPlaceholder(new Label(ResourceStore.getString("list.no_entries")));
         listFoundRepos.getSelectionModel().setSelectionMode(SelectionMode.MULTIPLE);
-        listWatchlist.setCellFactory(new RepositoryInformationCellFactory(this, progessMonitor, listWatchlist));
+        listWatchlist.setCellFactory(new RepositoryInformationCellFactory(this, progessMonitor, listWatchlist, true));
         listWatchlist.setPlaceholder(new Label(ResourceStore.getString("list.no_entries")));
         listWatchlist.getSelectionModel().setSelectionMode(SelectionMode.MULTIPLE);
         setWatchlistDisplay(fileManager.getWatchlist());
@@ -190,6 +190,9 @@ public class ControllerScan extends StatusBarController implements Initializable
     @FXML
     public void btnAddToWatchlistClicked(ActionEvent actionEvent) {
         List<RepositoryInformation> selectedItems = List.copyOf(listFoundRepos.getSelectionModel().getSelectedItems());
+        for (int i=0; i<selectedItems.size(); i++) {
+            selectedItems.get(i).setCustomOrderIndex(listWatchlist.getItems().size()+i);
+        }
         fileManager.addToWatchlist(selectedItems);
     }
 
