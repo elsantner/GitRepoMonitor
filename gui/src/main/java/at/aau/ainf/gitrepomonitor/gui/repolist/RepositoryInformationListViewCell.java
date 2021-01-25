@@ -107,9 +107,8 @@ public class RepositoryInformationListViewCell extends ListCell<RepositoryInform
                 success = true;
                 draggedItem.setCustomOrderIndex(thisIdx);
                 droppedItem.setCustomOrderIndex(draggedIdx);
-                fileManager.editRepo(draggedItem.getPath(), draggedItem, false);
-                fileManager.editRepo(droppedItem.getPath(), droppedItem, false);
-                fileManager.persistData();
+                fileManager.editRepo(draggedItem.getPath(), draggedItem);
+                fileManager.editRepo(droppedItem.getPath(), droppedItem);
             }
             event.setDropCompleted(success);
             event.consume();

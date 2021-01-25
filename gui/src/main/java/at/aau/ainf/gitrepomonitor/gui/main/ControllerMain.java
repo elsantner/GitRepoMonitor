@@ -33,6 +33,7 @@ import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
 import java.io.IOException;
 import java.net.URL;
+import java.sql.SQLException;
 import java.util.*;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -78,7 +79,7 @@ public class ControllerMain extends StatusBarController implements Initializable
             if (fileManager.init()) {
                 showWarning(ResourceStore.getString("warning.credentials_reset"));
             }
-        } catch (IOException e) {
+        } catch (ClassNotFoundException | SQLException e) {
            Logger.getLogger(getClass().getName()).log(Level.SEVERE, "error occurred during file manager init", e);
            showError(ResourceStore.getString("errormsg.file_access_denied"));
         }
@@ -120,11 +121,11 @@ public class ControllerMain extends StatusBarController implements Initializable
                 if (oldValue != null && repo != null && newValue != null) {
                     // if remote branch was selected, create it locally before checkout
                     if (newValue.isRemoteOnly()) {
-                        gitManager.createBranch(repo.getPath(), newValue.getShortName());
-                        gitManager.checkout(repo.getPath(), newValue.getShortName());
+                        gitManager.createBranch(repo, newValue.getShortName());
+                        gitManager.checkout(repo, newValue.getShortName());
                         updateBranches(repo);
                     } else {
-                        gitManager.checkout(repo.getPath(), newValue.getShortName());
+                        gitManager.checkout(repo, newValue.getShortName());
                     }
                     updateCommitLog(repo);
                 }
@@ -144,7 +145,7 @@ public class ControllerMain extends StatusBarController implements Initializable
             updateCommitLog(newValue);
             // clear "New"-icon when deselecting
             if (oldValue != null && newValue != null) {
-                fileManager.setNewChanges(oldValue.getPath(), 0);
+                fileManager.setNewChanges(oldValue.getID(), 0);
             }
         });
     }
@@ -179,7 +180,7 @@ public class ControllerMain extends StatusBarController implements Initializable
 
     private void updateCommitLog(RepositoryInformation repo) {
         if (repo != null) {
-            gitManager.getLogAsync(repo.getPath(), (success, changes, ex) -> Platform.runLater(() -> {
+            gitManager.getLogAsync(repo, (success, changes, ex) -> Platform.runLater(() -> {
                 if (success) {
                     lblCommitLog.setText(ResourceStore.getString("commitlog.status", changes.size()));
                     commitLogView.setCommitLog(changes, repo.getNewCommitCount());
@@ -292,10 +293,10 @@ public class ControllerMain extends StatusBarController implements Initializable
     }
 
     @Override
-    public void pullExecuted(String path, MergeResult.MergeStatus status) {
-        RepositoryInformation repo = watchlist.getSelectionModel().getSelectedItem();
-        if (repo != null && repo.getPath().equals(path)) {
-            updateCommitLog(repo);
+    public void pullExecuted(RepositoryInformation repo, MergeResult.MergeStatus status) {
+        RepositoryInformation selectedItem = watchlist.getSelectionModel().getSelectedItem();
+        if (selectedItem != null && selectedItem.getPath().equals(repo.getPath())) {
+            updateCommitLog(selectedItem);
         }
     }
 

@@ -13,7 +13,7 @@ import java.util.UUID;
         creatorVisibility = JsonAutoDetect.Visibility.NONE)
 public class RepositoryInformation implements Comparable<RepositoryInformation>, Cloneable {
 
-    private final UUID id;
+    private UUID id;
     private String path;
     private String name;
     private Date modifiedDate;
@@ -86,10 +86,21 @@ public class RepositoryInformation implements Comparable<RepositoryInformation>,
         this(path, null);
     }
 
+    public RepositoryInformation(UUID id) {
+        this.id = id;
+    }
+
     public RepositoryInformation(String path, String name) {
         this();
         this.path = path;
         this.name = name;
+    }
+
+    public RepositoryInformation(UUID id, String path, String name, MergeStrategy mergeStrat, int orderIdx) {
+        this(path, name);
+        this.id = id;
+        this.mergeStrategy = mergeStrat;
+        this.customOrderIndex = orderIdx;
     }
 
     public UUID getID() {

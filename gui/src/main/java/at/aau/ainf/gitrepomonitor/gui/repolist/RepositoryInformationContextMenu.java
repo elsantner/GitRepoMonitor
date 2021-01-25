@@ -62,7 +62,7 @@ public class RepositoryInformationContextMenu extends ContextMenu implements Err
             }
 
             setStatus(ResourceStore.getString("status.update_repo_status"));
-            gitManager.updateRepoStatusAsync(item.getPath(), Utils.toCharOrNull(masterPW), (success, reposChecked, reposFailed, ex) -> {
+            gitManager.updateRepoStatusAsync(item, Utils.toCharOrNull(masterPW), (success, reposChecked, reposFailed, ex) -> {
                 if (!success) {
                     setStatus(ResourceStore.getString("status.wrong_master_password"));
                     showError(ResourceStore.getString("status.wrong_master_password"));
@@ -84,7 +84,7 @@ public class RepositoryInformationContextMenu extends ContextMenu implements Err
                     return;
                 }
             }
-            gitManager.pullRepoAsync(item.getPath(), Utils.toCharOrNull(masterPW), (results, pullsSuccess,
+            gitManager.pullRepoAsync(item, Utils.toCharOrNull(masterPW), (results, pullsSuccess,
                                                                                     pullsFailed, wrongMP) -> {
                 if (wrongMP) {
                     setStatus(ResourceStore.getString("status.wrong_master_password"));

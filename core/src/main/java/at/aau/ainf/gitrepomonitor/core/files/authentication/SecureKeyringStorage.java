@@ -83,7 +83,7 @@ public class SecureKeyringStorage extends SecureStorage {
 
     @Override
     public void updateMasterPassword(char[] currentMasterPW, char[] newMasterPW) throws AuthenticationException, IOException {
-        updateMasterPassword(currentMasterPW, newMasterPW, FileManager.getInstance().getAllAuthenticatedRepos());
+        updateMasterPassword(currentMasterPW, newMasterPW, FileManager.getInstance().getAuthenticatedRepos());
     }
 
     public void updateMasterPassword(char[] currentMasterPW, char[] newMasterPW, List<RepositoryInformation> affectedRepos) throws AuthenticationException, IOException {

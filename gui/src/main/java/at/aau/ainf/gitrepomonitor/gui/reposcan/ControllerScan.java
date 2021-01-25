@@ -193,13 +193,13 @@ public class ControllerScan extends StatusBarController implements Initializable
         for (int i=0; i<selectedItems.size(); i++) {
             selectedItems.get(i).setCustomOrderIndex(listWatchlist.getItems().size()+i);
         }
-        fileManager.addToWatchlist(selectedItems);
+        fileManager.foundToWatchlist(selectedItems);
     }
 
     @FXML
     public void btnRemoveFromWatchlistClicked(ActionEvent actionEvent) {
         List<RepositoryInformation> selectedItems = List.copyOf(listWatchlist.getSelectionModel().getSelectedItems());
-        fileManager.removeFromWatchlist(selectedItems);
+        fileManager.watchlistToFound(selectedItems);
     }
 
     @Override
