@@ -3,18 +3,12 @@ package at.aau.ainf.gitrepomonitor.core.files.authentication;
 import at.aau.ainf.gitrepomonitor.core.files.FileManager;
 import at.aau.ainf.gitrepomonitor.core.files.RepositoryInformation;
 import at.aau.ainf.gitrepomonitor.core.files.Utils;
-import at.aau.ainf.gitrepomonitor.core.git.SSLTransportConfigCallback;
-import com.fasterxml.jackson.core.JsonParseException;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
-import org.eclipse.jgit.transport.UsernamePasswordCredentialsProvider;
 
 import javax.crypto.BadPaddingException;
 import javax.crypto.IllegalBlockSizeException;
 import javax.naming.AuthenticationException;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
-import java.io.IOException;
 import java.util.*;
 
 
@@ -29,7 +23,6 @@ import java.util.*;
 public class SecureFileStorage extends SecureStorage {
 
     private static SecureFileStorage instance;
-    private static final String CREDENTIALS_FILENAME = "creds";
 
     public static synchronized SecureFileStorage getInstance() {
         if (instance == null) {
@@ -38,17 +31,16 @@ public class SecureFileStorage extends SecureStorage {
         return instance;
     }
 
+    private FileManager fileManager;
+
     protected SecureFileStorage() {
         super();
+        this.fileManager = FileManager.getInstance();
     }
 
     @Override
     public boolean isSupported() {
         return true;
-    }
-
-    protected String getCredentialsFilename() {
-        return CREDENTIALS_FILENAME;
     }
 
     /**
@@ -57,291 +49,166 @@ public class SecureFileStorage extends SecureStorage {
      */
     @Override
     public boolean isMasterPasswordSet() {
-        File credentialsFile = new File(Utils.getProgramHomeDir() + getCredentialsFilename());
-        return (credentialsFile.exists() && !credentialsFile.isDirectory());
+        return fileManager.readAuthenticationString(MasterPasswordAuthInfo.ID) != null;
     }
 
     @Override
-    public void setMasterPassword(char[] masterPW) throws AuthenticationException, IOException {
+    public void setMasterPassword(char[] masterPW) throws AuthenticationException {
         if (isMasterPasswordSet()) {
             throw new AuthenticationException("master password was already set");
         }
-        char[] hashedPW = Utils.sha3_256(masterPW);
-        writeCredentials(new CredentialWrapper(), hashedPW);
+        char[] hashedMP = Utils.sha3_256(masterPW);
         Utils.clearArray(masterPW);
-        Utils.clearArray(hashedPW);
+        fileManager.storeAuthentication(new MasterPasswordAuthInfo(),
+                encrypt(new String(hashedMP), hashedMP));
+        Utils.clearArray(hashedMP);
     }
 
     @Override
-    public void updateMasterPassword(char[] currentMasterPW, char[] newMasterPW) throws AuthenticationException, IOException {
+    public void updateMasterPassword(char[] currentMasterPW, char[] newMasterPW) throws AuthenticationException {
         if (!isMasterPasswordSet()) {
             throw new AuthenticationException("master password was not set before");
         }
         char[] hashedCurrentPW = Utils.sha3_256(currentMasterPW);
         char[] hashedNewPW = Utils.sha3_256(newMasterPW);
-        CredentialWrapper wrapper = readCredentials(hashedCurrentPW);
-        writeCredentials(wrapper, hashedNewPW);
+
+        if (!isMasterPasswordCorrect(hashedCurrentPW)) {
+            throw new AuthenticationException("wrong master password");
+        }
+
+        try {
+            Map<UUID, String> encValues = fileManager.getAllAuthenticationStrings();
+            for (UUID id : encValues.keySet()) {
+                String newEncValue = encrypt(decrypt(encValues.get(id), hashedCurrentPW), hashedNewPW);
+                fileManager.updateAuthentication(id, newEncValue);
+            }
+        } catch (Exception ex) {
+            ex.printStackTrace();
+            throw new AuthenticationException("error during key change");
+        }
+
         Utils.clearArray(currentMasterPW);
         Utils.clearArray(newMasterPW);
         Utils.clearArray(hashedCurrentPW);
+
         cacheMasterPasswordIfEnabled(hashedNewPW);
         // reset mp clear mechanisms
         resetMPUseCount();
         restartMPExpirationTimer();
     }
 
+    /**
+     * Convert authInfo to XML and encrypt using masterPW
+     * @param authInfo
+     * @param masterPW
+     * @return
+     */
+    private String getEncryptedString(AuthenticationInformation authInfo, char[] masterPW) {
+        try {
+            return encrypt(mapper.writeValueAsString(authInfo), masterPW);
+        } catch (JsonProcessingException e) {
+            e.printStackTrace();
+            throw new RuntimeException(e);
+        }
+    }
+
     @Override
-    public void storeHttpsCredentials(char[] masterPW, UUID repoID,
-                                         String httpsUsername, char[] httpsPassword) throws IOException {
+    public void store(char[] masterPW, AuthenticationInformation authInfo) throws AuthenticationException {
         synchronized (lockMasterPasswordReset) {
             masterPW = getCachedMasterPasswordHashIfPossible(masterPW);
-            CredentialWrapper allCredentials = readCredentials(masterPW);
-            HttpsCredentials newCredentials = new HttpsCredentials(repoID, httpsUsername, httpsPassword);
-            allCredentials.putCredentials(newCredentials);
-            writeCredentials(allCredentials, masterPW);
 
-            cacheMasterPasswordIfEnabled(masterPW);
-            Utils.clearArray(masterPW);
-            Utils.clearArray(httpsPassword);
-            clearMasterPasswordIfRequired();
-        }
-    }
-
-    public void storeHttpsCredentials(UUID repoID, String httpsUsername, char[] httpsPassword) throws IOException {
-        throwIfMasterPasswordNotCached();
-        storeHttpsCredentials(null, repoID, httpsUsername, httpsPassword);
-    }
-
-    public void deleteHttpsCredentials(char[] masterPW, UUID repoID) throws IOException {
-        synchronized (lockMasterPasswordReset) {
-            masterPW = getCachedMasterPasswordHashIfPossible(masterPW);
-            CredentialWrapper allCredentials = readCredentials(masterPW);
-            allCredentials.removeCredentials(repoID);
-            writeCredentials(allCredentials, masterPW);
-
-            cacheMasterPasswordIfEnabled(masterPW);
-            Utils.clearArray(masterPW);
-            clearMasterPasswordIfRequired();
-        }
-    }
-
-    public void deleteHttpsCredentials(UUID repoID) throws IOException {
-        throwIfMasterPasswordNotCached();
-        deleteHttpsCredentials(null, repoID);
-    }
-
-    public HttpsCredentials getHttpsCredentials(char[] masterPW, UUID repoID) throws IOException {
-        synchronized (lockMasterPasswordReset) {
-            masterPW = getCachedMasterPasswordHashIfPossible(masterPW);
-            HttpsCredentials credentials = getHttpsCredentialsHashed(masterPW, repoID);
-            clearMasterPasswordIfRequired();
-            return credentials;
-        }
-    }
-
-    private HttpsCredentials getHttpsCredentialsHashed(char[] masterPWHash, UUID repoID) throws IOException {
-        CredentialWrapper allCredentials = readCredentials(masterPWHash);
-        HttpsCredentials credentials = allCredentials.getCredentials(repoID);
-        cacheMasterPasswordIfEnabled(masterPWHash);
-        Utils.clearArray(masterPWHash);
-        return credentials;
-    }
-
-    private SSLInformation getSslInformationHashed(char[] masterPWHash, UUID repoID) throws IOException {
-        CredentialWrapper allCredentials = readCredentials(masterPWHash);
-        SSLInformation sslInformation = allCredentials.getSslInformation(repoID);
-        cacheMasterPasswordIfEnabled(masterPWHash);
-        Utils.clearArray(masterPWHash);
-        return sslInformation;
-    }
-
-    public HttpsCredentials getHttpsCredentials(UUID repoID) throws IOException {
-        throwIfMasterPasswordNotCached();
-        return getHttpsCredentials(null, repoID);
-    }
-
-    public UsernamePasswordCredentialsProvider getHttpsCredentialProvider(char[] masterPW, UUID repoID) throws IOException {
-        synchronized (lockMasterPasswordReset) {
-            masterPW = getCachedMasterPasswordHashIfPossible(masterPW);
-            char[] masterPwCopy = Arrays.copyOf(masterPW, masterPW.length);
-            HttpsCredentials credentials = getHttpsCredentialsHashed(masterPW, repoID);
-            UsernamePasswordCredentialsProvider cp = new UsernamePasswordCredentialsProvider(credentials.getUsername(), credentials.getPassword());
-            cacheMasterPasswordIfEnabled(masterPwCopy);
-            Utils.clearArray(masterPwCopy);
-            clearMasterPasswordIfRequired();
-            return cp;
-        }
-    }
-
-    public UsernamePasswordCredentialsProvider getHttpsCredentialProvider(UUID repoID) throws IOException {
-        throwIfMasterPasswordNotCached();
-        return getHttpsCredentialProvider(null, repoID);
-    }
-
-    public Map<UUID, UsernamePasswordCredentialsProvider> getHttpsCredentialProviders(char[] masterPW, List<RepositoryInformation> repos) throws IOException {
-        synchronized (lockMasterPasswordReset) {
-            masterPW = getCachedMasterPasswordHashIfPossible(masterPW);
-            Map<UUID, UsernamePasswordCredentialsProvider> map = new HashMap<>();
-            CredentialWrapper allCredentials = readCredentials(masterPW);
-            for (HttpsCredentials credentials : allCredentials.getHttpsCredentials()) {
-                map.put(credentials.getRepoID(),
-                        new UsernamePasswordCredentialsProvider(credentials.getUsername(), credentials.getPassword()));
+            if (!isMasterPasswordCorrect(masterPW)) {
+                throw new AuthenticationException("wrong master password");
             }
-            for (RepositoryInformation repo : repos) {
-                if (repo.getAuthMethod() != RepositoryInformation.AuthMethod.HTTPS) {
-                    map.remove(repo.getID());
-                }
+            String encString = getEncryptedString(authInfo, masterPW);
+            fileManager.storeAuthentication(authInfo, encString);
+
+            cacheMasterPasswordIfEnabled(masterPW);
+            Utils.clearArray(masterPW);
+            authInfo.destroy();
+            clearMasterPasswordIfRequired();
+        }
+    }
+
+    @Override
+    public void store(AuthenticationInformation authInfo) throws AuthenticationException {
+        throwIfMasterPasswordNotCached();
+        store(null, authInfo);
+    }
+
+    @Override
+    public void update(char[] masterPW, AuthenticationInformation authInfo) throws AuthenticationException {
+        synchronized (lockMasterPasswordReset) {
+            masterPW = getCachedMasterPasswordHashIfPossible(masterPW);
+
+            if (!isMasterPasswordCorrect(masterPW)) {
+                throw new AuthenticationException("wrong master password");
             }
-            cacheMasterPasswordIfEnabled(masterPW);
-            Utils.clearArray(masterPW);
-            clearMasterPasswordIfRequired();
-            return map;
-        }
-    }
-
-    public Map<UUID, UsernamePasswordCredentialsProvider> getHttpsCredentialProviders(List<RepositoryInformation> repos) throws IOException {
-        throwIfMasterPasswordNotCached();
-        return getHttpsCredentialProviders(null, repos);
-    }
-
-    @Override
-    public void storeSslInformation(char[] masterPW, UUID repoID, byte[] sslPassphrase) throws IOException {
-        synchronized (lockMasterPasswordReset) {
-            masterPW = getCachedMasterPasswordHashIfPossible(masterPW);
-            CredentialWrapper allCredentials = readCredentials(masterPW);
-            SSLInformation newSslInfo = new SSLInformation(repoID, sslPassphrase);
-            allCredentials.putSslInformation(newSslInfo);
-            writeCredentials(allCredentials, masterPW);
+            String encString = getEncryptedString(authInfo, masterPW);
+            fileManager.updateAuthentication(authInfo, encString);
 
             cacheMasterPasswordIfEnabled(masterPW);
             Utils.clearArray(masterPW);
-            Utils.clearArray(sslPassphrase);
+            authInfo.destroy();
             clearMasterPasswordIfRequired();
         }
     }
 
     @Override
-    public void storeSslInformation(UUID repoID, byte[] sslPassphrase) throws IOException {
+    public void update(AuthenticationInformation authInfo) throws AuthenticationException {
         throwIfMasterPasswordNotCached();
-        storeSslInformation(null, repoID, sslPassphrase);
+        update(null, authInfo);
     }
 
     @Override
-    public void deleteSslInformation(char[] masterPW, UUID repoID) throws IOException {
+    public void delete(UUID id) {
+        // TODO: update repos using auth string
+        fileManager.deleteAuthentication(id);
+    }
+
+    @Override
+    public AuthenticationInformation get(char[] masterPW, UUID id) throws AuthenticationException {
         synchronized (lockMasterPasswordReset) {
             masterPW = getCachedMasterPasswordHashIfPossible(masterPW);
-            CredentialWrapper allCredentials = readCredentials(masterPW);
-            allCredentials.removeSslInformation(repoID);
-            writeCredentials(allCredentials, masterPW);
 
-            cacheMasterPasswordIfEnabled(masterPW);
-            Utils.clearArray(masterPW);
-            clearMasterPasswordIfRequired();
-        }
-    }
-
-    @Override
-    public void deleteSslInformation(UUID repoID) throws IOException {
-        throwIfMasterPasswordNotCached();
-        deleteSslInformation(null, repoID);
-    }
-
-    @Override
-    public SSLInformation getSslInformation(char[] masterPW, UUID repoID) throws IOException {
-        synchronized (lockMasterPasswordReset) {
-            masterPW = getCachedMasterPasswordHashIfPossible(masterPW);
-            SSLInformation sslInformation = getSslInformationHashed(masterPW, repoID);
-            clearMasterPasswordIfRequired();
-            return sslInformation;
-        }
-    }
-
-    @Override
-    public SSLInformation getSslInformation(UUID repoID) throws IOException {
-        throwIfMasterPasswordNotCached();
-        return getSslInformation(null ,repoID);
-    }
-
-    @Override
-    public Map<UUID, AuthInfo> getAuthInfos(char[] masterPW, List<RepositoryInformation> repos) throws IOException {
-        synchronized (lockMasterPasswordReset) {
-            masterPW = getCachedMasterPasswordHashIfPossible(masterPW);
-            Map<UUID, AuthInfo> map = new HashMap<>();
-            CredentialWrapper allCredentials = readCredentials(masterPW);
-
-            for (RepositoryInformation repo : repos) {
-                if (repo.getAuthMethod() == RepositoryInformation.AuthMethod.HTTPS) {
-                    HttpsCredentials credentials = allCredentials.getCredentials(repo.getID());
-                    map.put(repo.getID(), new AuthInfo(new UsernamePasswordCredentialsProvider(
-                            credentials.getUsername(), credentials.getPassword())));
-                } else if (repo.getAuthMethod() == RepositoryInformation.AuthMethod.SSL) {
-                    if (repo.getSslKeyPath() != null && !repo.getSslKeyPath().isBlank()) {
-                        SSLInformation sslInfo = allCredentials.getSslInformation(repo.getID());
-                        map.put(repo.getID(), new AuthInfo(new SSLTransportConfigCallback(
-                                repo.getSslKeyPath(), sslInfo != null ? sslInfo.getSslPassphrase() : null)));
-                    }
-                }
+            if (!isMasterPasswordCorrect(masterPW)) {
+                throw new AuthenticationException("wrong master password");
             }
-
-            cacheMasterPasswordIfEnabled(masterPW);
-            Utils.clearArray(masterPW);
-            clearMasterPasswordIfRequired();
-            return map;
+            try {
+                return mapper.readValue(decrypt(fileManager.readAuthenticationString(id), masterPW)
+                        , new TypeReference<>() {});
+            } catch (BadPaddingException | IllegalBlockSizeException | JsonProcessingException e) {
+                throw new SecurityException("authentication failed");
+            } finally {
+                cacheMasterPasswordIfEnabled(masterPW);
+                Utils.clearArray(masterPW);
+                clearMasterPasswordIfRequired();
+            }
         }
     }
 
     @Override
-    public void resetMasterPassword() throws IOException {
-        openCredentialsFile().delete();
-        FileManager.getInstance().clearAllAuthRequirements();
+    public AuthenticationInformation get(UUID id) throws AuthenticationException {
+        throwIfMasterPasswordNotCached();
+        return get(null, id);
+    }
+
+
+    private boolean isMasterPasswordCorrect(char[] hashedCurrentPW) {
+        String encHashedPW = fileManager.readAuthenticationString(MasterPasswordAuthInfo.ID);
+        try {
+            // check if decrypted password hash is equal to provided hash
+            return encHashedPW != null && hashedCurrentPW != null &&
+                    (decrypt(encHashedPW, hashedCurrentPW).equals(new String(hashedCurrentPW)));
+        } catch (Exception e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
+
+    @Override
+    public void resetMasterPassword() {
+        fileManager.clearAllAuthStrings();
         clearCachedMasterPassword();
-    }
-
-    @Override
-    public boolean isIntact(List<RepositoryInformation> authRequiredRepos) {
-        if (authRequiredRepos.isEmpty()) {
-            return true;
-        } else {
-            return isMasterPasswordSet();
-        }
-    }
-
-    protected CredentialWrapper readCredentials(char[] masterPW) throws IOException {
-        File credsFile = openCredentialsFile();
-        byte[] bytes;
-        String credentialsXml;
-
-        try (FileInputStream fis = new FileInputStream(credsFile)) {
-            bytes = fis.readAllBytes();
-            credentialsXml = decryptFromBytes(bytes, masterPW);
-            return mapper.readValue(credentialsXml, new TypeReference<CredentialWrapper>(){});
-        } catch (BadPaddingException | IllegalBlockSizeException | JsonParseException e) {
-            throw new SecurityException("authentication failed");
-        }
-    }
-
-    protected void writeCredentials(CredentialWrapper credentials, char[] masterPW) throws IOException {
-        File credsFile = openCredentialsFile();
-        byte[] bytes;
-        String credentialsXml;
-
-        try (FileOutputStream fos = new FileOutputStream(credsFile)) {
-            credentialsXml = mapper.writeValueAsString(credentials);
-            bytes = encryptToBytes(credentialsXml, masterPW);
-            fos.write(bytes);
-            fos.flush();
-        }
-    }
-
-    private File openCredentialsFile() throws IOException {
-        File credentialsFile = new File(Utils.getProgramHomeDir() + getCredentialsFilename());
-        if (credentialsFile.exists() && credentialsFile.isDirectory()) {
-            throw new IOException("could not locate credentials file");
-        } else if (!credentialsFile.exists()) {
-            if (!credentialsFile.createNewFile()) {
-                throw new IOException("could create credentials file");
-            }
-        }
-        return credentialsFile;
     }
 }

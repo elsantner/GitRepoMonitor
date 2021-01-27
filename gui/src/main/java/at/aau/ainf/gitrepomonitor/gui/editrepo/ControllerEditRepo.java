@@ -3,9 +3,7 @@ package at.aau.ainf.gitrepomonitor.gui.editrepo;
 import at.aau.ainf.gitrepomonitor.core.files.FileManager;
 import at.aau.ainf.gitrepomonitor.core.files.RepositoryInformation;
 import at.aau.ainf.gitrepomonitor.core.files.Utils;
-import at.aau.ainf.gitrepomonitor.core.files.authentication.HttpsCredentials;
-import at.aau.ainf.gitrepomonitor.core.files.authentication.SSLInformation;
-import at.aau.ainf.gitrepomonitor.core.files.authentication.SecureStorage;
+import at.aau.ainf.gitrepomonitor.core.files.authentication.*;
 import at.aau.ainf.gitrepomonitor.core.git.GitManager;
 import at.aau.ainf.gitrepomonitor.gui.ErrorDisplay;
 import at.aau.ainf.gitrepomonitor.gui.MasterPasswordQuery;
@@ -20,6 +18,7 @@ import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
 import javafx.scene.image.ImageView;
+import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.AnchorPane;
 import javafx.stage.*;
 import javafx.util.Callback;
@@ -28,51 +27,20 @@ import javax.naming.AuthenticationException;
 import java.io.File;
 import java.io.IOException;
 import java.net.URL;
-import java.util.Optional;
 import java.util.ResourceBundle;
+import java.util.UUID;
 
 public class ControllerEditRepo implements Initializable, ErrorDisplay, MasterPasswordQuery {
 
-    @FXML
-    public TextField txtHttpsUsername;
-    @FXML
-    public ToggleButton toggleShowPW;
-    @FXML
-    public PasswordField txtHttpsPasswordHidden;
-    @FXML
-    public TextField txtHttpsPasswordShown;
-    @FXML
-    public AnchorPane authContainerHTTPS;
-    @FXML
-    public AnchorPane authContainerSSL;
-    @FXML
-    public ImageView iconShowPW;
-    @FXML
-    public Tooltip ttShowPW;
-    @FXML
-    public Button btnLoadCredentials;
+
     @FXML
     public ComboBox<RepositoryInformation.MergeStrategy> cbBoxMergeStrat;
     @FXML
     public CheckBox chkBoxMergeStratApplyAll;
     @FXML
-    public TextField txtSslKeyPath;
-    @FXML
-    public Button btnChooseSslKeyPath;
-    @FXML
-    public PasswordField txtSslPassphraseHidden;
-    @FXML
-    public TextField txtSslPassphraseShown;
-    @FXML
-    public ToggleButton toggleShowSslPassphrase;
-    @FXML
-    public ImageView iconShowSslPassphrase;
-    @FXML
-    public Tooltip ttShowSslPassphrase;
-    @FXML
-    public AnchorPane authContainerNone;
-    @FXML
     public TextField txtRemotePath;
+    @FXML
+    public ComboBox<AuthenticationInformation> cbBoxAuthInfo;
     @FXML
     private TextField txtName;
     @FXML
@@ -87,8 +55,6 @@ public class ControllerEditRepo implements Initializable, ErrorDisplay, MasterPa
     private GitManager gitManager;
     private String originalPath;
     private RepositoryInformation repo;
-
-    private boolean authInfoChanged;
 
     public static FXMLLoader getLoader() {
         return new FXMLLoader(ControllerEditRepo.class.getResource("/at/aau/ainf/gitrepomonitor/gui/editrepo/edit_repo.fxml"),
@@ -126,38 +92,6 @@ public class ControllerEditRepo implements Initializable, ErrorDisplay, MasterPa
                 validateTextFieldPath();
             }
         });
-        // only show selected credential input
-        authContainerNone.managedProperty().bind(authContainerNone.visibleProperty());
-        authContainerHTTPS.managedProperty().bind(authContainerHTTPS.visibleProperty());
-        authContainerSSL.managedProperty().bind(authContainerSSL.visibleProperty());
-
-        // sync text between hidden and shown password fields
-        txtHttpsPasswordHidden.textProperty().bindBidirectional(txtHttpsPasswordShown.textProperty());
-        txtHttpsPasswordHidden.visibleProperty().bind(toggleShowPW.selectedProperty().not());
-        txtHttpsPasswordShown.visibleProperty().bind(toggleShowPW.selectedProperty());
-        toggleShowPW.selectedProperty().addListener((observable, oldValue, newValue) -> {
-            if (newValue) {
-                iconShowPW.setImage(ResourceStore.getImage("icon_hidden.png"));
-                ttShowPW.setText(ResourceStore.getString("edit_repo.hide_password"));
-            } else {
-                iconShowPW.setImage(ResourceStore.getImage("icon_visible.png"));
-                ttShowPW.setText(ResourceStore.getString("edit_repo.show_password"));
-            }
-        });
-
-        // sync text between hidden and shown password fields
-        txtSslPassphraseHidden.textProperty().bindBidirectional(txtSslPassphraseShown.textProperty());
-        txtSslPassphraseHidden.visibleProperty().bind(toggleShowSslPassphrase.selectedProperty().not());
-        txtSslPassphraseShown.visibleProperty().bind(toggleShowSslPassphrase.selectedProperty());
-        toggleShowSslPassphrase.selectedProperty().addListener((observable, oldValue, newValue) -> {
-            if (newValue) {
-                iconShowSslPassphrase.setImage(ResourceStore.getImage("icon_hidden.png"));
-                ttShowSslPassphrase.setText(ResourceStore.getString("edit_repo.hide_password"));
-            } else {
-                iconShowSslPassphrase.setImage(ResourceStore.getImage("icon_visible.png"));
-                ttShowSslPassphrase.setText(ResourceStore.getString("edit_repo.show_password"));
-            }
-        });
 
         cbBoxMergeStrat.setItems(new ImmutableObservableList<>(RepositoryInformation.MergeStrategy.values()));
         cbBoxMergeStrat.setCellFactory(new Callback<>() {
@@ -193,7 +127,7 @@ public class ControllerEditRepo implements Initializable, ErrorDisplay, MasterPa
         validateTextFieldPath();
         repo.setPath(txtPath.getText());
         try {
-            FileManager.setAuthMethod(repo);
+            GitManager.setAuthMethod(repo);
             updateRepoDisplay(repo);
         } catch (IOException e) {
             // should not happen
@@ -252,10 +186,13 @@ public class ControllerEditRepo implements Initializable, ErrorDisplay, MasterPa
         this.txtPath.setText(repo.getPath());
         this.txtRemotePath.setText(gitManager.getRemoteURL(repo.getPath()));
         this.cbBoxMergeStrat.getSelectionModel().select(repo.getMergeStrategy().ordinal());
-        this.txtSslKeyPath.setText(repo.getSslKeyPath());
 
         setupCredentials();
-        setupCredentialChangeListener();
+        // select current auth info
+        HttpsCredentials tmp = new HttpsCredentials();
+        tmp.setID(repo.getAuthID());
+        this.cbBoxAuthInfo.getSelectionModel().select(tmp);
+
         validateTextFields();
 
         // if repo path is not valid, disable connection test
@@ -264,69 +201,9 @@ public class ControllerEditRepo implements Initializable, ErrorDisplay, MasterPa
     }
 
     private void setupCredentials() {
-        setAuthenticationMethod();
-        // if auth method is not NONE, then there must be stored credentials
-        boolean showCredentials = repo.isAuthenticated() && repo.getAuthMethod() != RepositoryInformation.AuthMethod.NONE;
-        btnLoadCredentials.setVisible(showCredentials);
-
-        if (showCredentials) {
-            // load credentials if mp is cached
-            if (secureStorage.isMasterPasswordCached()) {
-                try {
-                    loadCredentials(null);
-                } catch (SecurityException e) {
-                    showError(ResourceStore.getString("status.wrong_master_password"));
-                } catch (Exception ex) {
-                    ex.printStackTrace();
-                    showError(ex.getMessage());
-                }
-            } else {
-                txtHttpsUsername.setPromptText(ResourceStore.getString("edit_repo.stored_username"));
-                txtHttpsPasswordHidden.setPromptText(ResourceStore.getString("edit_repo.stored_password"));
-                txtHttpsPasswordShown.setPromptText(ResourceStore.getString("edit_repo.stored_password"));
-                txtSslPassphraseHidden.setPromptText(ResourceStore.getString("edit_repo.stored_passphrase"));
-                txtSslPassphraseShown.setPromptText(ResourceStore.getString("edit_repo.stored_passphrase"));
-            }
-        }
-    }
-
-    private void setAuthenticationMethod() {
-        switch (repo.getAuthMethod()) {
-            case HTTPS:
-                authContainerHTTPS.setVisible(true);
-                authContainerSSL.setVisible(false);
-                authContainerNone.setVisible(false);
-                break;
-            case SSL:
-                authContainerHTTPS.setVisible(false);
-                authContainerSSL.setVisible(true);
-                authContainerNone.setVisible(false);
-                break;
-            case NONE:
-                authContainerHTTPS.setVisible(false);
-                authContainerSSL.setVisible(false);
-                authContainerNone.setVisible(true);
-                break;
-        }
-    }
-
-    private void setupCredentialChangeListener() {
-        txtHttpsUsername.textProperty().addListener((observable, oldValue, newValue) -> {
-            authInfoChanged = true;
-            clearHttpsInputPrompts();
-        });
-        txtHttpsPasswordHidden.textProperty().addListener((observable, oldValue, newValue) -> {
-            authInfoChanged = true;
-            clearHttpsInputPrompts();
-        });
-        txtSslKeyPath.textProperty().addListener((observable, oldValue, newValue) -> authInfoChanged = true);
-        txtSslPassphraseHidden.textProperty().addListener((observable, oldValue, newValue) -> authInfoChanged = true);
-    }
-
-    private void clearHttpsInputPrompts() {
-        txtHttpsUsername.setPromptText(null);
-        txtHttpsPasswordHidden.setPromptText(null);
-        txtHttpsPasswordShown.setPromptText(null);
+        // set combobox items to all auth infos for repos auth method
+        cbBoxAuthInfo.setItems(new ImmutableObservableList<>(
+                fileManager.getAllAuthenticationInfos(repo.getAuthMethod()).toArray(new AuthenticationInformation[0])));
     }
 
     @FXML
@@ -355,10 +232,6 @@ public class ControllerEditRepo implements Initializable, ErrorDisplay, MasterPa
                 }
             }
 
-            // only require master pw if credentials were actually changed
-            if (wasAuthChanged()) {
-                handleAuthChanged();
-            }
             // update repo data
             updateRepoInformation();
 
@@ -366,8 +239,6 @@ public class ControllerEditRepo implements Initializable, ErrorDisplay, MasterPa
             stage.close();
         } catch (SecurityException ex) {
             showError(ResourceStore.getString("status.wrong_master_password"));
-        } catch (AuthenticationException ex) {
-            // abort method
         } catch (Exception ex) {
             showError(ex.getMessage());
         }
@@ -387,84 +258,11 @@ public class ControllerEditRepo implements Initializable, ErrorDisplay, MasterPa
                 ResourceStore.getString("edit_repo.warn_no_remote.content"));
     }
 
-    private void handleAuthChanged() throws IOException, AuthenticationException {
-        // master password is required whenever auth information is changed
-        String masterPW = null;
-        if (secureStorage.isMasterPasswordSet()) {
-            if (!secureStorage.isMasterPasswordCached()) {
-                masterPW = showMasterPasswordInputDialog(false);
-                // if master password dialog was aborted, abort method
-                if (masterPW == null) {
-                    throw new AuthenticationException(ResourceStore.getString("errormsg.mp_dialog_aborted"));
-                }
-            }
-        } else {
-            masterPW = showMasterPasswordInputDialog(true);
-            if (masterPW != null) {
-                secureStorage.setMasterPassword(Utils.toCharOrNull(masterPW));
-            } else {
-                // if master password dialog was aborted, abort method
-                throw new AuthenticationException(ResourceStore.getString("errormsg.mp_dialog_aborted"));
-            }
-        }
-
-        if (authContainerHTTPS.isVisible()) {
-            if (defaultAuthValuesSet()) {
-                secureStorage.deleteHttpsCredentials(Utils.toCharOrNull(masterPW), repo.getID());
-            } else {
-                secureStorage.storeHttpsCredentials(Utils.toCharOrNull(masterPW), repo.getID(),
-                        txtHttpsUsername.getText(), txtHttpsPasswordHidden.getText().toCharArray());
-            }
-        } else if (authContainerSSL.isVisible()) {
-            validateSslInformation();
-            if (defaultAuthValuesSet()) {
-                secureStorage.deleteSslInformation(Utils.toCharOrNull(masterPW), repo.getID());
-            } else {
-                secureStorage.storeSslInformation(Utils.toCharOrNull(masterPW), repo.getID(),
-                        txtSslPassphraseHidden.getText().getBytes());
-            }
-        }
-    }
-
-    private void validateSslInformation() {
-        if (authContainerSSL.isVisible()) {
-            if (txtSslKeyPath.getText().isBlank() && !txtSslPassphraseHidden.getText().isBlank()) {
-                txtSslPassphraseHidden.getStyleClass().add("error-input");
-                throw new IllegalArgumentException(ResourceStore.getString("errormsg.ssl_passphrase_no_path"));
-            } else {
-                txtSslPassphraseHidden.getStyleClass().remove("error-input");
-            }
-
-            File keyFile = new File(txtSslKeyPath.getText());
-            if (!keyFile.exists()) {
-                txtSslKeyPath.getStyleClass().add("error-input");
-                throw new IllegalArgumentException(ResourceStore.getString("errormsg.ssl_invalid_key_file"));
-            } else {
-                txtSslKeyPath.getStyleClass().remove("error-input");
-            }
-        }
-    }
-
-    /**
-     * Check if the authentication method was changed in the GUI
-     * @return True, if changed
-     */
-    private boolean wasAuthChanged() {
-        return authInfoChanged;
-    }
-
     private void updateRepoInformation() {
         RepositoryInformation editedRepo = (RepositoryInformation) repo.clone();
         editedRepo.setPath(txtPath.getText());
         editedRepo.setName(txtName.getText());
-        // only set authentication if auth was changed
-        if (wasAuthChanged()) {
-            editedRepo.setAuthenticated(!defaultAuthValuesSet());
-        }
-        editedRepo.setMergeStrategy(cbBoxMergeStrat.getValue());
-        if (authContainerSSL.isVisible()) {
-            editedRepo.setSslKeyPath(txtSslKeyPath.getText());
-        }
+        editedRepo.setAuthID(cbBoxAuthInfo.getSelectionModel().getSelectedItem().getID());
 
         fileManager.editRepo(originalPath, editedRepo);
 
@@ -473,34 +271,11 @@ public class ControllerEditRepo implements Initializable, ErrorDisplay, MasterPa
         }
     }
 
-    private boolean defaultAuthValuesSet() {
-        if (authContainerHTTPS.isVisible()) {
-            return txtHttpsUsername.getText().isBlank() && txtHttpsPasswordHidden.getText().isBlank();
-        } else if (authContainerSSL.isVisible())  {
-            return txtSslPassphraseHidden.getText().isBlank();
-        } else {
-            // no remote --> no auth info
-            return true;
-        }
-    }
-
-    private File getDeepestExistingDirectory(String path) {
-        if (path == null || path.isBlank()) {
-            return null;
-        }
-
-        File dir = new File(path);
-        while (!dir.exists() || !dir.isDirectory()) {
-            dir = dir.getParentFile();
-        }
-        return dir;
-    }
-
     @FXML
     public void onBtnChoosePathClick(ActionEvent actionEvent) {
         DirectoryChooser directoryChooser = new DirectoryChooser();
         directoryChooser.setTitle(ResourceStore.getString("edit_repo.selectdir.title"));
-        directoryChooser.setInitialDirectory(getDeepestExistingDirectory(txtPath.getText()));
+        directoryChooser.setInitialDirectory(Utils.getDeepestExistingDirectory(txtPath.getText()));
         File selectedDirectory = directoryChooser.showDialog(txtName.getScene().getWindow());
         if (selectedDirectory != null) {
             txtPath.setText(selectedDirectory.getAbsolutePath());
@@ -510,38 +285,18 @@ public class ControllerEditRepo implements Initializable, ErrorDisplay, MasterPa
 
     @FXML
     public void onBtnTestConnClick(ActionEvent actionEvent) {
-        btnTestConnection.setDisable(true);
-        // if credentials are stored but not loaded, prompt the user to input Master Password and load them
-        // (if user aborts MP input, abort connection test)
-        // else use text from TextFields
-        boolean credentialsSet = true;
-        if (btnLoadCredentials.isVisible() && !authInfoChanged) {
-            credentialsSet = onBtnLoadCredentialsClick(actionEvent);
-        }
+        try {
+            btnTestConnection.setDisable(true);
+            UUID authID = cbBoxAuthInfo.getSelectionModel().getSelectedItem().getID();
 
-        if (authContainerHTTPS.isVisible()) {
-            if (credentialsSet) {
-                gitManager.testRepoConnectionHttpsAsync(repo, txtHttpsUsername.getText(), txtHttpsPasswordHidden.getText(),
-                        status -> Platform.runLater(() -> {
-                            setConnectionStatusDisplay(status);
-                            btnTestConnection.setDisable(false);
-                        }));
-            } else {
-                btnTestConnection.setDisable(false);
-            }
-        } else if (authContainerSSL.isVisible()) {
-            if (credentialsSet) {
-                String path = txtSslKeyPath.getText().isBlank() ? null : txtSslKeyPath.getText();
-                String passphrase = txtSslPassphraseHidden.getText().isBlank() ? null : txtSslPassphraseHidden.getText();
-
-                gitManager.testRepoConnectionSslAsync(repo, path, Utils.toBytesOrNull(passphrase),
-                        status -> Platform.runLater(() -> {
-                            setConnectionStatusDisplay(status);
-                            btnTestConnection.setDisable(false);
-                        }));
-            } else {
-                btnTestConnection.setDisable(false);
-            }
+            gitManager.testRepoConnectionAsync(repo, AuthInfo.get(authID,
+                    Utils.toCharOrNull(getMasterPasswordIfRequired())),
+                    status -> {
+                        setConnectionStatusDisplay(status);
+                        btnTestConnection.setDisable(false);
+            });
+        } catch (AuthenticationException | IOException ex) {
+            // do nothing, method is aborted automatically
         }
     }
 
@@ -571,47 +326,29 @@ public class ControllerEditRepo implements Initializable, ErrorDisplay, MasterPa
         }
     }
 
-    @FXML
-    public boolean onBtnLoadCredentialsClick(ActionEvent actionEvent) {
-        try {
-            String masterPW = showMasterPasswordInputDialog(false);
-            if (masterPW != null) {
-                loadCredentials(masterPW);
-                return true;
-            } else {
-                return false;
+    private String getMasterPasswordIfRequired() throws AuthenticationException, IOException {
+        String masterPW = null;
+        if (secureStorage.isMasterPasswordSet()) {
+            if (!secureStorage.isMasterPasswordCached()) {
+                masterPW = showMasterPasswordInputDialog(false);
+                // if master password dialog was aborted, abort method
+                if (masterPW == null) {
+                    throw new AuthenticationException(ResourceStore.getString("errormsg.mp_dialog_aborted"));
+                }
             }
-        } catch (SecurityException e) {
-            showError(ResourceStore.getString("status.wrong_master_password"));
-            return false;
-        } catch (Exception e) {
-            showError(e.getMessage());
-            return false;
+        } else {
+            masterPW = showMasterPasswordInputDialog(true);
+            if (masterPW != null) {
+                secureStorage.setMasterPassword(Utils.toCharOrNull(masterPW));
+            } else {
+                // if master password dialog was aborted, abort method
+                throw new AuthenticationException(ResourceStore.getString("errormsg.mp_dialog_aborted"));
+            }
         }
+        return masterPW;
     }
 
-    private void loadCredentials(String masterPW) throws IOException {
-        if (authContainerHTTPS.isVisible()) {
-            HttpsCredentials credentials = secureStorage.getHttpsCredentials(Utils.toCharOrNull(masterPW), repo.getID());
-            txtHttpsUsername.setText(credentials.getUsername());
-            txtHttpsPasswordHidden.setText(new String(credentials.getPassword()));
-        } else if (authContainerSSL.isVisible()) {
-            SSLInformation sslInfo = secureStorage.getSslInformation(Utils.toCharOrNull(masterPW), repo.getID());
-            txtSslPassphraseHidden.setText(new String(sslInfo.getSslPassphrase()));
-        }
-        btnLoadCredentials.setVisible(false);
-        // all previous changes are overwritten --> no changes made yet
-        authInfoChanged = false;
-    }
-
-    public void onBtnChooseSslKeyPathClick(ActionEvent actionEvent) {
-        FileChooser fileChooser = new FileChooser();
-        fileChooser.setTitle(ResourceStore.getString("edit_repo.selectdir.title"));
-        fileChooser.setInitialDirectory(getDeepestExistingDirectory(txtSslKeyPath.getText()));
-        File selectedFile = fileChooser.showOpenDialog(txtName.getScene().getWindow());
-        if (selectedFile != null) {
-            txtSslKeyPath.setText(selectedFile.getAbsolutePath());
-            //validateTextFieldPath();
-        }
+    public void onBtnAddAuthInfoClick(MouseEvent mouseEvent) {
+        // TODO: Add functionality
     }
 }

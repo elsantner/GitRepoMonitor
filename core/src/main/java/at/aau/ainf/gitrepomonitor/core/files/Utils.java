@@ -85,4 +85,16 @@ public abstract class Utils {
         Arrays.fill(bufByte.array(), (byte) 0);
         return bytes;
     }
+
+    public static File getDeepestExistingDirectory(String path) {
+        if (path == null || path.isBlank()) {
+            return null;
+        }
+
+        File dir = new File(path);
+        while (!dir.exists() || !dir.isDirectory()) {
+            dir = dir.getParentFile();
+        }
+        return dir;
+    }
 }

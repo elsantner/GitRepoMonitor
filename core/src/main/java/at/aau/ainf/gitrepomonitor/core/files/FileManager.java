@@ -1,6 +1,9 @@
 package at.aau.ainf.gitrepomonitor.core.files;
 
-import at.aau.ainf.gitrepomonitor.core.files.authentication.SecureStorage;
+import at.aau.ainf.gitrepomonitor.core.files.authentication.AuthenticationInformation;
+import at.aau.ainf.gitrepomonitor.core.files.authentication.HttpsCredentials;
+import at.aau.ainf.gitrepomonitor.core.files.authentication.SSLInformation;
+import at.aau.ainf.gitrepomonitor.core.git.GitManager;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.dataformat.xml.XmlMapper;
@@ -28,26 +31,11 @@ public class FileManager {
     private final List<PropertyChangeListener> listenersWatchlist;
     private final List<PropertyChangeListener> listenersFoundRepos;
     private final List<PropertyChangeListener> listenersRepoStatus;
+    private final List<PropertyChangeListener> listenersAuthInfo;
 
     private final XmlMapper mapper;
     private final File fileDB;
-    private final SecureStorage secureStorage;
     private Connection conn;
-
-    public static void setAuthMethod(RepositoryInformation repoInfo) throws IOException {
-        Repository repo = new FileRepositoryBuilder()
-                .setGitDir(new File(repoInfo.getPath() + "/.git"))
-                .build();
-
-        String originURL = repo.getConfig().getString("remote", "origin", "url");
-        if (originURL == null) {
-            repoInfo.setAuthMethod(RepositoryInformation.AuthMethod.NONE);
-        } else if (originURL.contains("https://")) {
-            repoInfo.setAuthMethod(RepositoryInformation.AuthMethod.HTTPS);
-        } else {
-            repoInfo.setAuthMethod(RepositoryInformation.AuthMethod.SSL);
-        }
-    }
 
     public static synchronized FileManager getInstance() {
         if (instance == null) {
@@ -62,8 +50,8 @@ public class FileManager {
         this.listenersWatchlist = new ArrayList<>();
         this.listenersFoundRepos = new ArrayList<>();
         this.listenersRepoStatus = new ArrayList<>();
+        this.listenersAuthInfo = new ArrayList<>();
 
-        this.secureStorage = SecureStorage.getImplementation();
         this.mapper = XmlMapper.xmlBuilder().configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false).build();
         this.fileDB = new File(Utils.getProgramHomeDir() + "data.db");
     }
@@ -74,25 +62,34 @@ public class FileManager {
 
     public void addRepoStatusListener(PropertyChangeListener l) { listenersRepoStatus.add(l); }
 
+    public void addAuthInfoListener(PropertyChangeListener l) { listenersAuthInfo.add(l); }
+
     public boolean removeWatchlistListener(PropertyChangeListener l) { return listenersWatchlist.remove(l); }
 
     public boolean removeFoundReposListener(PropertyChangeListener l) { return listenersFoundRepos.remove(l); }
 
     public boolean removeRepoStatusListener(PropertyChangeListener l) { return listenersRepoStatus.remove(l); }
 
+    public boolean removeAuthInfoListener(PropertyChangeListener l) { return listenersAuthInfo.remove(l); }
+
     private void notifyWatchlistChanged() {
         listenersWatchlist.forEach(propertyChangeListener ->
                 propertyChangeListener.propertyChange(new PropertyChangeEvent(this, "watchlist", null, getList(WATCH))));
     }
-    @JsonIgnore
+
     private void notifyFoundReposChanged() {
         listenersFoundRepos.forEach(propertyChangeListener ->
                 propertyChangeListener.propertyChange(new PropertyChangeEvent(this, "foundRepos", null, getList(FOUND))));
     }
-    @JsonIgnore
+
     private void notifyRepoStatusChanged(RepositoryInformation repo) {
         listenersRepoStatus.forEach(propertyChangeListener ->
                 propertyChangeListener.propertyChange(new PropertyChangeEvent(this, "repoStatus", null, repo)));
+    }
+
+    private void notifyAuthInfoChanged() {
+        listenersAuthInfo.forEach(propertyChangeListener ->
+                propertyChangeListener.propertyChange(new PropertyChangeEvent(this, "authInfo", null, null)));
     }
 
     public List<RepositoryInformation> getList(RepoList list) {
@@ -189,7 +186,7 @@ public class FileManager {
     private void checkRepoPathValidity(Collection<RepositoryInformation> reposToCheck) {
         for (RepositoryInformation repoInfo : reposToCheck) {
             try {
-                FileManager.setAuthMethod(repoInfo);
+                GitManager.setAuthMethod(repoInfo);
                 if (!Utils.validateRepositoryPath(repoInfo.getPath())) {
                     repoInfo.setStatus(RepositoryInformation.RepoStatus.PATH_INVALID);
                 }
@@ -225,21 +222,31 @@ public class FileManager {
         notifyRepoStatusChanged(repo);
     }
 
-    // TODO: change to auth_id
     public List<RepositoryInformation> getAuthenticatedRepos() {
         List<RepositoryInformation> authRepos = new ArrayList<>();
         for (RepositoryInformation repo : getAllRepos()) {
 
-            if (repo.isAuthenticated()) {
+            if (repo.getAuthID() != null) {
                 authRepos.add(repo);
             }
         }
         return authRepos;
     }
 
-    public void resetAuthMethodAll() {
+    public void resetAuthAll() {
         for (RepositoryInformation repo : getAllRepos()) {
-            repo.setAuthenticated(false);
+            repo.setAuthID(null);
+            updateInDB(repo);
+        }
+    }
+
+    public void clearAllAuthStrings() {
+        resetAuthAll();
+        try {
+            PreparedStatement stmt = conn.prepareStatement("DELETE FROM auth");
+            stmt.executeQuery();
+        } catch (SQLException ex) {
+            throw new RuntimeException(ex);
         }
     }
 
@@ -264,7 +271,7 @@ public class FileManager {
 
         // TODO: rework
         checkRepoPathValidity();
-        return !checkCredentials();
+        return false;
     }
 
     public void loadRepos() {
@@ -296,6 +303,7 @@ public class FileManager {
         stmt = conn.createStatement();
         sql = "CREATE TABLE auth " +
                 "(id TEXT PRIMARY KEY     NOT NULL," +
+                " name           TEXT     NOT NULL, " +
                 " type           CHAR(5)  NOT NULL, " +
                 " enc_value      TEXT)";
         stmt.executeUpdate(sql);
@@ -313,28 +321,6 @@ public class FileManager {
                 " FOREIGN KEY (auth_id) REFERENCES auth (id) )";
         stmt.executeUpdate(sql);
         stmt.close();
-    }
-
-    public void clearAllAuthRequirements() {
-        for (RepositoryInformation repo : getAllRepos()) {
-            repo.setAuthenticated(false);
-            updateInDB(repo);
-        }
-    }
-
-    /**
-     * Check if the credentials file is present if authenticated repos exist.
-     * @return False, if credentials are required but no credentials file exists (was deleted).
-     */
-    // TODO: rework
-    private boolean checkCredentials() {
-        List<RepositoryInformation> authRequiredRepos = getAuthenticatedRepos();
-        if (!secureStorage.isIntact(authRequiredRepos)) {
-            resetAuthMethodAll();
-            return false;
-        } else {
-            return true;
-        }
     }
 
     public synchronized void addToFoundRepos(RepositoryInformation repo) {
@@ -424,7 +410,7 @@ public class FileManager {
         }
     }
 
-    public void deleteFromDB(RepositoryInformation repo) {
+    private void deleteFromDB(RepositoryInformation repo) {
         try {
             PreparedStatement stmt = conn.prepareStatement(
                     "DELETE FROM repo WHERE id=?");
@@ -451,7 +437,7 @@ public class FileManager {
      */
     public boolean isWatchlistAuthenticationRequired() {
         for (RepositoryInformation repo : getList(WATCH)) {
-            if (repo.isAuthenticated())
+            if (repo.getAuthID() != null)
                 return true;
         }
         return false;
@@ -461,6 +447,152 @@ public class FileManager {
         for (RepositoryInformation repo : getAllRepos()) {
             repo.setMergeStrategy(strat);
             updateInDB(repo);
+        }
+    }
+
+    public void storeAuthentication(AuthenticationInformation authInfo, String encString) {
+        try {
+            PreparedStatement stmt = conn.prepareStatement(
+                    "INSERT INTO auth (id, name, type, enc_value) VALUES (?,?,?,?)");
+            stmt.setString(1, authInfo.getID().toString());
+            stmt.setString(2, authInfo.getName());
+            stmt.setString(3, authInfo.getAuthMethod().name());
+            stmt.setString(4, encString);
+
+            stmt.executeUpdate();
+            notifyAuthInfoChanged();
+        } catch (SQLException ex) {
+            throw new RuntimeException(ex);
+        }
+    }
+
+    /**
+     *
+     * @param authID
+     * @return null if not found
+     */
+    public String readAuthenticationString(UUID authID) {
+        try {
+            PreparedStatement stmt = conn.prepareStatement("SELECT enc_value FROM auth WHERE id=?");
+            stmt.setString(1, authID.toString());
+
+            try (ResultSet results = stmt.executeQuery()) {
+                results.next();
+                return results.getString("enc_value");
+            }
+        } catch (SQLException ex) {
+            return null;
+        }
+    }
+
+    public void updateAuthentication(AuthenticationInformation authInfo, String encString) {
+        try {
+            PreparedStatement stmt = conn.prepareStatement(
+                    "UPDATE auth SET name=?, type=?, enc_value=? WHERE id=?");
+            stmt.setString(1, authInfo.getName());
+            stmt.setString(2, authInfo.getAuthMethod().name());
+            stmt.setString(3, encString);
+            stmt.setString(4, authInfo.getID().toString());
+
+            stmt.executeUpdate();
+            notifyAuthInfoChanged();
+        } catch (SQLException ex) {
+            throw new RuntimeException(ex);
+        }
+    }
+
+    public void updateAuthentication(UUID authID, String encString) {
+        try {
+            PreparedStatement stmt = conn.prepareStatement(
+                    "UPDATE auth SET enc_value=? WHERE id=?");
+            stmt.setString(1, encString);
+            stmt.setString(2, authID.toString());
+
+            stmt.executeUpdate();
+            notifyAuthInfoChanged();
+        } catch (SQLException ex) {
+            throw new RuntimeException(ex);
+        }
+    }
+
+    public void deleteAuthentication(UUID authID) {
+        try {
+            PreparedStatement stmt = conn.prepareStatement(
+                    "DELETE FROM auth WHERE id=?");
+            stmt.setString(1, authID.toString());
+
+            stmt.executeUpdate();
+            notifyAuthInfoChanged();
+        } catch (SQLException ex) {
+            throw new RuntimeException(ex);
+        }
+    }
+
+    public Map<UUID, String> getAllAuthenticationStrings() {
+        Map<UUID, String> authStrings = new HashMap<>();
+        try {
+            // exclude MP_SET entry
+            PreparedStatement stmt = conn.prepareStatement("SELECT id, enc_value FROM auth WHERE type <> 'NONE'");
+
+            try (ResultSet results = stmt.executeQuery()) {
+                while (results.next()) {
+                    authStrings.put(UUID.fromString(results.getString("id")),
+                            results.getString("enc_value"));
+                }
+            }
+            return authStrings;
+        } catch (SQLException ex) {
+            return new HashMap<>();
+        }
+    }
+
+    public List<AuthenticationInformation> getAllAuthenticationInfos() {
+        List<AuthenticationInformation> authInfos = new ArrayList<>();
+        try {
+            // exclude MP_SET entry
+            PreparedStatement stmt = conn.prepareStatement("SELECT id, name, type FROM auth WHERE type <> 'NONE'");
+
+            try (ResultSet results = stmt.executeQuery()) {
+                while (results.next()) {
+                    AuthenticationInformation authInfo;
+                    if (results.getString("type").equals(RepositoryInformation.AuthMethod.HTTPS.name())) {
+                        authInfo = new HttpsCredentials();
+                    } else {
+                        authInfo = new SSLInformation();
+                    }
+                    authInfo.setID(UUID.fromString(results.getString("id")));
+                    authInfo.setName(results.getString("name"));
+                    authInfos.add(authInfo);
+                }
+            }
+            return authInfos;
+        } catch (SQLException ex) {
+            return new ArrayList<>();
+        }
+    }
+
+    public List<AuthenticationInformation> getAllAuthenticationInfos(RepositoryInformation.AuthMethod authMethod) {
+        List<AuthenticationInformation> authInfos = new ArrayList<>();
+        try {
+            // exclude MP_SET entry
+            PreparedStatement stmt = conn.prepareStatement("SELECT id, name FROM auth WHERE type=?");
+
+            try (ResultSet results = stmt.executeQuery()) {
+                while (results.next()) {
+                    AuthenticationInformation authInfo;
+                    if (authMethod == RepositoryInformation.AuthMethod.HTTPS) {
+                        authInfo = new HttpsCredentials();
+                    } else {
+                        authInfo = new SSLInformation();
+                    }
+                    authInfo.setID(UUID.fromString(results.getString("id")));
+                    authInfo.setName(results.getString("name"));
+                    authInfos.add(authInfo);
+                }
+            }
+            return authInfos;
+        } catch (SQLException ex) {
+            return new ArrayList<>();
         }
     }
 }

@@ -18,6 +18,7 @@ import org.eclipse.jgit.treewalk.CanonicalTreeParser;
 import org.eclipse.jgit.treewalk.EmptyTreeIterator;
 import org.eclipse.jgit.util.MutableInteger;
 
+import javax.naming.AuthenticationException;
 import javax.security.auth.login.CredentialException;
 import java.io.File;
 import java.io.IOException;
@@ -38,6 +39,21 @@ public class GitManager {
             instance = new GitManager();
         }
         return instance;
+    }
+
+    public static void setAuthMethod(RepositoryInformation repoInfo) throws IOException {
+        Repository repo = new FileRepositoryBuilder()
+                .setGitDir(new File(repoInfo.getPath() + "/.git"))
+                .build();
+
+        String originURL = repo.getConfig().getString("remote", "origin", "url");
+        if (originURL == null) {
+            repoInfo.setAuthMethod(RepositoryInformation.AuthMethod.NONE);
+        } else if (originURL.contains("https://")) {
+            repoInfo.setAuthMethod(RepositoryInformation.AuthMethod.HTTPS);
+        } else {
+            repoInfo.setAuthMethod(RepositoryInformation.AuthMethod.SSL);
+        }
     }
 
     private final HashMap<String, Git> repoCache;
@@ -215,20 +231,12 @@ public class GitManager {
         return changes;
     }
 
-    public void testRepoConnectionAsync(RepositoryInformation repo, ConnectionTestCallback cb) {
-        executor.submit(() -> cb.finished(testRepoConnection(repo, new AuthInfo())));
-    }
-
-    public void testRepoConnectionHttpsAsync(RepositoryInformation repo, String httpsUsername, String httpsPassword,
-                                        ConnectionTestCallback cb) {
-        executor.submit(() -> cb.finished(testRepoConnection(repo,
-                new AuthInfo(new UsernamePasswordCredentialsProvider(httpsUsername, httpsPassword)))));
-    }
-
-    public void testRepoConnectionSslAsync(RepositoryInformation repo, String sslKeyPath, byte[] sslPassphrase,
-                                        ConnectionTestCallback cb) {
-        executor.submit(() -> cb.finished(testRepoConnection(repo,
-                new AuthInfo(new SSLTransportConfigCallback(sslKeyPath, sslPassphrase)))));
+    public void testRepoConnectionAsync(RepositoryInformation repo, AuthInfo authInfo, ConnectionTestCallback cb) {
+        executor.submit(() -> {
+            RepositoryInformation.RepoStatus testResult = testRepoConnection(repo, authInfo);
+            authInfo.destroy();
+            cb.finished(testResult);
+        });
     }
 
     public Collection<Branch> getBranchNames(String path) throws IOException, GitAPIException {
@@ -346,7 +354,7 @@ public class GitManager {
         }
     }
 
-    private MergeResult.MergeStatus pullRepo(RepositoryInformation repo, char[] masterPW, ProgressMonitor progressMonitor) throws IOException, GitAPIException, CredentialException {
+    private MergeResult.MergeStatus pullRepo(RepositoryInformation repo, char[] masterPW, ProgressMonitor progressMonitor) throws IOException, GitAPIException, CredentialException, AuthenticationException {
         RepositoryInformation repoInfo = fileManager.getRepo(repo.getID());
         AuthInfo authInfo = AuthInfo.getFor(repoInfo, masterPW);
         MergeResult.MergeStatus status = pullRepo(repo, authInfo, progressMonitor);
@@ -411,14 +419,14 @@ public class GitManager {
      * @param masterPW Master Password for stored credentials
      * @throws IOException If repo path is invalid
      */
-    private void updateRepoStatus(RepositoryInformation repo, char[] masterPW) throws IOException {
+    private void updateRepoStatus(RepositoryInformation repo, char[] masterPW) throws IOException, AuthenticationException {
         RepositoryInformation repoInfo = fileManager.getRepo(repo.getID());
         // if master password is provided & repo has authentication method specified, use those credentials
         AuthInfo authInfo = null;
         try {
             authInfo = AuthInfo.getFor(repoInfo, masterPW);
             updateRepoStatus(repo, authInfo);
-        } catch (SecurityException ex) {
+        } catch (SecurityException | AuthenticationException ex) {
             fileManager.updateRepoStatus(repoInfo.getID(), WRONG_MASTER_PW);
             throw ex;
         } finally {
@@ -433,7 +441,7 @@ public class GitManager {
         try {
             if (!Utils.validateRepositoryPath(repoInfo.getPath())) {
                 status = PATH_INVALID;
-            } else if (repoInfo.isAuthenticated() && !authInfo.hasInformation()) {
+            } else if (repoInfo.getAuthID() != null && !authInfo.hasInformation()) {
                 throw new SecurityException("wrong master password");
             } else {
                 status = getRepoStatus(getRepoGit(repo.getPath()), authInfo);

@@ -6,6 +6,7 @@ import org.eclipse.jgit.api.GitCommand;
 import org.eclipse.jgit.api.TransportCommand;
 import org.eclipse.jgit.transport.UsernamePasswordCredentialsProvider;
 
+import javax.naming.AuthenticationException;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.List;
@@ -29,32 +30,45 @@ public class AuthInfo {
     public AuthInfo() {
     }
 
-    public static Map<UUID, AuthInfo> getFor(List<RepositoryInformation> repos, char[] masterPW) throws IOException {
-        return secureStorage.getAuthInfos(masterPW, repos);
+    public static Map<UUID, AuthInfo> getFor(List<RepositoryInformation> repos, char[] masterPW) throws AuthenticationException {
+        Map<UUID, AuthInfo> authInfos = new HashMap<>();
+        for (RepositoryInformation r : repos) {
+            authInfos.put(r.getID(), getFor(r, masterPW));
+        }
+        return authInfos;
     }
 
-    public static AuthInfo getFor(RepositoryInformation repo, char[] masterPW) throws IOException {
-        switch (repo.getAuthMethod()) {
-            case HTTPS:
-                if (repo.isAuthenticated()) {
-                    return new AuthInfo(secureStorage.getHttpsCredentialProvider(masterPW, repo.getID()));
-                } else {
-                    return new AuthInfo();
-                }
-            case SSL:
-                // read ssl passphrase only if repo requires it (i.e. is authenticated), otherwise use custom ssl path if specified
-                SSLTransportConfigCallback sslConfig;
-                if (repo.isAuthenticated() && repo.getSslKeyPath() != null) {
-                    SSLInformation sslInfo = secureStorage.getSslInformation(masterPW, repo.getID());
-                    sslConfig = new SSLTransportConfigCallback(repo.getSslKeyPath(), sslInfo.getSslPassphrase());
-                } else if (repo.getSslKeyPath() != null) {
-                    sslConfig = new SSLTransportConfigCallback(repo.getSslKeyPath(), null);
-                } else {
-                    sslConfig = new SSLTransportConfigCallback();
-                }
-                return new AuthInfo(sslConfig);
-            default:
+    public static AuthInfo getFor(RepositoryInformation repo, char[] masterPW) throws AuthenticationException {
+        if (repo.getAuthID() != null) {
+            AuthenticationInformation ai = secureStorage.get(masterPW, repo.getAuthID());
+            if (ai instanceof HttpsCredentials) {
+                return new AuthInfo(new UsernamePasswordCredentialsProvider(
+                        ((HttpsCredentials) ai).getUsername(), ((HttpsCredentials) ai).getPassword()));
+            } else if (ai instanceof SSLInformation) {
+                return new AuthInfo(new SSLTransportConfigCallback(
+                        ((SSLInformation) ai).getSslKeyPath(), ((SSLInformation) ai).getSslPassphrase()));
+            } else {
                 return new AuthInfo();
+            }
+        } else {
+            return new AuthInfo();
+        }
+    }
+
+    public static AuthInfo get(UUID authId, char[] masterPW) throws AuthenticationException {
+        if (authId != null) {
+            AuthenticationInformation ai = secureStorage.get(masterPW, authId);
+            if (ai instanceof HttpsCredentials) {
+                return new AuthInfo(new UsernamePasswordCredentialsProvider(
+                        ((HttpsCredentials) ai).getUsername(), ((HttpsCredentials) ai).getPassword()));
+            } else if (ai instanceof SSLInformation) {
+                return new AuthInfo(new SSLTransportConfigCallback(
+                        ((SSLInformation) ai).getSslKeyPath(), ((SSLInformation) ai).getSslPassphrase()));
+            } else {
+                return new AuthInfo();
+            }
+        } else {
+            return new AuthInfo();
         }
     }
 

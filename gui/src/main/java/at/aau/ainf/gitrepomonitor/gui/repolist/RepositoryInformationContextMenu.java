@@ -117,24 +117,7 @@ public class RepositoryInformationContextMenu extends ContextMenu implements Err
         MenuItem deleteItem = new MenuItem();
         deleteItem.setText(ResourceStore.getString("ctxmenu.remove"));
         deleteItem.setGraphic(getCtxMenuIcon("icon_delete.png"));
-        deleteItem.setOnAction(event -> {
-            try {
-                if (item.isAuthenticated()) {
-                    secureStorage.deleteHttpsCredentials(item.getID());
-                }
-                FileManager.getInstance().deleteRepo(item);
-            } catch (IOException | SecurityException e) {
-                String masterPW = showMasterPasswordInputDialog(false);
-                try {
-                    if (masterPW != null) {
-                        secureStorage.deleteHttpsCredentials(masterPW.toCharArray(), item.getID());
-                        FileManager.getInstance().deleteRepo(item);
-                    }
-                } catch (IOException ioException) {
-                    showError(ResourceStore.getString("status.wrong_master_password"));
-                }
-            }
-        });
+        deleteItem.setOnAction(event -> FileManager.getInstance().deleteRepo(item));
 
         MenuItem showInExplorerItem = new MenuItem();
         showInExplorerItem.setText(ResourceStore.getString("ctxmenu.show_in_explorer"));

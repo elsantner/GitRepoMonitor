@@ -1,5 +1,6 @@
 package at.aau.ainf.gitrepomonitor.core.files.authentication;
 
+import at.aau.ainf.gitrepomonitor.core.files.RepositoryInformation;
 import at.aau.ainf.gitrepomonitor.core.files.Utils;
 
 import java.util.UUID;
@@ -12,8 +13,7 @@ public class HttpsCredentials extends AuthenticationInformation {
         super();
     }
 
-    public HttpsCredentials(UUID repoID, String username, char[] password) {
-        super(repoID);
+    public HttpsCredentials(String username, char[] password) {
         this.username = username;
         this.password = password;
     }
@@ -32,6 +32,11 @@ public class HttpsCredentials extends AuthenticationInformation {
 
     public void setPassword(char[] password) {
         this.password = password;
+    }
+
+    @Override
+    public RepositoryInformation.AuthMethod getAuthMethod() {
+        return RepositoryInformation.AuthMethod.HTTPS;
     }
 
     @Override

@@ -168,40 +168,19 @@ public abstract class SecureStorage {
 
     public abstract void updateMasterPassword(char[] currentMasterPW, char[] newMasterPW) throws AuthenticationException, IOException;
 
-    public abstract void storeHttpsCredentials(char[] masterPW, UUID repoID,
-                                         String httpsUsername, char[] httpsPassword) throws IOException;
+    public abstract void store(char[] masterPW, AuthenticationInformation authInfo) throws AuthenticationException;
 
-    public abstract void storeHttpsCredentials(UUID repoID, String httpsUsername, char[] httpsPassword) throws IOException;
+    public abstract void store(AuthenticationInformation authInfo) throws AuthenticationException;
 
-    public abstract void deleteHttpsCredentials(char[] masterPW, UUID repoID) throws IOException;
+    public abstract void update(char[] masterPW, AuthenticationInformation authInfo) throws AuthenticationException;
 
-    public abstract void deleteHttpsCredentials(UUID repoID) throws IOException;
+    public abstract void update(AuthenticationInformation authInfo) throws AuthenticationException;
 
-    public abstract HttpsCredentials getHttpsCredentials(char[] masterPW, UUID repoID) throws IOException;
+    public abstract void delete(UUID id);
 
-    public abstract HttpsCredentials getHttpsCredentials(UUID repoID) throws IOException;
+    public abstract AuthenticationInformation get(char[] masterPW, UUID id) throws AuthenticationException;
 
-    public abstract UsernamePasswordCredentialsProvider getHttpsCredentialProvider(char[] masterPW, UUID repoID) throws IOException;
-
-    public abstract UsernamePasswordCredentialsProvider getHttpsCredentialProvider(UUID repoID) throws IOException;
-
-    public abstract Map<UUID, UsernamePasswordCredentialsProvider> getHttpsCredentialProviders(char[] masterPW, List<RepositoryInformation> repos) throws IOException;
-
-    public abstract Map<UUID, UsernamePasswordCredentialsProvider> getHttpsCredentialProviders(List<RepositoryInformation> repos) throws IOException;
-
-    public abstract void storeSslInformation(char[] masterPW, UUID repoID, byte[] sslPassphrase) throws IOException;
-
-    public abstract void storeSslInformation(UUID repoID, byte[] sslPassphrase) throws IOException;
-
-    public abstract void deleteSslInformation(char[] masterPW, UUID repoID) throws IOException;
-
-    public abstract void deleteSslInformation(UUID repoID) throws IOException;
-
-    public abstract SSLInformation getSslInformation(char[] masterPW, UUID repoID) throws IOException;
-
-    public abstract SSLInformation getSslInformation(UUID repoID) throws IOException;
-
-    public abstract Map<UUID, AuthInfo> getAuthInfos(char[] masterPW, List<RepositoryInformation> repos) throws IOException;
+    public abstract AuthenticationInformation get(UUID id) throws AuthenticationException;
 
     public abstract void resetMasterPassword() throws IOException;
 
@@ -250,8 +229,6 @@ public abstract class SecureStorage {
             throw new RuntimeException(ex);
         }
     }
-
-    public abstract boolean isIntact(List<RepositoryInformation> authRequiredRepos);
 
     protected synchronized void clearMasterPasswordIfRequired() {
         incrementAndCheckMPUseCount();
