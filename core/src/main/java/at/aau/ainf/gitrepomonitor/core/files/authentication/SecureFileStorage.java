@@ -175,9 +175,10 @@ public class SecureFileStorage extends SecureStorage {
                 throw new AuthenticationException("wrong master password");
             }
             try {
-                return mapper.readValue(decrypt(fileManager.readAuthenticationString(id), masterPW)
-                        , new TypeReference<>() {});
+                return mapper.readValue(decrypt(fileManager.readAuthenticationString(id), masterPW),
+                        new TypeReference<>() {});
             } catch (BadPaddingException | IllegalBlockSizeException | JsonProcessingException e) {
+                e.printStackTrace();
                 throw new SecurityException("authentication failed");
             } finally {
                 cacheMasterPasswordIfEnabled(masterPW);

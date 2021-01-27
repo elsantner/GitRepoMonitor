@@ -78,8 +78,9 @@ public class ControllerEditAuth implements Initializable, ErrorDisplay, MasterPa
     public static void openWindow(AuthenticationInformation authInfo) throws IOException {
         FXMLLoader loader = ControllerEditAuth.getLoader();
         Parent root = loader.load();
-        ((ControllerEditAuth)loader.getController()).setAuthInfo(authInfo);     // set repo information to display
-        configureStage(root);
+        if (((ControllerEditAuth)loader.getController()).setAuthInfo(authInfo)) {     // set repo information to display
+            configureStage(root);
+        }
     }
 
     public static void openWindowNewAuth(RepositoryInformation.AuthMethod authMethod) throws IOException {
@@ -113,7 +114,10 @@ public class ControllerEditAuth implements Initializable, ErrorDisplay, MasterPa
             String masterPW = getMasterPasswordIfRequired();
             loadCredentials(masterPW);
             return true;
-        } catch (SecurityException e) {
+        } catch (SecurityException ex) {
+            // nothing, method is aborted
+            return false;
+        } catch (AuthenticationException ex) {
             showError(ResourceStore.getString("status.wrong_master_password"));
             return false;
         } catch (Exception e) {
@@ -172,19 +176,21 @@ public class ControllerEditAuth implements Initializable, ErrorDisplay, MasterPa
         return status;
     }
 
-    public void setAuthInfo(AuthenticationInformation authInfo) {
+    public boolean setAuthInfo(AuthenticationInformation authInfo) {
         this.authInfo = authInfo;
 
         if (authInfo != null) {
             // if credentials could not be loaded
             if (!attemptLoadCredentials()) {
-                closeWindow();
+                // used to abort opening of window
+                return false;
             } else {
                 updateAuthDisplay(authInfo);
             }
             createNew = false;
             setAuthMethodDisplay(authInfo.getAuthMethod());
         }
+        return true;
     }
 
     public void setCreateNew(RepositoryInformation.AuthMethod authMethod) {
@@ -245,7 +251,9 @@ public class ControllerEditAuth implements Initializable, ErrorDisplay, MasterPa
 
             Stage stage = (Stage) txtName.getScene().getWindow();
             stage.close();
-        } catch (SecurityException | AuthenticationException ex) {
+        } catch (SecurityException ex) {
+            // nothing, method is aborted
+        } catch (AuthenticationException ex) {
             showError(ResourceStore.getString("status.wrong_master_password"));
         } catch (Exception ex) {
             showError(ex.getMessage());
@@ -259,7 +267,7 @@ public class ControllerEditAuth implements Initializable, ErrorDisplay, MasterPa
                 masterPW = showMasterPasswordInputDialog(false);
                 // if master password dialog was aborted, abort method
                 if (masterPW == null) {
-                    throw new AuthenticationException(ResourceStore.getString("errormsg.mp_dialog_aborted"));
+                    throw new SecurityException(ResourceStore.getString("errormsg.mp_dialog_aborted"));
                 }
             }
         } else {
@@ -268,7 +276,7 @@ public class ControllerEditAuth implements Initializable, ErrorDisplay, MasterPa
                 secureStorage.setMasterPassword(Utils.toCharOrNull(masterPW));
             } else {
                 // if master password dialog was aborted, abort method
-                throw new AuthenticationException(ResourceStore.getString("errormsg.mp_dialog_aborted"));
+                throw new SecurityException(ResourceStore.getString("errormsg.mp_dialog_aborted"));
             }
         }
         return masterPW;

@@ -1,10 +1,21 @@
 package at.aau.ainf.gitrepomonitor.core.files.authentication;
 
 import at.aau.ainf.gitrepomonitor.core.files.RepositoryInformation;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonSubTypes;
+import com.fasterxml.jackson.annotation.JsonTypeInfo;
 
 import java.util.Objects;
 import java.util.UUID;
 
+@JsonTypeInfo(
+        use = JsonTypeInfo.Id.NAME,
+        property = "type")
+@JsonSubTypes({
+        @JsonSubTypes.Type(value = HttpsCredentials.class, name = "https"),
+        @JsonSubTypes.Type(value = SSLInformation.class, name = "ssl"),
+        @JsonSubTypes.Type(value = MasterPasswordAuthInfo.class, name = "mp")
+})
 public abstract class AuthenticationInformation {
     protected UUID id = UUID.randomUUID();
     protected String name;
@@ -33,6 +44,7 @@ public abstract class AuthenticationInformation {
         this.id = id;
     }
 
+    @JsonIgnore
     public abstract RepositoryInformation.AuthMethod getAuthMethod();
 
     public abstract void destroy();

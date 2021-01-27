@@ -21,6 +21,8 @@ import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
 import javafx.scene.image.ImageView;
+import javafx.scene.input.KeyCode;
+import javafx.scene.input.MouseButton;
 import javafx.scene.layout.AnchorPane;
 import javafx.stage.*;
 import javafx.util.Callback;
@@ -58,6 +60,9 @@ public class ControllerAuthList implements Initializable, ErrorDisplay, Property
         updateAuthLists();
         listHTTPS.setPlaceholder(new Label(ResourceStore.getString("auth_list.no_entries")));
         listSSL.setPlaceholder(new Label(ResourceStore.getString("auth_list.no_entries")));
+
+        listHTTPS.setCellFactory(new AuthInfoCellFactory(listHTTPS));
+        listSSL.setCellFactory(new AuthInfoCellFactory(listSSL));
     }
 
     @FXML
