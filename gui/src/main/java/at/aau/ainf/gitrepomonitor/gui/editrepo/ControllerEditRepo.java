@@ -314,11 +314,11 @@ public class ControllerEditRepo implements Initializable, AlertDisplay, MasterPa
                 authID = cbBoxAuthInfo.getSelectionModel().getSelectedItem().getID();
             }
 
-            AuthInfo authInfo = new AuthInfo();
+            Authenticator authenticator = new Authenticator();
             if (authID != null) {
                 char[] masterPW = Utils.toCharOrNull(getMasterPasswordIfRequired());
                 try {
-                    authInfo = AuthInfo.get(authID, masterPW);
+                    authenticator = Authenticator.get(authID, masterPW);
                 } catch (AuthenticationException ex) {
                     showError(ResourceStore.getString("status.wrong_master_password"));
                     throw ex;
@@ -327,7 +327,7 @@ public class ControllerEditRepo implements Initializable, AlertDisplay, MasterPa
                 }
             }
 
-            gitManager.testRepoConnectionAsync(repo, authInfo,
+            gitManager.testRepoConnectionAsync(repo, authenticator,
                     status -> Platform.runLater(() -> {
                         setConnectionStatusDisplay(status);
                         btnTestConnection.setDisable(false);
