@@ -230,7 +230,6 @@ public class SecureFileStorage extends SecureStorage {
             return encHashedPW != null && hashedCurrentPW != null &&
                     (decrypt(encHashedPW, hashedCurrentPW).equals(new String(hashedCurrentPW)));
         } catch (Exception e) {
-            e.printStackTrace();
             return false;
         }
     }

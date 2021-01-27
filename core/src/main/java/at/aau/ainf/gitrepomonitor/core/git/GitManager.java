@@ -3,6 +3,7 @@ package at.aau.ainf.gitrepomonitor.core.git;
 import at.aau.ainf.gitrepomonitor.core.files.FileManager;
 import at.aau.ainf.gitrepomonitor.core.files.RepositoryInformation;
 import at.aau.ainf.gitrepomonitor.core.files.Utils;
+import at.aau.ainf.gitrepomonitor.core.files.authentication.AuthenticationInformation;
 import at.aau.ainf.gitrepomonitor.core.files.authentication.Authenticator;
 import org.eclipse.jgit.api.*;
 import org.eclipse.jgit.api.errors.*;
@@ -146,7 +147,6 @@ public class GitManager {
                 updateRepoStatus(repo, masterPW);
                 cb.finished(true, 1, 0,null);
             } catch (Exception e) {
-                e.printStackTrace();
                 cb.finished(false, 0, 1, e);
             }
         });
@@ -365,6 +365,11 @@ public class GitManager {
         executor.submit(() -> {
             MergeResult.MergeStatus status;
             try {
+                // detect wrong master password
+                if (repo.getAuthID() != null && !authenticator.hasInformation()) {
+                    throw new AuthenticationException("wrong master password");
+                }
+
                 status = pullRepo(repo, authenticator, progressMonitor);
                 cb.finished(repo, status, null);
             } catch (Exception e) {
@@ -375,7 +380,7 @@ public class GitManager {
 
     private void handlePullException(Exception ex, PullCallback cb, RepositoryInformation repo) {
         // wrong master password
-        if (ex instanceof SecurityException) {
+        if (ex instanceof AuthenticationException) {
             cb.failed(repo, MergeResult.MergeStatus.FAILED, ex, true);
         // wrong credentials or no remote
         } else if (ex instanceof CredentialException || ex instanceof  NoRemoteRepositoryException) {

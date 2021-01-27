@@ -60,7 +60,7 @@ public class RepositoryInformationContextMenu extends ContextMenu implements Ale
             gitManager.updateRepoStatusAsync(item, Utils.toCharOrNull(masterPW), (success, reposChecked, reposFailed, ex) -> {
                 if (!success) {
                     setStatus(ResourceStore.getString("status.wrong_master_password"));
-                    showError(ResourceStore.getString("status.wrong_master_password"));
+                    showErrorWrongMasterPW();
                 } else {
                     setStatus(ResourceStore.getString("status.updated_n_repo_status", reposChecked));
                 }
@@ -83,7 +83,7 @@ public class RepositoryInformationContextMenu extends ContextMenu implements Ale
                                                                                     pullsFailed, wrongMP) -> {
                 if (wrongMP) {
                     setStatus(ResourceStore.getString("status.wrong_master_password"));
-                    showError(ResourceStore.getString("status.wrong_master_password"));
+                    showErrorWrongMasterPW();
                 } else if (pullsFailed == 1 && results.isEmpty()) {
                     setStatus(ResourceStore.getString("status.repo.not_accessible"));
                 } else {

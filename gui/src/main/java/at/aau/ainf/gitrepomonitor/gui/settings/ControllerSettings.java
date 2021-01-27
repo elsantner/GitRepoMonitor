@@ -131,7 +131,7 @@ public class ControllerSettings implements Initializable, AlertDisplay, MasterPa
             Stage stage = (Stage) ckboxCacheMP.getScene().getWindow();
             stage.close();
         } catch (SecurityException ex) {
-            showError(ResourceStore.getString("status.wrong_master_password"));
+            showErrorWrongMasterPW();
         } catch (Exception ex) {
             showError(ex.getMessage());
             ex.printStackTrace();
@@ -171,7 +171,7 @@ public class ControllerSettings implements Initializable, AlertDisplay, MasterPa
                 setMPButtonDisplay();
             }
         } catch (SecurityException | AuthenticationException ex) {
-            showError(ResourceStore.getString("status.wrong_master_password"));
+            showErrorWrongMasterPW();
         } catch (Exception ex) {
             showError(ex.getMessage());
         }

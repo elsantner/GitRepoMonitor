@@ -254,7 +254,7 @@ public class ControllerEditRepo implements Initializable, AlertDisplay, MasterPa
             Stage stage = (Stage) txtName.getScene().getWindow();
             stage.close();
         } catch (SecurityException ex) {
-            showError(ResourceStore.getString("status.wrong_master_password"));
+            showErrorWrongMasterPW();
         } catch (Exception ex) {
             showError(ex.getMessage());
         }
@@ -320,7 +320,7 @@ public class ControllerEditRepo implements Initializable, AlertDisplay, MasterPa
                 try {
                     authenticator = Authenticator.get(authID, masterPW);
                 } catch (AuthenticationException ex) {
-                    showError(ResourceStore.getString("status.wrong_master_password"));
+                    showErrorWrongMasterPW();
                     throw ex;
                 } finally {
                     Utils.clearArray(masterPW);

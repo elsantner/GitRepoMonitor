@@ -23,6 +23,16 @@ public interface AlertDisplay {
         });
     }
 
+    default void showErrorWrongMasterPW() {
+        Platform.runLater(() -> {
+            Alert a = new Alert(Alert.AlertType.ERROR);
+            setIcon(a);
+            a.setTitle(ResourceStore.getString("status.wrong_master_password"));
+            a.setHeaderText(ResourceStore.getString("status.wrong_master_password.header"));
+            a.showAndWait();
+        });
+    }
+
     default void showWarning(String msg) {
         Platform.runLater(() -> {
             Alert a = new Alert(Alert.AlertType.WARNING);

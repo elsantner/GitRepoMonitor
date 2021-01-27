@@ -118,7 +118,7 @@ public class ControllerEditAuth implements Initializable, AlertDisplay, MasterPa
             // nothing, method is aborted
             return false;
         } catch (AuthenticationException ex) {
-            showError(ResourceStore.getString("status.wrong_master_password"));
+            showErrorWrongMasterPW();
             return false;
         } catch (Exception e) {
             showError(e.getMessage());
@@ -256,7 +256,7 @@ public class ControllerEditAuth implements Initializable, AlertDisplay, MasterPa
         } catch (SecurityException ex) {
             // nothing, method is aborted
         } catch (AuthenticationException ex) {
-            showError(ResourceStore.getString("status.wrong_master_password"));
+            showErrorWrongMasterPW();
         } catch (Exception ex) {
             showError(ex.getMessage());
         }
