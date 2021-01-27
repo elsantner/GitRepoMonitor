@@ -8,6 +8,7 @@ import at.aau.ainf.gitrepomonitor.core.git.GitManager;
 import at.aau.ainf.gitrepomonitor.gui.ErrorDisplay;
 import at.aau.ainf.gitrepomonitor.gui.MasterPasswordQuery;
 import at.aau.ainf.gitrepomonitor.gui.ResourceStore;
+import at.aau.ainf.gitrepomonitor.gui.auth.ControllerAuthList;
 import com.sun.javafx.collections.ImmutableObservableList;
 import javafx.application.Platform;
 import javafx.event.ActionEvent;
@@ -17,13 +18,12 @@ import javafx.fxml.Initializable;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
-import javafx.scene.image.ImageView;
-import javafx.scene.input.MouseEvent;
-import javafx.scene.layout.AnchorPane;
 import javafx.stage.*;
 import javafx.util.Callback;
 
 import javax.naming.AuthenticationException;
+import java.beans.PropertyChangeEvent;
+import java.beans.PropertyChangeListener;
 import java.io.File;
 import java.io.IOException;
 import java.net.URL;
@@ -32,7 +32,7 @@ import java.util.List;
 import java.util.ResourceBundle;
 import java.util.UUID;
 
-public class ControllerEditRepo implements Initializable, ErrorDisplay, MasterPasswordQuery {
+public class ControllerEditRepo implements Initializable, ErrorDisplay, MasterPasswordQuery, PropertyChangeListener {
 
 
     @FXML
@@ -85,6 +85,7 @@ public class ControllerEditRepo implements Initializable, ErrorDisplay, MasterPa
         this.fileManager = FileManager.getInstance();
         this.gitManager = GitManager.getInstance();
         this.secureStorage = SecureStorage.getImplementation();
+        this.fileManager.addAuthInfoListener(this);
         setupUI();
     }
 
@@ -92,6 +93,12 @@ public class ControllerEditRepo implements Initializable, ErrorDisplay, MasterPa
         txtPath.focusedProperty().addListener((observable, oldValue, newValue) -> {
             if(!newValue) { // when losing focus, check validity of input
                 validateTextFieldPath();
+            }
+        });
+
+        txtPath.focusedProperty().addListener((observable, oldValue, newValue) -> {
+            if (oldValue && !newValue) {
+                handlePathChanged();
             }
         });
 
@@ -112,12 +119,6 @@ public class ControllerEditRepo implements Initializable, ErrorDisplay, MasterPa
                         }
                     }
                 };
-            }
-        });
-
-        txtPath.focusedProperty().addListener((observable, oldValue, newValue) -> {
-            if (oldValue && !newValue) {
-                handlePathChanged();
             }
         });
     }
@@ -317,7 +318,7 @@ public class ControllerEditRepo implements Initializable, ErrorDisplay, MasterPa
             if (authID != null) {
                 char[] masterPW = Utils.toCharOrNull(getMasterPasswordIfRequired());
                 try {
-                    AuthInfo.get(authID, masterPW);
+                    authInfo = AuthInfo.get(authID, masterPW);
                 } catch (AuthenticationException ex) {
                     showError(ResourceStore.getString("status.wrong_master_password"));
                     throw ex;
@@ -389,7 +390,13 @@ public class ControllerEditRepo implements Initializable, ErrorDisplay, MasterPa
         return masterPW;
     }
 
-    public void onBtnAddAuthInfoClick(MouseEvent mouseEvent) {
-        // TODO: Add functionality
+    @FXML
+    public void onBtnAddAuthInfoClick(ActionEvent mouseEvent) throws IOException {
+        ControllerAuthList.openWindow();
+    }
+
+    @Override
+    public void propertyChange(PropertyChangeEvent evt) {
+        updateRepoDisplay(repo);
     }
 }

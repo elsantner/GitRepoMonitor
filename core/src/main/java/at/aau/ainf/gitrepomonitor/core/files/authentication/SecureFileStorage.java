@@ -77,9 +77,15 @@ public class SecureFileStorage extends SecureStorage {
         }
 
         try {
-            Map<UUID, String> encValues = fileManager.getAllAuthenticationStrings();
+            Map<UUID, String> encValues = fileManager.getAllAuthenticationStrings(true);
             for (UUID id : encValues.keySet()) {
-                String newEncValue = encrypt(decrypt(encValues.get(id), hashedCurrentPW), hashedNewPW);
+                String newEncValue;
+                // MP_SET requires separate handling as value must be the key
+                if (id.equals(MasterPasswordAuthInfo.ID)) {
+                    newEncValue = encrypt(new String(hashedNewPW), hashedNewPW);
+                } else {
+                    newEncValue = encrypt(decrypt(encValues.get(id), hashedCurrentPW), hashedNewPW);
+                }
                 fileManager.updateAuthentication(id, newEncValue);
             }
         } catch (Exception ex) {
@@ -162,7 +168,6 @@ public class SecureFileStorage extends SecureStorage {
 
     @Override
     public void delete(UUID id) {
-        // TODO: update repos using auth string
         fileManager.deleteAuthentication(id);
     }
 

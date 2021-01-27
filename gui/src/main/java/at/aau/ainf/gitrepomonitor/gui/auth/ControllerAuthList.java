@@ -49,6 +49,23 @@ public class ControllerAuthList implements Initializable, ErrorDisplay, Property
                 ResourceStore.getResourceBundle());
     }
 
+    public static void openWindow() throws IOException {
+        FXMLLoader loader = ControllerAuthList.getLoader();
+        Parent root = loader.load();
+
+        Stage stage = new Stage();
+        stage.initModality(Modality.APPLICATION_MODAL);
+        stage.initStyle(StageStyle.DECORATED);
+        stage.setTitle(ResourceStore.getString("auth_list"));
+        stage.getIcons().add(ResourceStore.getImage("icon_app.png"));
+        stage.setScene(new Scene(root));
+        stage.setOnHidden(event -> ((ControllerAuthList) loader.getController()).cleanup());
+        stage.sizeToScene();
+        stage.show();
+        stage.setMinWidth(stage.getWidth());
+        stage.setMinHeight(stage.getHeight());
+    }
+
     @Override
     public void initialize(URL location, ResourceBundle resources) {
         this.fileManager = FileManager.getInstance();

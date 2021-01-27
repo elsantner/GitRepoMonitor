@@ -67,11 +67,10 @@
                <Tooltip text="%edit_repo.auth_info.tooltip"/>
             </tooltip>
          </ComboBox>
-         <Button mnemonicParsing="false">
+         <Button mnemonicParsing="false" onAction="#onBtnAddAuthInfoClick">
             <graphic>
-               <ImageView fitHeight="15.0" fitWidth="15.0" onDragDetected="#onBtnAddAuthInfoClick"
-                          pickOnBounds="true" preserveRatio="true">
-                  <Image url="@../icons/icon_plus.png"/>
+               <ImageView fitHeight="15.0" fitWidth="15.0" pickOnBounds="true" preserveRatio="true">
+                  <Image url="@../icons/icon_key.png"/>
                </ImageView>
             </graphic>
          </Button>

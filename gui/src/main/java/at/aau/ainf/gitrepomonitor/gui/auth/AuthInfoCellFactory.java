@@ -95,7 +95,7 @@ public class AuthInfoCellFactory implements
         }
     }
 
-    static class AuthInfoContextMenu extends ContextMenu {
+    static class AuthInfoContextMenu extends ContextMenu implements ErrorDisplay {
         private final AuthenticationInformation item;
 
         public AuthInfoContextMenu(ListCell<AuthenticationInformation> cell) {
@@ -114,7 +114,20 @@ public class AuthInfoCellFactory implements
             MenuItem deleteItem = new MenuItem();
             deleteItem.setText(ResourceStore.getString("ctxmenu.remove"));
             deleteItem.setGraphic(getCtxMenuIcon("icon_delete.png"));
-            deleteItem.setOnAction(event -> SecureStorage.getImplementation().delete(item.getID()));
+            deleteItem.setOnAction(event -> {
+                int affectedRepoCount = FileManager.getInstance().getUsingRepoCount(item.getID());
+                if (affectedRepoCount > 0) {
+                    if (showConfirmationDialog(Alert.AlertType.WARNING,
+                            ResourceStore.getString("auth_list.confirm_delete.title"),
+                            ResourceStore.getString("auth_list.confirm_delete.header", affectedRepoCount),
+                            ResourceStore.getString("auth_list.confirm_delete.content"))) {
+
+                        SecureStorage.getImplementation().delete(item.getID());
+                    }
+                } else {
+                    SecureStorage.getImplementation().delete(item.getID());
+                }
+            });
 
             this.getItems().addAll(editItem, deleteItem);
         }

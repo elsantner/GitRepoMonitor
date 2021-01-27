@@ -215,6 +215,7 @@ public class ControllerSettings implements Initializable, ErrorDisplay, MasterPa
                 setMPButtonDisplay();
             }
         } catch (Exception ex) {
+            ex.printStackTrace();
             showError(ex.getMessage());
         }
     }

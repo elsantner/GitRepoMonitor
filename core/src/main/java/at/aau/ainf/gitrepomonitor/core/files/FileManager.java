@@ -244,7 +244,7 @@ public class FileManager {
         resetAuthAll();
         try {
             PreparedStatement stmt = conn.prepareStatement("DELETE FROM auth");
-            stmt.executeQuery();
+            stmt.executeUpdate();
         } catch (SQLException ex) {
             throw new RuntimeException(ex);
         }
@@ -518,24 +518,58 @@ public class FileManager {
         }
     }
 
+    /**
+     * Delete auth info and set the auth_id of all using repos to null.
+     * @param authID
+     */
     public void deleteAuthentication(UUID authID) {
         try {
+            // clear auth id from all affected repos in DB ...
             PreparedStatement stmt = conn.prepareStatement(
+                    "UPDATE repo SET auth_id=NULL WHERE auth_id=?");
+            stmt.setString(1, authID.toString());
+            stmt.executeUpdate();
+
+            // ... and in transient "Cache"
+            for (RepositoryInformation repo : getAllRepos()) {
+                if (authID.equals(repo.getAuthID())) {
+                    repo.setAuthID(null);
+                    repo.setPersistentValueChanged(false);
+                }
+            }
+
+            stmt = conn.prepareStatement(
                     "DELETE FROM auth WHERE id=?");
             stmt.setString(1, authID.toString());
-
             stmt.executeUpdate();
+
             notifyAuthInfoChanged();
+            notifyWatchlistChanged();
+            notifyFoundReposChanged();
         } catch (SQLException ex) {
             throw new RuntimeException(ex);
         }
     }
 
+    /**
+     * Returns all authentication strings without MP_SET
+     * @return
+     */
     public Map<UUID, String> getAllAuthenticationStrings() {
+        return getAllAuthenticationStrings(false);
+    }
+
+    /**
+     * Returns all authentication strings
+     * @param includeMPSet Include MP_SET or not
+     * @return
+     */
+    public Map<UUID, String> getAllAuthenticationStrings(boolean includeMPSet) {
         Map<UUID, String> authStrings = new HashMap<>();
         try {
             // exclude MP_SET entry
-            PreparedStatement stmt = conn.prepareStatement("SELECT id, enc_value FROM auth WHERE type <> 'NONE'");
+            PreparedStatement stmt = conn.prepareStatement("SELECT id, enc_value FROM auth" +
+                            (includeMPSet ? "" : "WHERE type <> 'NONE'"));
 
             try (ResultSet results = stmt.executeQuery()) {
                 while (results.next()) {
@@ -597,6 +631,20 @@ public class FileManager {
             return authInfos;
         } catch (SQLException ex) {
             return new ArrayList<>();
+        }
+    }
+
+    public int getUsingRepoCount(UUID authID) {
+        try {
+            PreparedStatement stmt = conn.prepareStatement("SELECT COUNT(id) FROM repo WHERE auth_id=?");
+            stmt.setString(1, authID.toString());
+
+            try (ResultSet results = stmt.executeQuery()) {
+                results.next();
+                return results.getInt(1);
+            }
+        } catch (SQLException ex) {
+            return 0;
         }
     }
 }
