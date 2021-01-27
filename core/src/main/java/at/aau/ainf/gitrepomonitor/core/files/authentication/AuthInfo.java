@@ -8,10 +8,7 @@ import org.eclipse.jgit.transport.UsernamePasswordCredentialsProvider;
 
 import javax.naming.AuthenticationException;
 import java.io.IOException;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
 
 public class AuthInfo {
     private static final SecureStorage secureStorage = SecureStorage.getImplementation();
@@ -32,24 +29,35 @@ public class AuthInfo {
 
     public static Map<UUID, AuthInfo> getFor(List<RepositoryInformation> repos, char[] masterPW) throws AuthenticationException {
         Map<UUID, AuthInfo> authInfos = new HashMap<>();
+        Set<UUID> authIDs = new HashSet<>();
         for (RepositoryInformation r : repos) {
-            authInfos.put(r.getID(), getFor(r, masterPW));
+            if (r.getAuthID() != null) {
+                authIDs.add(r.getAuthID());
+            }
         }
+        Map<UUID, AuthenticationInformation> authInfoMap = secureStorage.get(masterPW, authIDs);
+        for (RepositoryInformation r : repos) {
+            authInfos.put(r.getID(), convertToAuthInfo(authInfoMap.get(r.getAuthID())));
+        }
+
         return authInfos;
     }
 
     public static AuthInfo getFor(RepositoryInformation repo, char[] masterPW) throws AuthenticationException {
         if (repo.getAuthID() != null) {
-            AuthenticationInformation ai = secureStorage.get(masterPW, repo.getAuthID());
-            if (ai instanceof HttpsCredentials) {
-                return new AuthInfo(new UsernamePasswordCredentialsProvider(
-                        ((HttpsCredentials) ai).getUsername(), ((HttpsCredentials) ai).getPassword()));
-            } else if (ai instanceof SSLInformation) {
-                return new AuthInfo(new SSLTransportConfigCallback(
-                        ((SSLInformation) ai).getSslKeyPath(), ((SSLInformation) ai).getSslPassphrase()));
-            } else {
-                return new AuthInfo();
-            }
+            return getFor(Collections.singletonList(repo), masterPW).get(repo.getID());
+        } else {
+            return new AuthInfo();
+        }
+    }
+
+    private static AuthInfo convertToAuthInfo(AuthenticationInformation ai) {
+        if (ai instanceof HttpsCredentials) {
+            return new AuthInfo(new UsernamePasswordCredentialsProvider(
+                    ((HttpsCredentials) ai).getUsername(), ((HttpsCredentials) ai).getPassword()));
+        } else if (ai instanceof SSLInformation) {
+            return new AuthInfo(new SSLTransportConfigCallback(
+                    ((SSLInformation) ai).getSslKeyPath(), ((SSLInformation) ai).getSslPassphrase()));
         } else {
             return new AuthInfo();
         }

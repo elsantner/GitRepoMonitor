@@ -170,15 +170,21 @@ public abstract class SecureStorage {
 
     public abstract void store(char[] masterPW, AuthenticationInformation authInfo) throws AuthenticationException;
 
+    public abstract void store(char[] masterPW, Collection<AuthenticationInformation> authInfos) throws AuthenticationException;
+
     public abstract void store(AuthenticationInformation authInfo) throws AuthenticationException;
 
     public abstract void update(char[] masterPW, AuthenticationInformation authInfo) throws AuthenticationException;
+
+    public abstract void update(char[] masterPW, Collection<AuthenticationInformation> authInfos) throws AuthenticationException;
 
     public abstract void update(AuthenticationInformation authInfo) throws AuthenticationException;
 
     public abstract void delete(UUID id);
 
     public abstract AuthenticationInformation get(char[] masterPW, UUID id) throws AuthenticationException;
+
+    public abstract Map<UUID, AuthenticationInformation> get(char[] masterPW, Collection<UUID> ids) throws AuthenticationException;
 
     public abstract AuthenticationInformation get(UUID id) throws AuthenticationException;
 

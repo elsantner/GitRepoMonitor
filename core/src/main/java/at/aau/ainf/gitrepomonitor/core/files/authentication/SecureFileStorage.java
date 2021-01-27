@@ -120,18 +120,25 @@ public class SecureFileStorage extends SecureStorage {
 
     @Override
     public void store(char[] masterPW, AuthenticationInformation authInfo) throws AuthenticationException {
+        store(masterPW, Collections.singletonList(authInfo));
+    }
+
+    @Override
+    public void store(char[] masterPW, Collection<AuthenticationInformation> authInfos) throws AuthenticationException {
         synchronized (lockMasterPasswordReset) {
             masterPW = getCachedMasterPasswordHashIfPossible(masterPW);
 
             if (!isMasterPasswordCorrect(masterPW)) {
                 throw new AuthenticationException("wrong master password");
             }
-            String encString = getEncryptedString(authInfo, masterPW);
-            fileManager.storeAuthentication(authInfo, encString);
+            for (AuthenticationInformation authInfo : authInfos) {
+                String encString = getEncryptedString(authInfo, masterPW);
+                fileManager.storeAuthentication(authInfo, encString);
+                authInfo.destroy();
+            }
 
             cacheMasterPasswordIfEnabled(masterPW);
             Utils.clearArray(masterPW);
-            authInfo.destroy();
             clearMasterPasswordIfRequired();
         }
     }
@@ -144,18 +151,25 @@ public class SecureFileStorage extends SecureStorage {
 
     @Override
     public void update(char[] masterPW, AuthenticationInformation authInfo) throws AuthenticationException {
+        update(masterPW, Collections.singletonList(authInfo));
+    }
+
+    @Override
+    public void update(char[] masterPW, Collection<AuthenticationInformation> authInfos) throws AuthenticationException {
         synchronized (lockMasterPasswordReset) {
             masterPW = getCachedMasterPasswordHashIfPossible(masterPW);
 
             if (!isMasterPasswordCorrect(masterPW)) {
                 throw new AuthenticationException("wrong master password");
             }
-            String encString = getEncryptedString(authInfo, masterPW);
-            fileManager.updateAuthentication(authInfo, encString);
+            for (AuthenticationInformation authInfo : authInfos) {
+                String encString = getEncryptedString(authInfo, masterPW);
+                fileManager.updateAuthentication(authInfo, encString);
+                authInfo.destroy();
+            }
 
             cacheMasterPasswordIfEnabled(masterPW);
             Utils.clearArray(masterPW);
-            authInfo.destroy();
             clearMasterPasswordIfRequired();
         }
     }
@@ -173,23 +187,32 @@ public class SecureFileStorage extends SecureStorage {
 
     @Override
     public AuthenticationInformation get(char[] masterPW, UUID id) throws AuthenticationException {
+        return get(masterPW, Collections.singletonList(id)).get(id);
+    }
+
+    @Override
+    public Map<UUID, AuthenticationInformation> get(char[] masterPW, Collection<UUID> ids) throws AuthenticationException {
         synchronized (lockMasterPasswordReset) {
             masterPW = getCachedMasterPasswordHashIfPossible(masterPW);
 
             if (!isMasterPasswordCorrect(masterPW)) {
                 throw new AuthenticationException("wrong master password");
             }
+
+            Map<UUID, AuthenticationInformation> authInfos = new HashMap<>();
             try {
-                return mapper.readValue(decrypt(fileManager.readAuthenticationString(id), masterPW),
-                        new TypeReference<>() {});
+                for (UUID id : ids) {
+                    authInfos.put(id, mapper.readValue(decrypt(fileManager.readAuthenticationString(id), masterPW),
+                            new TypeReference<>() {}));
+                }
             } catch (BadPaddingException | IllegalBlockSizeException | JsonProcessingException e) {
-                e.printStackTrace();
                 throw new SecurityException("authentication failed");
             } finally {
                 cacheMasterPasswordIfEnabled(masterPW);
                 Utils.clearArray(masterPW);
                 clearMasterPasswordIfRequired();
             }
+            return authInfos;
         }
     }
 

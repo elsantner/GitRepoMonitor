@@ -1,12 +1,6 @@
 package at.aau.ainf.gitrepomonitor.core.files.authentication;
 
-import at.aau.ainf.gitrepomonitor.core.files.Utils;
 import com.github.javakeyring.PasswordAccessException;
-
-import javax.crypto.BadPaddingException;
-import javax.crypto.IllegalBlockSizeException;
-import java.io.File;
-import java.io.IOException;
 
 public class SecureKeyringStorageTestable extends SecureKeyringStorage {
 

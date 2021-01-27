@@ -1,22 +1,12 @@
 package at.aau.ainf.gitrepomonitor.core.files.authentication;
 
-import at.aau.ainf.gitrepomonitor.core.files.FileManager;
-import at.aau.ainf.gitrepomonitor.core.files.RepositoryInformation;
-import at.aau.ainf.gitrepomonitor.core.files.Utils;
-import at.aau.ainf.gitrepomonitor.core.git.SSLTransportConfigCallback;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.core.type.TypeReference;
 import com.github.javakeyring.BackendNotSupportedException;
 import com.github.javakeyring.Keyring;
 import com.github.javakeyring.KeyringStorageType;
-import com.github.javakeyring.PasswordAccessException;
-import org.eclipse.jgit.transport.UsernamePasswordCredentialsProvider;
 
-import javax.crypto.BadPaddingException;
-import javax.crypto.IllegalBlockSizeException;
 import javax.naming.AuthenticationException;
 import java.io.IOException;
-import java.util.HashMap;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -72,12 +62,22 @@ public class SecureKeyringStorage extends SecureStorage {
     }
 
     @Override
+    public void store(char[] masterPW, Collection<AuthenticationInformation> authInfos) throws AuthenticationException {
+
+    }
+
+    @Override
     public void store(AuthenticationInformation authInfo) throws AuthenticationException {
 
     }
 
     @Override
     public void update(char[] masterPW, AuthenticationInformation authInfo) throws AuthenticationException {
+
+    }
+
+    @Override
+    public void update(char[] masterPW, Collection<AuthenticationInformation> authInfos) throws AuthenticationException {
 
     }
 
@@ -93,6 +93,11 @@ public class SecureKeyringStorage extends SecureStorage {
 
     @Override
     public AuthenticationInformation get(char[] masterPW, UUID id) throws AuthenticationException {
+        return null;
+    }
+
+    @Override
+    public Map<UUID, AuthenticationInformation> get(char[] masterPW, Collection<UUID> ids) throws AuthenticationException {
         return null;
     }
 
