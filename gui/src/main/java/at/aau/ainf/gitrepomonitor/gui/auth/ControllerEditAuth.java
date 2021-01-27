@@ -238,7 +238,9 @@ public class ControllerEditAuth implements Initializable, AlertDisplay, MasterPa
             if (!validateTextFieldName()) {
                 throw new IllegalArgumentException(ResourceStore.getString("errormsg.empty_name"));
             }
-            if (authInfo.getAuthMethod() == RepositoryInformation.AuthMethod.SSL) {
+            if (authInfo.getAuthMethod() == RepositoryInformation.AuthMethod.HTTPS) {
+                validateHttpsInformation();
+            } else if (authInfo.getAuthMethod() == RepositoryInformation.AuthMethod.SSL) {
                 validateSslInformation();
             }
 
@@ -323,6 +325,24 @@ public class ControllerEditAuth implements Initializable, AlertDisplay, MasterPa
             sslInformation.setName(txtName.getText());
             secureStorage.update(Utils.toCharOrNull(masterPW), sslInformation);
             sslInformation.destroy();
+        }
+    }
+
+    private void validateHttpsInformation() {
+        if (authContainerHTTPS.isVisible()) {
+            if (txtHttpsUsername.getText().isBlank() && txtHttpsPasswordHidden.getText().isBlank()) {
+                txtHttpsUsername.getStyleClass().add("error-input");
+                throw new IllegalArgumentException(ResourceStore.getString("errormsg.https_no_credentials"));
+            } else {
+                txtHttpsUsername.getStyleClass().remove("error-input");
+            }
+
+            if (txtHttpsUsername.getText().isBlank() && !txtHttpsPasswordHidden.getText().isBlank()) {
+                txtHttpsPasswordHidden.getStyleClass().add("error-input");
+                throw new IllegalArgumentException(ResourceStore.getString("errormsg.https_password_no_username"));
+            } else {
+                txtHttpsPasswordHidden.getStyleClass().remove("error-input");
+            }
         }
     }
 

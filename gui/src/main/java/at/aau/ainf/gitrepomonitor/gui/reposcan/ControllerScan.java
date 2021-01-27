@@ -6,6 +6,7 @@ import at.aau.ainf.gitrepomonitor.core.files.Utils;
 import at.aau.ainf.gitrepomonitor.gui.ResourceStore;
 import at.aau.ainf.gitrepomonitor.gui.StatusBarController;
 import at.aau.ainf.gitrepomonitor.gui.repolist.RepositoryInformationCellFactory;
+import at.aau.ainf.gitrepomonitor.gui.repolist.RepositoryInformationKeyPressHandler;
 import javafx.application.Platform;
 import javafx.beans.property.ReadOnlyBooleanProperty;
 import javafx.beans.property.SimpleBooleanProperty;
@@ -95,12 +96,14 @@ public class ControllerScan extends StatusBarController implements Initializable
         btnAddToWatchlist.disableProperty().bind(listFoundRepos.getSelectionModel().selectedItemProperty().isNull());
         btnRemoveFromWatchlist.disableProperty().bind(listWatchlist.getSelectionModel().selectedItemProperty().isNull());
 
-        listFoundRepos.setCellFactory(new RepositoryInformationCellFactory(this, progessMonitor, listFoundRepos, false));
+        listFoundRepos.setCellFactory(new RepositoryInformationCellFactory(this, progessMonitor, false));
         listFoundRepos.setPlaceholder(new Label(ResourceStore.getString("repo_list.no_entries")));
         listFoundRepos.getSelectionModel().setSelectionMode(SelectionMode.MULTIPLE);
-        listWatchlist.setCellFactory(new RepositoryInformationCellFactory(this, progessMonitor, listWatchlist, true));
+        listFoundRepos.setOnKeyPressed(new RepositoryInformationKeyPressHandler(listFoundRepos));
+        listWatchlist.setCellFactory(new RepositoryInformationCellFactory(this, progessMonitor, true));
         listWatchlist.setPlaceholder(new Label(ResourceStore.getString("repo_list.no_entries")));
         listWatchlist.getSelectionModel().setSelectionMode(SelectionMode.MULTIPLE);
+        listWatchlist.setOnKeyPressed(new RepositoryInformationKeyPressHandler(listWatchlist));
         setWatchlistDisplay(fileManager.getWatchlist());
         setFoundReposDisplay(fileManager.getFoundRepos());
 

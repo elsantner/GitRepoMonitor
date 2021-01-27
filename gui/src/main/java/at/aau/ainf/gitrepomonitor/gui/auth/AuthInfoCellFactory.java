@@ -18,17 +18,6 @@ import java.io.IOException;
 public class AuthInfoCellFactory implements
         Callback<ListView<AuthenticationInformation>, ListCell<AuthenticationInformation>> {
 
-    private Control keyListener;
-
-    /**
-     * Create cell factory for authentication information
-     * @param keyListener provides key-events for list cells
-     */
-    public AuthInfoCellFactory(Control keyListener) {
-        super();
-        this.keyListener = keyListener;
-    }
-
     @Override
     public ListCell<AuthenticationInformation> call(ListView<AuthenticationInformation> listView) {
         ListCell<AuthenticationInformation> cell = new AuthInfoListViewCell();

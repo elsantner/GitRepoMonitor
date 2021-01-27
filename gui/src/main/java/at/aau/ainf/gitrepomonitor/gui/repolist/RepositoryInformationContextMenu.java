@@ -11,6 +11,7 @@ import at.aau.ainf.gitrepomonitor.gui.MasterPasswordQuery;
 import at.aau.ainf.gitrepomonitor.gui.ResourceStore;
 import at.aau.ainf.gitrepomonitor.gui.StatusDisplay;
 import at.aau.ainf.gitrepomonitor.gui.editrepo.ControllerEditRepo;
+import javafx.scene.control.Alert;
 import javafx.scene.control.ContextMenu;
 import javafx.scene.control.ListCell;
 import javafx.scene.control.MenuItem;
@@ -111,7 +112,15 @@ public class RepositoryInformationContextMenu extends ContextMenu implements Ale
         MenuItem deleteItem = new MenuItem();
         deleteItem.setText(ResourceStore.getString("ctxmenu.remove"));
         deleteItem.setGraphic(getCtxMenuIcon("icon_delete.png"));
-        deleteItem.setOnAction(event -> FileManager.getInstance().deleteRepo(item));
+        deleteItem.setOnAction(event -> {
+            if (showConfirmationDialog(Alert.AlertType.INFORMATION,
+                    ResourceStore.getString("repo_list.confirm_delete.title"),
+                    ResourceStore.getString("repo_list.confirm_delete.header"),
+                    ResourceStore.getString("repo_list.confirm_delete.content"))) {
+
+                FileManager.getInstance().deleteRepo(item);
+            }
+        });
 
         MenuItem showInExplorerItem = new MenuItem();
         showInExplorerItem.setText(ResourceStore.getString("ctxmenu.show_in_explorer"));

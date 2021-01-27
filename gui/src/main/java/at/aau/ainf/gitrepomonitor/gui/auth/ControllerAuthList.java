@@ -72,8 +72,8 @@ public class ControllerAuthList implements Initializable, AlertDisplay, Property
         listHTTPS.getSelectionModel().setSelectionMode(SelectionMode.MULTIPLE);
         listSSL.getSelectionModel().setSelectionMode(SelectionMode.MULTIPLE);
 
-        listHTTPS.setCellFactory(new AuthInfoCellFactory(listHTTPS));
-        listSSL.setCellFactory(new AuthInfoCellFactory(listSSL));
+        listHTTPS.setCellFactory(new AuthInfoCellFactory());
+        listSSL.setCellFactory(new AuthInfoCellFactory());
 
         listHTTPS.setOnKeyPressed(new KeyPressHandler(listHTTPS));
         listSSL.setOnKeyPressed(new KeyPressHandler(listSSL));

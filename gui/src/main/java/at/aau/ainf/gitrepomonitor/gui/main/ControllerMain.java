@@ -11,6 +11,7 @@ import at.aau.ainf.gitrepomonitor.core.git.PullListener;
 import at.aau.ainf.gitrepomonitor.gui.*;
 import at.aau.ainf.gitrepomonitor.gui.auth.ControllerAuthList;
 import at.aau.ainf.gitrepomonitor.gui.repolist.RepositoryInformationCellFactory;
+import at.aau.ainf.gitrepomonitor.gui.repolist.RepositoryInformationKeyPressHandler;
 import at.aau.ainf.gitrepomonitor.gui.reposcan.ControllerScan;
 import at.aau.ainf.gitrepomonitor.gui.settings.ControllerSettings;
 import com.sun.javafx.collections.ImmutableObservableList;
@@ -104,9 +105,11 @@ public class ControllerMain extends StatusBarController implements Initializable
     }
 
     private void setupUI() {
-        watchlist.setCellFactory(new RepositoryInformationCellFactory(this, progessMonitor, this.watchlist, true));
+        watchlist.setCellFactory(new RepositoryInformationCellFactory(this, progessMonitor, true));
         watchlist.setPlaceholder(new Label(ResourceStore.getString("repo_list.no_entries")));
         watchlist.getSelectionModel().setSelectionMode(SelectionMode.MULTIPLE);
+        watchlist.setOnKeyPressed(new RepositoryInformationKeyPressHandler(watchlist));
+
         setWatchlistDisplay(fileManager.getWatchlist());
         setWatchlistOrder();
         indicatorScanRunning.visibleProperty().bind(ControllerScan.scanRunningProperty());
