@@ -281,12 +281,15 @@ public class FileManager {
 
             try (ResultSet results = stmt.executeQuery()) {
                 while (results.next()) {
+                    String authID = results.getString("auth_id");
+
                     watchlist.put(UUID.fromString(results.getString("id")),
                             new RepositoryInformation(
                                     UUID.fromString(results.getString("id")),
                                     results.getString("path"),
                                     results.getString("name"),
                                     RepositoryInformation.MergeStrategy.valueOf(results.getString("merge_strat")),
+                                    authID != null ? UUID.fromString(authID) : null,
                                     results.getInt("order_idx")));
                 }
             }
@@ -380,7 +383,7 @@ public class FileManager {
             stmt.setString(4, repo.getMergeStrategy().name());
             stmt.setInt(5, repo.getCustomOrderIndex());
             stmt.setString(6, getListName(repo).name());
-            stmt.setString(7, null);    // TODO: set auth_id
+            stmt.setString(7, Utils.toStringOrNull(repo.getAuthID()));
 
             stmt.executeUpdate();
             Logger.getAnonymousLogger().info("ADDED to DB: " + repo.getPath());
@@ -399,7 +402,7 @@ public class FileManager {
             stmt.setString(3, repo.getMergeStrategy().name());
             stmt.setInt(4, repo.getCustomOrderIndex());
             stmt.setString(5, getListName(repo).name());
-            stmt.setString(6, null);    // TODO: set auth_id
+            stmt.setString(6, Utils.toStringOrNull(repo.getAuthID()));
             stmt.setString(7, repo.getID().toString());
 
             stmt.executeUpdate();
@@ -576,6 +579,7 @@ public class FileManager {
         try {
             // exclude MP_SET entry
             PreparedStatement stmt = conn.prepareStatement("SELECT id, name FROM auth WHERE type=?");
+            stmt.setString(1, authMethod.name());
 
             try (ResultSet results = stmt.executeQuery()) {
                 while (results.next()) {

@@ -27,6 +27,8 @@ import javax.naming.AuthenticationException;
 import java.io.File;
 import java.io.IOException;
 import java.net.URL;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.ResourceBundle;
 import java.util.UUID;
 
@@ -188,10 +190,15 @@ public class ControllerEditRepo implements Initializable, ErrorDisplay, MasterPa
         this.cbBoxMergeStrat.getSelectionModel().select(repo.getMergeStrategy().ordinal());
 
         setupCredentials();
-        // select current auth info
-        HttpsCredentials tmp = new HttpsCredentials();
-        tmp.setID(repo.getAuthID());
-        this.cbBoxAuthInfo.getSelectionModel().select(tmp);
+        // select current auth info (use "None" if authID == null)
+        if (repo.getAuthID() != null) {
+            HttpsCredentials tmp = new HttpsCredentials();
+            tmp.setID(repo.getAuthID());
+            this.cbBoxAuthInfo.getSelectionModel().select(tmp);
+        } else {
+            this.cbBoxAuthInfo.getSelectionModel().select(0);
+        }
+
 
         validateTextFields();
 
@@ -201,9 +208,17 @@ public class ControllerEditRepo implements Initializable, ErrorDisplay, MasterPa
     }
 
     private void setupCredentials() {
+        List<AuthenticationInformation> authInfo;
+        // do not query for authMethod NONE (i.e. if invalid repo path is entered)
+        if (repo.getAuthMethod() == RepositoryInformation.AuthMethod.NONE) {
+            authInfo = new ArrayList<>();
+        } else {
+            authInfo = fileManager.getAllAuthenticationInfos(repo.getAuthMethod());
+        }
+        // add "None" auth item as default
+        authInfo.add(0, new AuthInfoNone(ResourceStore.getString("edit_repo.no_auth")));
         // set combobox items to all auth infos for repos auth method
-        cbBoxAuthInfo.setItems(new ImmutableObservableList<>(
-                fileManager.getAllAuthenticationInfos(repo.getAuthMethod()).toArray(new AuthenticationInformation[0])));
+        cbBoxAuthInfo.setItems(new ImmutableObservableList<>(authInfo.toArray(new AuthenticationInformation[0])));
     }
 
     @FXML
@@ -262,7 +277,12 @@ public class ControllerEditRepo implements Initializable, ErrorDisplay, MasterPa
         RepositoryInformation editedRepo = (RepositoryInformation) repo.clone();
         editedRepo.setPath(txtPath.getText());
         editedRepo.setName(txtName.getText());
-        editedRepo.setAuthID(cbBoxAuthInfo.getSelectionModel().getSelectedItem().getID());
+        // if "None" is select as Auth Info, set auth info to null, otherwise use selected auth info
+        if (cbBoxAuthInfo.getSelectionModel().getSelectedIndex() != 0) {
+            editedRepo.setAuthID(cbBoxAuthInfo.getSelectionModel().getSelectedItem().getID());
+        } else {
+            editedRepo.setAuthID(null);
+        }
 
         fileManager.editRepo(originalPath, editedRepo);
 
@@ -287,17 +307,38 @@ public class ControllerEditRepo implements Initializable, ErrorDisplay, MasterPa
     public void onBtnTestConnClick(ActionEvent actionEvent) {
         try {
             btnTestConnection.setDisable(true);
-            UUID authID = cbBoxAuthInfo.getSelectionModel().getSelectedItem().getID();
+            clearConnectionStatusDisplay();
+            UUID authID = null;
+            if (cbBoxAuthInfo.getSelectionModel().getSelectedIndex() != 0) {
+                authID = cbBoxAuthInfo.getSelectionModel().getSelectedItem().getID();
+            }
 
-            gitManager.testRepoConnectionAsync(repo, AuthInfo.get(authID,
-                    Utils.toCharOrNull(getMasterPasswordIfRequired())),
-                    status -> {
+            AuthInfo authInfo = new AuthInfo();
+            if (authID != null) {
+                char[] masterPW = Utils.toCharOrNull(getMasterPasswordIfRequired());
+                try {
+                    AuthInfo.get(authID, masterPW);
+                } catch (AuthenticationException ex) {
+                    showError(ResourceStore.getString("status.wrong_master_password"));
+                    throw ex;
+                } finally {
+                    Utils.clearArray(masterPW);
+                }
+            }
+
+            gitManager.testRepoConnectionAsync(repo, authInfo,
+                    status -> Platform.runLater(() -> {
                         setConnectionStatusDisplay(status);
                         btnTestConnection.setDisable(false);
-            });
-        } catch (AuthenticationException | IOException ex) {
-            // do nothing, method is aborted automatically
+                    }));
+        } catch (Exception ex) {
+            // method is aborted automatically
+            btnTestConnection.setDisable(false);
         }
+    }
+
+    private void clearConnectionStatusDisplay() {
+        lblTestConnectionStatus.setText(null);
     }
 
     private void setConnectionStatusDisplay(RepositoryInformation.RepoStatus status) {

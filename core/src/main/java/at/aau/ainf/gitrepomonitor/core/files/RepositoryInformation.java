@@ -86,10 +86,11 @@ public class RepositoryInformation implements Comparable<RepositoryInformation>,
         this.name = name;
     }
 
-    public RepositoryInformation(UUID id, String path, String name, MergeStrategy mergeStrat, int orderIdx) {
+    public RepositoryInformation(UUID id, String path, String name, MergeStrategy mergeStrat, UUID authID, int orderIdx) {
         this(path, name);
         this.id = id;
         this.mergeStrategy = mergeStrat;
+        this.authID = authID;
         this.customOrderIndex = orderIdx;
     }
 
@@ -183,6 +184,7 @@ public class RepositoryInformation implements Comparable<RepositoryInformation>,
 
     public void setAuthID(UUID authID) {
         this.authID = authID;
+        this.persistentValueChanged = true;
     }
 
     public boolean isAuthenticated() {

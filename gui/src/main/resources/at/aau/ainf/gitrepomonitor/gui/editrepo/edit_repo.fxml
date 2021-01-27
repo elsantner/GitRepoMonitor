@@ -59,12 +59,12 @@
    <HBox layoutX="30.0" layoutY="30.0" AnchorPane.leftAnchor="10.0" AnchorPane.rightAnchor="10.0"
          AnchorPane.topAnchor="135.0">
       <HBox maxWidth="140.0" minWidth="140.0" prefWidth="140.0" HBox.hgrow="NEVER">
-         <Label text="%edit_repo.merge_strat"/>
+         <Label text="%edit_repo.auth_info"/>
       </HBox>
       <HBox alignment="CENTER_RIGHT" spacing="5.0" HBox.hgrow="ALWAYS">
          <ComboBox fx:id="cbBoxAuthInfo" maxWidth="1.7976931348623157E308" HBox.hgrow="ALWAYS">
             <tooltip>
-               <Tooltip text="%merge_strat.tooltip"/>
+               <Tooltip text="%edit_repo.auth_info.tooltip"/>
             </tooltip>
          </ComboBox>
          <Button mnemonicParsing="false">

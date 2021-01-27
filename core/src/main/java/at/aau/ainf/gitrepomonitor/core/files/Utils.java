@@ -97,4 +97,11 @@ public abstract class Utils {
         }
         return dir;
     }
+
+    public static String toStringOrNull(Object o) {
+        if (o != null)
+            return o.toString();
+        else
+            return null;
+    }
 }

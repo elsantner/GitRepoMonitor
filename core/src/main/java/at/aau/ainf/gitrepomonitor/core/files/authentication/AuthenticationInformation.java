@@ -26,6 +26,7 @@ public abstract class AuthenticationInformation {
 
     protected AuthenticationInformation(UUID id, String name) {
         this.id = id;
+        this.name = name;
     }
 
     public String getName() {
