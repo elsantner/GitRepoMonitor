@@ -60,7 +60,7 @@ public class SecureFileStorage extends SecureStorage {
         char[] hashedMP = Utils.sha3_256(masterPW);
         Utils.clearArray(masterPW);
         fileManager.storeAuthentication(new MasterPasswordAuthInfo(),
-                encrypt(new String(hashedMP), hashedMP));
+                encrypt(new String(hashedMP), hashedMP, MasterPasswordAuthInfo.ID.toString()));
         Utils.clearArray(hashedMP);
     }
 
@@ -82,9 +82,10 @@ public class SecureFileStorage extends SecureStorage {
                 String newEncValue;
                 // MP_SET requires separate handling as value must be the key
                 if (id.equals(MasterPasswordAuthInfo.ID)) {
-                    newEncValue = encrypt(new String(hashedNewPW), hashedNewPW);
+                    newEncValue = encrypt(new String(hashedNewPW), hashedNewPW, MasterPasswordAuthInfo.ID.toString());
                 } else {
-                    newEncValue = encrypt(decrypt(encValues.get(id), hashedCurrentPW), hashedNewPW);
+                    newEncValue = encrypt(decrypt(encValues.get(id), hashedCurrentPW, MasterPasswordAuthInfo.ID.toString()),
+                            hashedNewPW, MasterPasswordAuthInfo.ID.toString());
                 }
                 fileManager.updateAuthentication(id, newEncValue);
             }
@@ -111,7 +112,7 @@ public class SecureFileStorage extends SecureStorage {
      */
     private String getEncryptedString(AuthenticationInformation authInfo, char[] masterPW) {
         try {
-            return encrypt(mapper.writeValueAsString(authInfo), masterPW);
+            return encrypt(mapper.writeValueAsString(authInfo), masterPW, authInfo.getID().toString());
         } catch (JsonProcessingException e) {
             e.printStackTrace();
             throw new RuntimeException(e);
@@ -202,7 +203,7 @@ public class SecureFileStorage extends SecureStorage {
             Map<UUID, AuthenticationInformation> authInfos = new HashMap<>();
             try {
                 for (UUID id : ids) {
-                    authInfos.put(id, mapper.readValue(decrypt(fileManager.readAuthenticationString(id), masterPW),
+                    authInfos.put(id, mapper.readValue(decrypt(fileManager.readAuthenticationString(id), masterPW, id.toString()),
                             new TypeReference<>() {}));
                 }
             } catch (BadPaddingException | IllegalBlockSizeException | JsonProcessingException e) {
@@ -228,7 +229,8 @@ public class SecureFileStorage extends SecureStorage {
         try {
             // check if decrypted password hash is equal to provided hash
             return encHashedPW != null && hashedCurrentPW != null &&
-                    (decrypt(encHashedPW, hashedCurrentPW).equals(new String(hashedCurrentPW)));
+                    (decrypt(encHashedPW, hashedCurrentPW, MasterPasswordAuthInfo.ID.toString())
+                            .equals(new String(hashedCurrentPW)));
         } catch (Exception e) {
             return false;
         }

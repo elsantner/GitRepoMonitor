@@ -92,7 +92,7 @@ public abstract class Utils {
         }
 
         File dir = new File(path);
-        while (!dir.exists() || !dir.isDirectory()) {
+        while (dir != null && (!dir.exists() || !dir.isDirectory())) {
             dir = dir.getParentFile();
         }
         return dir;
