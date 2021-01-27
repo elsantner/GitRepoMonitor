@@ -3,7 +3,7 @@ package at.aau.ainf.gitrepomonitor.gui.settings;
 import at.aau.ainf.gitrepomonitor.core.files.Utils;
 import at.aau.ainf.gitrepomonitor.core.files.authentication.SecureStorage;
 import at.aau.ainf.gitrepomonitor.core.files.authentication.SecureStorageSettings;
-import at.aau.ainf.gitrepomonitor.gui.ErrorDisplay;
+import at.aau.ainf.gitrepomonitor.gui.AlertDisplay;
 import at.aau.ainf.gitrepomonitor.gui.MasterPasswordQuery;
 import at.aau.ainf.gitrepomonitor.gui.ResourceStore;
 import javafx.event.ActionEvent;
@@ -18,11 +18,10 @@ import javafx.util.Pair;
 
 import javax.naming.AuthenticationException;
 import java.net.URL;
-import java.util.Optional;
 import java.util.ResourceBundle;
 import java.util.regex.Pattern;
 
-public class ControllerSettings implements Initializable, ErrorDisplay, MasterPasswordQuery {
+public class ControllerSettings implements Initializable, AlertDisplay, MasterPasswordQuery {
 
     @FXML
     public CheckBox ckboxCacheMP;

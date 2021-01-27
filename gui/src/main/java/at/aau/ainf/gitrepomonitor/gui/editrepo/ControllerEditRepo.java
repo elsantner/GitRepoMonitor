@@ -5,7 +5,7 @@ import at.aau.ainf.gitrepomonitor.core.files.RepositoryInformation;
 import at.aau.ainf.gitrepomonitor.core.files.Utils;
 import at.aau.ainf.gitrepomonitor.core.files.authentication.*;
 import at.aau.ainf.gitrepomonitor.core.git.GitManager;
-import at.aau.ainf.gitrepomonitor.gui.ErrorDisplay;
+import at.aau.ainf.gitrepomonitor.gui.AlertDisplay;
 import at.aau.ainf.gitrepomonitor.gui.MasterPasswordQuery;
 import at.aau.ainf.gitrepomonitor.gui.ResourceStore;
 import at.aau.ainf.gitrepomonitor.gui.auth.ControllerAuthList;
@@ -32,7 +32,7 @@ import java.util.List;
 import java.util.ResourceBundle;
 import java.util.UUID;
 
-public class ControllerEditRepo implements Initializable, ErrorDisplay, MasterPasswordQuery, PropertyChangeListener {
+public class ControllerEditRepo implements Initializable, AlertDisplay, MasterPasswordQuery, PropertyChangeListener {
 
 
     @FXML

@@ -39,7 +39,7 @@ import java.util.*;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-public class ControllerMain extends StatusBarController implements Initializable, ErrorDisplay, MasterPasswordQuery,
+public class ControllerMain extends StatusBarController implements Initializable, AlertDisplay, MasterPasswordQuery,
         StatusDisplay, PropertyChangeListener, PullListener {
 
     @FXML

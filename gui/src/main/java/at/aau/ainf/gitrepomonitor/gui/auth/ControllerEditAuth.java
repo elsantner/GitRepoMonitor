@@ -6,7 +6,7 @@ import at.aau.ainf.gitrepomonitor.core.files.authentication.AuthenticationInform
 import at.aau.ainf.gitrepomonitor.core.files.authentication.HttpsCredentials;
 import at.aau.ainf.gitrepomonitor.core.files.authentication.SSLInformation;
 import at.aau.ainf.gitrepomonitor.core.files.authentication.SecureStorage;
-import at.aau.ainf.gitrepomonitor.gui.ErrorDisplay;
+import at.aau.ainf.gitrepomonitor.gui.AlertDisplay;
 import at.aau.ainf.gitrepomonitor.gui.MasterPasswordQuery;
 import at.aau.ainf.gitrepomonitor.gui.ResourceStore;
 import javafx.event.ActionEvent;
@@ -29,7 +29,7 @@ import java.io.IOException;
 import java.net.URL;
 import java.util.ResourceBundle;
 
-public class ControllerEditAuth implements Initializable, ErrorDisplay, MasterPasswordQuery {
+public class ControllerEditAuth implements Initializable, AlertDisplay, MasterPasswordQuery {
 
     @FXML
     public TextField txtHttpsUsername;

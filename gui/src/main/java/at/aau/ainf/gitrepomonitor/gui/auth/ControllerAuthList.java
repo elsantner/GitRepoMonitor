@@ -2,40 +2,31 @@ package at.aau.ainf.gitrepomonitor.gui.auth;
 
 import at.aau.ainf.gitrepomonitor.core.files.FileManager;
 import at.aau.ainf.gitrepomonitor.core.files.RepositoryInformation;
-import at.aau.ainf.gitrepomonitor.core.files.Utils;
 import at.aau.ainf.gitrepomonitor.core.files.authentication.AuthenticationInformation;
-import at.aau.ainf.gitrepomonitor.core.files.authentication.HttpsCredentials;
-import at.aau.ainf.gitrepomonitor.core.files.authentication.SSLInformation;
 import at.aau.ainf.gitrepomonitor.core.files.authentication.SecureStorage;
-import at.aau.ainf.gitrepomonitor.core.git.GitManager;
-import at.aau.ainf.gitrepomonitor.gui.ErrorDisplay;
-import at.aau.ainf.gitrepomonitor.gui.MasterPasswordQuery;
+import at.aau.ainf.gitrepomonitor.gui.AlertDisplay;
 import at.aau.ainf.gitrepomonitor.gui.ResourceStore;
-import com.sun.javafx.collections.ImmutableObservableList;
-import javafx.application.Platform;
 import javafx.event.ActionEvent;
+import javafx.event.EventHandler;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.fxml.Initializable;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
-import javafx.scene.image.ImageView;
 import javafx.scene.input.KeyCode;
-import javafx.scene.input.MouseButton;
-import javafx.scene.layout.AnchorPane;
+import javafx.scene.input.KeyEvent;
 import javafx.stage.*;
-import javafx.util.Callback;
 
-import javax.naming.AuthenticationException;
 import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
-import java.io.File;
 import java.io.IOException;
 import java.net.URL;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.ResourceBundle;
 
-public class ControllerAuthList implements Initializable, ErrorDisplay, PropertyChangeListener {
+public class ControllerAuthList implements Initializable, AlertDisplay, PropertyChangeListener {
 
     @FXML
     public ListView<AuthenticationInformation> listHTTPS;
@@ -78,8 +69,14 @@ public class ControllerAuthList implements Initializable, ErrorDisplay, Property
         listHTTPS.setPlaceholder(new Label(ResourceStore.getString("auth_list.no_entries")));
         listSSL.setPlaceholder(new Label(ResourceStore.getString("auth_list.no_entries")));
 
+        listHTTPS.getSelectionModel().setSelectionMode(SelectionMode.MULTIPLE);
+        listSSL.getSelectionModel().setSelectionMode(SelectionMode.MULTIPLE);
+
         listHTTPS.setCellFactory(new AuthInfoCellFactory(listHTTPS));
         listSSL.setCellFactory(new AuthInfoCellFactory(listSSL));
+
+        listHTTPS.setOnKeyPressed(new KeyPressHandler(listHTTPS));
+        listSSL.setOnKeyPressed(new KeyPressHandler(listSSL));
     }
 
     @FXML
@@ -111,5 +108,41 @@ public class ControllerAuthList implements Initializable, ErrorDisplay, Property
 
     public void cleanup() {
         fileManager.removeAuthInfoListener(this);
+    }
+
+    static class KeyPressHandler implements EventHandler<KeyEvent>, AlertDisplay {
+
+        private ListView<AuthenticationInformation> listView;
+
+        public KeyPressHandler(ListView<AuthenticationInformation> listView) {
+            this.listView = listView;
+        }
+
+        @Override
+        public void handle(KeyEvent event) {
+            try {
+                if (event.getCode() == KeyCode.ENTER) {
+                    AuthenticationInformation authInfo = listView.getSelectionModel().getSelectedItem();
+                    if (authInfo != null) {
+                        ControllerEditAuth.openWindow(authInfo);
+                    }
+                } else if (event.getCode() == KeyCode.DELETE) {
+                    List<AuthenticationInformation> selItems = new ArrayList<>(listView.getSelectionModel().getSelectedItems());
+                    if (!selItems.isEmpty()) {
+                        if (showConfirmationDialog(Alert.AlertType.WARNING,
+                                ResourceStore.getString("auth_list.confirm_delete_multiple.title"),
+                                ResourceStore.getString("auth_list.confirm_delete_multiple.header", selItems.size()),
+                                ResourceStore.getString("auth_list.confirm_delete_multiple.content"))) {
+
+                            for (AuthenticationInformation ai : selItems) {
+                                SecureStorage.getImplementation().delete(ai.getID());
+                            }
+                        }
+                    }
+                }
+            } catch (Exception ex) {
+                showError(ex.getMessage());
+            }
+        }
     }
 }

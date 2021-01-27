@@ -7,7 +7,7 @@ import javafx.stage.Stage;
 
 import java.util.Optional;
 
-public interface ErrorDisplay {
+public interface AlertDisplay {
     default void showError(String msg) {
         showError(ResourceStore.getString("errordialog.header"), msg);
     }

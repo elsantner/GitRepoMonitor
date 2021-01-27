@@ -1,20 +1,10 @@
 package at.aau.ainf.gitrepomonitor.gui.auth;
 
 import at.aau.ainf.gitrepomonitor.core.files.FileManager;
-import at.aau.ainf.gitrepomonitor.core.files.RepositoryInformation;
-import at.aau.ainf.gitrepomonitor.core.files.Utils;
 import at.aau.ainf.gitrepomonitor.core.files.authentication.AuthenticationInformation;
 import at.aau.ainf.gitrepomonitor.core.files.authentication.SecureStorage;
-import at.aau.ainf.gitrepomonitor.core.git.GitManager;
-import at.aau.ainf.gitrepomonitor.core.git.PullCallback;
-import at.aau.ainf.gitrepomonitor.gui.ErrorDisplay;
-import at.aau.ainf.gitrepomonitor.gui.MasterPasswordQuery;
+import at.aau.ainf.gitrepomonitor.gui.AlertDisplay;
 import at.aau.ainf.gitrepomonitor.gui.ResourceStore;
-import at.aau.ainf.gitrepomonitor.gui.StatusDisplay;
-import at.aau.ainf.gitrepomonitor.gui.editrepo.ControllerEditRepo;
-import at.aau.ainf.gitrepomonitor.gui.repolist.RepositoryInformationContextMenu;
-import at.aau.ainf.gitrepomonitor.gui.repolist.RepositoryInformationListViewCell;
-import javafx.fxml.FXMLLoader;
 import javafx.scene.control.*;
 import javafx.scene.control.MenuItem;
 import javafx.scene.effect.ColorAdjust;
@@ -22,12 +12,7 @@ import javafx.scene.image.ImageView;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.MouseButton;
 import javafx.util.Callback;
-import org.eclipse.jgit.api.MergeResult;
-import org.eclipse.jgit.api.errors.InvalidConfigurationException;
-import org.eclipse.jgit.lib.ProgressMonitor;
 
-import java.awt.*;
-import java.io.File;
 import java.io.IOException;
 
 public class AuthInfoCellFactory implements
@@ -62,11 +47,6 @@ public class AuthInfoCellFactory implements
                         openEditAuthInfoWindow(cell.getItem());
                     }
                 });
-                keyListener.setOnKeyPressed(event -> {
-                    if (event.getCode() == KeyCode.ENTER) {
-                        openEditAuthInfoWindow(cell.getItem());
-                    }
-                });
             }
         });
 
@@ -95,7 +75,7 @@ public class AuthInfoCellFactory implements
         }
     }
 
-    static class AuthInfoContextMenu extends ContextMenu implements ErrorDisplay {
+    static class AuthInfoContextMenu extends ContextMenu implements AlertDisplay {
         private final AuthenticationInformation item;
 
         public AuthInfoContextMenu(ListCell<AuthenticationInformation> cell) {
@@ -125,7 +105,13 @@ public class AuthInfoCellFactory implements
                         SecureStorage.getImplementation().delete(item.getID());
                     }
                 } else {
-                    SecureStorage.getImplementation().delete(item.getID());
+                    if (showConfirmationDialog(Alert.AlertType.INFORMATION,
+                            ResourceStore.getString("auth_list.confirm_delete.title"),
+                            ResourceStore.getString("auth_list.confirm_delete.header_no_affected_repos"),
+                            ResourceStore.getString("auth_list.confirm_delete.content"))) {
+
+                        SecureStorage.getImplementation().delete(item.getID());
+                    }
                 }
             });
 
