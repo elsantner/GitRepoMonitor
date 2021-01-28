@@ -148,13 +148,15 @@ public class ControllerMain extends StatusBarController implements Initializable
      *         3 if reset selected
      */
     private int showDatabaseInaccessibleDialog() {
-        ButtonType retry = new ButtonType("error.data_inaccessible.retry", ButtonBar.ButtonData.OK_DONE);
-        ButtonType reset = new ButtonType("error.data_inaccessible.reset", ButtonBar.ButtonData.APPLY);
+        ButtonType retry = new ButtonType(ResourceStore.getString("error.data_inaccessible.retry"), ButtonBar.ButtonData.OK_DONE);
+        ButtonType reset = new ButtonType(ResourceStore.getString("error.data_inaccessible.reset"), ButtonBar.ButtonData.APPLY);
         Alert alert = new Alert(Alert.AlertType.ERROR,
                 ResourceStore.getString("error.data_inaccessible.content", Settings.getSettings().getStoragePath()),
                 retry, reset);
 
+        ((Stage) alert.getDialogPane().getScene().getWindow()).getIcons().add(ResourceStore.getImage("icon_app.png"));
         alert.setTitle(ResourceStore.getString("error.data_inaccessible.title"));
+        alert.setHeaderText(ResourceStore.getString("error.data_inaccessible.header"));
         Optional<ButtonType> result = alert.showAndWait();
 
         if (result.isEmpty()) {
