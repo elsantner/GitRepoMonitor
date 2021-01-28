@@ -174,7 +174,7 @@ public class ControllerEditRepo implements Initializable, AlertDisplay, MasterPa
      * @param repo Repository to be edited
      */
     public void setRepo(RepositoryInformation repo) {
-        this.repo = repo;
+        this.repo = (RepositoryInformation) repo.clone();
         // remember original path before change
         this.originalPath = repo.getPath();
         updateRepoDisplay(repo);
