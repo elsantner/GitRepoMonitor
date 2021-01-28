@@ -3,11 +3,13 @@ package at.aau.ainf.gitrepomonitor.gui;
 import javafx.application.Platform;
 import javafx.scene.control.Alert;
 import javafx.scene.control.ButtonType;
+import javafx.scene.control.Dialog;
+import javafx.scene.image.ImageView;
 import javafx.stage.Stage;
 
 import java.util.Optional;
 
-public interface ErrorDisplay {
+public interface AlertDisplay {
     default void showError(String msg) {
         showError(ResourceStore.getString("errordialog.header"), msg);
     }
@@ -19,6 +21,16 @@ public interface ErrorDisplay {
             a.setTitle(ResourceStore.getString("errordialog.title"));
             a.setHeaderText(header);
             a.setContentText(msg);
+            a.showAndWait();
+        });
+    }
+
+    default void showErrorWrongMasterPW() {
+        Platform.runLater(() -> {
+            Alert a = new Alert(Alert.AlertType.ERROR);
+            setIcon(a);
+            a.setTitle(ResourceStore.getString("status.wrong_master_password"));
+            a.setHeaderText(ResourceStore.getString("status.wrong_master_password.header"));
             a.showAndWait();
         });
     }

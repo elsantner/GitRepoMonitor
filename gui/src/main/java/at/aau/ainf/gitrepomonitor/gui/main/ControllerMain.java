@@ -2,6 +2,7 @@ package at.aau.ainf.gitrepomonitor.gui.main;
 
 import at.aau.ainf.gitrepomonitor.core.files.FileManager;
 import at.aau.ainf.gitrepomonitor.core.files.RepositoryInformation;
+import at.aau.ainf.gitrepomonitor.core.files.Settings;
 import at.aau.ainf.gitrepomonitor.core.files.Utils;
 import at.aau.ainf.gitrepomonitor.core.files.authentication.SecureStorage;
 import at.aau.ainf.gitrepomonitor.core.git.Branch;
@@ -9,7 +10,9 @@ import at.aau.ainf.gitrepomonitor.core.git.GitManager;
 import at.aau.ainf.gitrepomonitor.core.git.PullCallback;
 import at.aau.ainf.gitrepomonitor.core.git.PullListener;
 import at.aau.ainf.gitrepomonitor.gui.*;
+import at.aau.ainf.gitrepomonitor.gui.auth.ControllerAuthList;
 import at.aau.ainf.gitrepomonitor.gui.repolist.RepositoryInformationCellFactory;
+import at.aau.ainf.gitrepomonitor.gui.repolist.RepositoryInformationKeyPressHandler;
 import at.aau.ainf.gitrepomonitor.gui.reposcan.ControllerScan;
 import at.aau.ainf.gitrepomonitor.gui.settings.ControllerSettings;
 import com.sun.javafx.collections.ImmutableObservableList;
@@ -23,6 +26,7 @@ import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
 import javafx.scene.input.MouseEvent;
+import javafx.stage.DirectoryChooser;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
 import javafx.stage.StageStyle;
@@ -31,13 +35,15 @@ import org.eclipse.jgit.api.errors.CheckoutConflictException;
 
 import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
+import java.io.File;
 import java.io.IOException;
 import java.net.URL;
+import java.sql.SQLException;
 import java.util.*;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-public class ControllerMain extends StatusBarController implements Initializable, ErrorDisplay, MasterPasswordQuery,
+public class ControllerMain extends StatusBarController implements Initializable, AlertDisplay, MasterPasswordQuery,
         StatusDisplay, PropertyChangeListener, PullListener {
 
     @FXML
@@ -73,15 +79,29 @@ public class ControllerMain extends StatusBarController implements Initializable
     @Override
     public void initialize(URL url, ResourceBundle resourceBundle) {
         super.initialize(url, resourceBundle);
+
         fileManager = FileManager.getInstance();
         try {
-            if (fileManager.init()) {
-                showWarning(ResourceStore.getString("warning.credentials_reset"));
+            // check if data path is accessible and take action
+            checkAndHandleDataInaccessible();
+            fileManager.init();
+        } catch (SQLException e) {
+            // if error occurs, fall back to home dir
+            Settings.getSettings().setStoragePath(Utils.getProgramHomeDir());
+            Settings.persist();
+            fileManager.reloadDBFile();
+            try {
+                fileManager.init();
+            } catch (ClassNotFoundException | SQLException ex) {
+                throw new RuntimeException(ex);
             }
-        } catch (IOException e) {
-           Logger.getLogger(getClass().getName()).log(Level.SEVERE, "error occurred during file manager init", e);
-           showError(ResourceStore.getString("errormsg.file_access_denied"));
+        } catch (ClassNotFoundException e) {
+            // if severe error happens close program
+            Logger.getLogger(getClass().getName()).log(Level.SEVERE, "error occurred during file manager init", e);
+            showError(ResourceStore.getString("errormsg.file_access_denied"));
+            System.exit(-1);
         }
+
         fileManager.addWatchlistListener(this);
         fileManager.addRepoStatusListener(this);
 
@@ -101,10 +121,59 @@ public class ControllerMain extends StatusBarController implements Initializable
         setupUI();
     }
 
+    /**
+     * Show dialog until user takes successful action
+     */
+    private void checkAndHandleDataInaccessible() {
+        boolean done = false;
+        while (!fileManager.isDatabaseAccessible() && !done) {
+            switch (showDatabaseInaccessibleDialog()) {
+                case 0:
+                    System.exit(0);
+                    break;
+                case 3:
+                    done = true;
+                    break;
+            }
+        }
+    }
+
+    /**
+     * Ask the user what to do if data cannot be accessed.
+     * @return 0 if dialog was aborted.
+     *         1 if retry selected
+     *         3 if reset selected
+     */
+    private int showDatabaseInaccessibleDialog() {
+        ButtonType retry = new ButtonType("error.data_inaccessible.retry", ButtonBar.ButtonData.OK_DONE);
+        ButtonType reset = new ButtonType("error.data_inaccessible.reset", ButtonBar.ButtonData.APPLY);
+        Alert alert = new Alert(Alert.AlertType.ERROR,
+                ResourceStore.getString("error.data_inaccessible.content", Settings.getSettings().getStoragePath()),
+                retry, reset);
+
+        alert.setTitle(ResourceStore.getString("error.data_inaccessible.title"));
+        Optional<ButtonType> result = alert.showAndWait();
+
+        if (result.isEmpty()) {
+            return 0;
+        } else {
+            switch (result.get().getButtonData()) {
+                case OK_DONE:
+                    return 1;
+                case APPLY:
+                    return 3;
+                default:
+                    return 0;
+            }
+        }
+    }
+
     private void setupUI() {
-        watchlist.setCellFactory(new RepositoryInformationCellFactory(this, progessMonitor, this.watchlist, true));
-        watchlist.setPlaceholder(new Label(ResourceStore.getString("list.no_entries")));
+        watchlist.setCellFactory(new RepositoryInformationCellFactory(this, progessMonitor, true));
+        watchlist.setPlaceholder(new Label(ResourceStore.getString("repo_list.no_entries")));
         watchlist.getSelectionModel().setSelectionMode(SelectionMode.MULTIPLE);
+        watchlist.setOnKeyPressed(new RepositoryInformationKeyPressHandler(watchlist));
+
         setWatchlistDisplay(fileManager.getWatchlist());
         setWatchlistOrder();
         indicatorScanRunning.visibleProperty().bind(ControllerScan.scanRunningProperty());
@@ -120,11 +189,11 @@ public class ControllerMain extends StatusBarController implements Initializable
                 if (oldValue != null && repo != null && newValue != null) {
                     // if remote branch was selected, create it locally before checkout
                     if (newValue.isRemoteOnly()) {
-                        gitManager.createBranch(repo.getPath(), newValue.getShortName());
-                        gitManager.checkout(repo.getPath(), newValue.getShortName());
+                        gitManager.createBranch(repo, newValue.getShortName());
+                        gitManager.checkout(repo, newValue.getShortName());
                         updateBranches(repo);
                     } else {
-                        gitManager.checkout(repo.getPath(), newValue.getShortName());
+                        gitManager.checkout(repo, newValue.getShortName());
                     }
                     updateCommitLog(repo);
                 }
@@ -144,7 +213,7 @@ public class ControllerMain extends StatusBarController implements Initializable
             updateCommitLog(newValue);
             // clear "New"-icon when deselecting
             if (oldValue != null && newValue != null) {
-                fileManager.setNewChanges(oldValue.getPath(), 0);
+                fileManager.setNewChanges(oldValue.getID(), 0);
             }
         });
     }
@@ -179,7 +248,7 @@ public class ControllerMain extends StatusBarController implements Initializable
 
     private void updateCommitLog(RepositoryInformation repo) {
         if (repo != null) {
-            gitManager.getLogAsync(repo.getPath(), (success, changes, ex) -> Platform.runLater(() -> {
+            gitManager.getLogAsync(repo, (success, changes, ex) -> Platform.runLater(() -> {
                 if (success) {
                     lblCommitLog.setText(ResourceStore.getString("commitlog.status", changes.size()));
                     commitLogView.setCommitLog(changes, repo.getNewCommitCount());
@@ -292,10 +361,10 @@ public class ControllerMain extends StatusBarController implements Initializable
     }
 
     @Override
-    public void pullExecuted(String path, MergeResult.MergeStatus status) {
-        RepositoryInformation repo = watchlist.getSelectionModel().getSelectedItem();
-        if (repo != null && repo.getPath().equals(path)) {
-            updateCommitLog(repo);
+    public void pullExecuted(RepositoryInformation repo, MergeResult.MergeStatus status) {
+        RepositoryInformation selectedItem = watchlist.getSelectionModel().getSelectedItem();
+        if (selectedItem != null && selectedItem.getPath().equals(repo.getPath())) {
+            updateCommitLog(selectedItem);
         }
     }
 
@@ -364,5 +433,10 @@ public class ControllerMain extends StatusBarController implements Initializable
 
     public void setStage(Stage stage) {
         this.stage = stage;
+    }
+
+    @FXML
+    public void btnEditAuthClicked(ActionEvent actionEvent) throws IOException {
+        ControllerAuthList.openWindow();
     }
 }

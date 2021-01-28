@@ -78,7 +78,7 @@ public class ControllerPullResults implements Initializable {
 
                 // fill display elements with data
                 String txt = item.getStatus() + " '" +
-                        fileManager.getRepo(item.getRepoPath()).toString() + "'";
+                        fileManager.getRepo(item.getRepo().getID()).toString() + "'";
                 if (item.getEx() != null) {
                     txt += ": " + item.getEx().getLocalizedMessage();
                 }

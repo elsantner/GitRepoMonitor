@@ -30,7 +30,6 @@ public class RepositoryInformationCellFactory
 
     private StatusDisplay statusDisplay;
     private ProgressMonitor progressMonitor;
-    private Control keyListener;
     private boolean isDraggable;
 
     public RepositoryInformationCellFactory() {
@@ -41,14 +40,11 @@ public class RepositoryInformationCellFactory
      * Create cell factory for repository information
      * @param statusDisplay displayStatus() is called when a status update occurs due to context menu operation
      * @param progressMonitor used for Git operations
-     * @param keyListener provides key-events for list cells
      */
-    public RepositoryInformationCellFactory(StatusDisplay statusDisplay, ProgressMonitor progressMonitor,
-                                            Control keyListener, boolean isDraggable) {
+    public RepositoryInformationCellFactory(StatusDisplay statusDisplay, ProgressMonitor progressMonitor, boolean isDraggable) {
         this();
         this.statusDisplay = statusDisplay;
         this.progressMonitor = progressMonitor;
-        this.keyListener = keyListener;
         this.isDraggable = isDraggable;
     }
 
@@ -66,11 +62,6 @@ public class RepositoryInformationCellFactory
                 cell.setOnMouseClicked(mouseClickedEvent -> {
                     if (mouseClickedEvent.getButton().equals(MouseButton.PRIMARY) &&
                             mouseClickedEvent.getClickCount() == 2) {
-                        openEditRepoWindow(cell.getItem());
-                    }
-                });
-                keyListener.setOnKeyPressed(event -> {
-                    if (event.getCode() == KeyCode.ENTER) {
                         openEditRepoWindow(cell.getItem());
                     }
                 });

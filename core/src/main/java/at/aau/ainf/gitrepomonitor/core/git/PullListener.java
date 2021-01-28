@@ -1,7 +1,8 @@
 package at.aau.ainf.gitrepomonitor.core.git;
 
+import at.aau.ainf.gitrepomonitor.core.files.RepositoryInformation;
 import org.eclipse.jgit.api.MergeResult;
 
 public interface PullListener {
-    void pullExecuted(String path, MergeResult.MergeStatus status);
+    void pullExecuted(RepositoryInformation repo, MergeResult.MergeStatus status);
 }

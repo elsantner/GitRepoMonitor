@@ -20,4 +20,6 @@ dependencies {
     implementation 'com.github.javakeyring:java-keyring:1.0.1'
     // https://mvnrepository.com/artifact/org.eclipse.jgit/org.eclipse.jgit.ssh.jsch
     compile group: 'org.eclipse.jgit', name: 'org.eclipse.jgit.ssh.jsch', version: '5.9.0.202009080501-r'
+    // https://mvnrepository.com/artifact/org.xerial/sqlite-jdbc
+    compile group: 'org.xerial', name: 'sqlite-jdbc', version: '3.34.0'
 }

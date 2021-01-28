@@ -1,25 +1,15 @@
 package at.aau.ainf.gitrepomonitor.core.files;
 
-import com.fasterxml.jackson.annotation.JsonAutoDetect;
-import com.fasterxml.jackson.annotation.JsonIgnore;
-
 import java.util.Date;
 import java.util.Objects;
 import java.util.UUID;
 
-@JsonAutoDetect(fieldVisibility = JsonAutoDetect.Visibility.ANY,
-        getterVisibility = JsonAutoDetect.Visibility.NONE,
-        setterVisibility = JsonAutoDetect.Visibility.NONE,
-        creatorVisibility = JsonAutoDetect.Visibility.NONE)
 public class RepositoryInformation implements Comparable<RepositoryInformation>, Cloneable {
 
-    private final UUID id;
+    private UUID id;
     private String path;
     private String name;
-    private Date modifiedDate;
-    private String sslKeyPath;
-    private boolean authenticated;
-    private AuthMethod authMethod;
+    private UUID authID;
     private MergeStrategy mergeStrategy = MergeStrategy.RECURSIVE;
     private int customOrderIndex = -1;
 
@@ -68,12 +58,12 @@ public class RepositoryInformation implements Comparable<RepositoryInformation>,
         UNKNOWN_ERROR,
     }
 
-    @JsonIgnore
+    // non-persistent properties
+    private Date modifiedDate;
     private RepoStatus status;
-    @JsonIgnore
     private boolean persistentValueChanged = false;
-    @JsonIgnore
     private int newCommitCount;
+    private AuthMethod authMethod;
 
     public RepositoryInformation() {
         // generate random UUID upon creation
@@ -86,50 +76,61 @@ public class RepositoryInformation implements Comparable<RepositoryInformation>,
         this(path, null);
     }
 
+    public RepositoryInformation(UUID id) {
+        this.id = id;
+    }
+
     public RepositoryInformation(String path, String name) {
         this();
         this.path = path;
         this.name = name;
     }
 
+    public RepositoryInformation(UUID id, String path, String name, MergeStrategy mergeStrat, UUID authID, int orderIdx) {
+        this(path, name);
+        this.id = id;
+        this.mergeStrategy = mergeStrat;
+        this.authID = authID;
+        this.customOrderIndex = orderIdx;
+    }
+
     public UUID getID() {
         return id;
     }
 
-    @JsonIgnore
     public RepoStatus getStatus() {
         return status;
     }
-    @JsonIgnore
+
     public void setStatus(RepoStatus status) {
         this.status = status;
     }
-    @JsonIgnore
+
     public boolean isPersistentValueChanged() {
         return persistentValueChanged;
     }
-    @JsonIgnore
+
     public void setPersistentValueChanged(boolean persistentValueChanged) {
         this.persistentValueChanged = persistentValueChanged;
     }
-    @JsonIgnore
+
     public boolean hasNewChanges() {
         return newCommitCount != 0;
     }
-    @JsonIgnore
+
     public int getNewCommitCount() {
         return newCommitCount;
     }
-    @JsonIgnore
+
     public void setNewChanges(int newCommitCount) {
         this.newCommitCount = newCommitCount;
     }
-    @JsonIgnore
+
     public AuthMethod getAuthMethod() {
         return authMethod;
     }
-    @JsonIgnore
-    void setAuthMethod(AuthMethod authMethod) {
+
+    public void setAuthMethod(AuthMethod authMethod) {
         this.authMethod = authMethod;
     }
 
@@ -142,23 +143,6 @@ public class RepositoryInformation implements Comparable<RepositoryInformation>,
         this.persistentValueChanged = true;
     }
 
-    public String getSslKeyPath() {
-        return sslKeyPath;
-    }
-
-    public void setSslKeyPath(String sslKeyPath) {
-        this.sslKeyPath = sslKeyPath;
-    }
-
-    public void setAuthenticated(boolean authenticated) {
-        this.authenticated = authenticated;
-        this.persistentValueChanged = true;
-    }
-
-    public boolean isAuthenticated() {
-        return authenticated;
-    }
-
     public String getName() {
         return name;
     }
@@ -167,11 +151,11 @@ public class RepositoryInformation implements Comparable<RepositoryInformation>,
         this.name = name;
         this.persistentValueChanged = true;
     }
-    @JsonIgnore
+
     public Date getModifiedDate() {
         return modifiedDate;
     }
-    @JsonIgnore
+
     public void setModifiedDate(Date modifiedDate) {
         this.modifiedDate = modifiedDate;
     }
@@ -192,6 +176,19 @@ public class RepositoryInformation implements Comparable<RepositoryInformation>,
     public void setCustomOrderIndex(int customOrderIndex) {
         this.customOrderIndex = customOrderIndex;
         this.persistentValueChanged = true;
+    }
+
+    public UUID getAuthID() {
+        return authID;
+    }
+
+    public void setAuthID(UUID authID) {
+        this.authID = authID;
+        this.persistentValueChanged = true;
+    }
+
+    public boolean isAuthenticated() {
+        return authID != null;
     }
 
     @Override

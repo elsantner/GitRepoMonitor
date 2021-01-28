@@ -6,22 +6,17 @@ import at.aau.ainf.gitrepomonitor.core.files.Utils;
 import at.aau.ainf.gitrepomonitor.core.files.authentication.SecureStorage;
 import at.aau.ainf.gitrepomonitor.core.git.GitManager;
 import at.aau.ainf.gitrepomonitor.core.git.PullCallback;
-import at.aau.ainf.gitrepomonitor.gui.ErrorDisplay;
+import at.aau.ainf.gitrepomonitor.gui.AlertDisplay;
 import at.aau.ainf.gitrepomonitor.gui.MasterPasswordQuery;
 import at.aau.ainf.gitrepomonitor.gui.ResourceStore;
 import at.aau.ainf.gitrepomonitor.gui.StatusDisplay;
 import at.aau.ainf.gitrepomonitor.gui.editrepo.ControllerEditRepo;
-import javafx.fxml.FXMLLoader;
-import javafx.scene.Parent;
-import javafx.scene.Scene;
+import javafx.scene.control.Alert;
 import javafx.scene.control.ContextMenu;
 import javafx.scene.control.ListCell;
 import javafx.scene.control.MenuItem;
 import javafx.scene.effect.ColorAdjust;
 import javafx.scene.image.ImageView;
-import javafx.stage.Modality;
-import javafx.stage.Stage;
-import javafx.stage.StageStyle;
 import org.eclipse.jgit.api.MergeResult;
 import org.eclipse.jgit.api.errors.InvalidConfigurationException;
 import org.eclipse.jgit.lib.ProgressMonitor;
@@ -30,7 +25,7 @@ import java.awt.*;
 import java.io.File;
 import java.io.IOException;
 
-public class RepositoryInformationContextMenu extends ContextMenu implements ErrorDisplay, MasterPasswordQuery {
+public class RepositoryInformationContextMenu extends ContextMenu implements AlertDisplay, MasterPasswordQuery {
 
     private final GitManager gitManager;
     private final RepositoryInformation item;
@@ -62,10 +57,10 @@ public class RepositoryInformationContextMenu extends ContextMenu implements Err
             }
 
             setStatus(ResourceStore.getString("status.update_repo_status"));
-            gitManager.updateRepoStatusAsync(item.getPath(), Utils.toCharOrNull(masterPW), (success, reposChecked, reposFailed, ex) -> {
+            gitManager.updateRepoStatusAsync(item, Utils.toCharOrNull(masterPW), (success, reposChecked, reposFailed, ex) -> {
                 if (!success) {
                     setStatus(ResourceStore.getString("status.wrong_master_password"));
-                    showError(ResourceStore.getString("status.wrong_master_password"));
+                    showErrorWrongMasterPW();
                 } else {
                     setStatus(ResourceStore.getString("status.updated_n_repo_status", reposChecked));
                 }
@@ -84,11 +79,11 @@ public class RepositoryInformationContextMenu extends ContextMenu implements Err
                     return;
                 }
             }
-            gitManager.pullRepoAsync(item.getPath(), Utils.toCharOrNull(masterPW), (results, pullsSuccess,
+            gitManager.pullRepoAsync(item, Utils.toCharOrNull(masterPW), (results, pullsSuccess,
                                                                                     pullsFailed, wrongMP) -> {
                 if (wrongMP) {
                     setStatus(ResourceStore.getString("status.wrong_master_password"));
-                    showError(ResourceStore.getString("status.wrong_master_password"));
+                    showErrorWrongMasterPW();
                 } else if (pullsFailed == 1 && results.isEmpty()) {
                     setStatus(ResourceStore.getString("status.repo.not_accessible"));
                 } else {
@@ -118,21 +113,12 @@ public class RepositoryInformationContextMenu extends ContextMenu implements Err
         deleteItem.setText(ResourceStore.getString("ctxmenu.remove"));
         deleteItem.setGraphic(getCtxMenuIcon("icon_delete.png"));
         deleteItem.setOnAction(event -> {
-            try {
-                if (item.isAuthenticated()) {
-                    secureStorage.deleteHttpsCredentials(item.getID());
-                }
+            if (showConfirmationDialog(Alert.AlertType.INFORMATION,
+                    ResourceStore.getString("repo_list.confirm_delete.title"),
+                    ResourceStore.getString("repo_list.confirm_delete.header"),
+                    ResourceStore.getString("repo_list.confirm_delete.content"))) {
+
                 FileManager.getInstance().deleteRepo(item);
-            } catch (IOException | SecurityException e) {
-                String masterPW = showMasterPasswordInputDialog(false);
-                try {
-                    if (masterPW != null) {
-                        secureStorage.deleteHttpsCredentials(masterPW.toCharArray(), item.getID());
-                        FileManager.getInstance().deleteRepo(item);
-                    }
-                } catch (IOException ioException) {
-                    showError(ResourceStore.getString("status.wrong_master_password"));
-                }
             }
         });
 

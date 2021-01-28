@@ -1,9 +1,10 @@
 package at.aau.ainf.gitrepomonitor.gui.settings;
 
+import at.aau.ainf.gitrepomonitor.core.files.FileManager;
 import at.aau.ainf.gitrepomonitor.core.files.Utils;
 import at.aau.ainf.gitrepomonitor.core.files.authentication.SecureStorage;
-import at.aau.ainf.gitrepomonitor.core.files.authentication.SecureStorageSettings;
-import at.aau.ainf.gitrepomonitor.gui.ErrorDisplay;
+import at.aau.ainf.gitrepomonitor.core.files.Settings;
+import at.aau.ainf.gitrepomonitor.gui.AlertDisplay;
 import at.aau.ainf.gitrepomonitor.gui.MasterPasswordQuery;
 import at.aau.ainf.gitrepomonitor.gui.ResourceStore;
 import javafx.event.ActionEvent;
@@ -13,16 +14,18 @@ import javafx.fxml.Initializable;
 import javafx.scene.control.*;
 import javafx.scene.layout.AnchorPane;
 import javafx.scene.layout.HBox;
+import javafx.stage.DirectoryChooser;
+import javafx.stage.FileChooser;
 import javafx.stage.Stage;
 import javafx.util.Pair;
 
 import javax.naming.AuthenticationException;
+import java.io.File;
 import java.net.URL;
-import java.util.Optional;
 import java.util.ResourceBundle;
 import java.util.regex.Pattern;
 
-public class ControllerSettings implements Initializable, ErrorDisplay, MasterPasswordQuery {
+public class ControllerSettings implements Initializable, AlertDisplay, MasterPasswordQuery {
 
     @FXML
     public CheckBox ckboxCacheMP;
@@ -52,6 +55,8 @@ public class ControllerSettings implements Initializable, ErrorDisplay, MasterPa
     public HBox containerMPisSet;
     @FXML
     public Button btnSetMP;
+    @FXML
+    public TextField txtPath;
 
     private SecureStorage secStorage;
     private final String REGEX_INTEGER_ONLY = "^\\d+$";
@@ -99,7 +104,9 @@ public class ControllerSettings implements Initializable, ErrorDisplay, MasterPa
 
     private void loadSettings() {
         ckboxCacheMP.setSelected(secStorage.isMasterPasswordCacheEnabled());
-        SecureStorageSettings settings = secStorage.getSettings();
+        Settings settings = Settings.getSettings();
+
+        txtPath.setText(settings.getStoragePath());
 
         switch (settings.getClearMethod()) {
             case NONE:
@@ -126,16 +133,38 @@ public class ControllerSettings implements Initializable, ErrorDisplay, MasterPa
     @FXML
     public void onBtnSaveClick(ActionEvent actionEvent) {
         try {
+            validatePath();
+
             secStorage.enableMasterPasswordCache(ckboxCacheMP.isSelected());
-            secStorage.setMasterPasswordCacheMethod(getCacheClearMethod(), getCacheClearValue());
+            if (ckboxCacheMP.isSelected()) {
+                secStorage.setMasterPasswordCacheMethod(getCacheClearMethod(), getCacheClearValue());
+            }
+            // if path was changed, perform data migration
+            if (!Settings.getSettings().getStoragePath().equals(txtPath.getText())) {
+                FileManager.getInstance().migrateData(txtPath.getText());
+                Settings.getSettings().setStoragePath(Utils.addConcludingSeparator(txtPath.getText()));
+                Settings.persist();
+                showInformationDialog(ResourceStore.getString("settings.migrate_success.title"),
+                        ResourceStore.getString("settings.migrate_success.header"),
+                        null);
+            }
 
             Stage stage = (Stage) ckboxCacheMP.getScene().getWindow();
             stage.close();
         } catch (SecurityException ex) {
-            showError(ResourceStore.getString("status.wrong_master_password"));
+            showErrorWrongMasterPW();
         } catch (Exception ex) {
             showError(ex.getMessage());
-            ex.printStackTrace();
+        }
+    }
+
+    private void validatePath() {
+        File storagePath = new File(txtPath.getText());
+        if (!storagePath.exists() || !storagePath.isDirectory()) {
+            throw new IllegalArgumentException(ResourceStore.getString("settings.invalid_path"));
+        }
+        if (!storagePath.canWrite() || !storagePath.canRead()) {
+            throw new IllegalArgumentException(ResourceStore.getString("settings.insufficient_path_rights"));
         }
     }
 
@@ -149,13 +178,13 @@ public class ControllerSettings implements Initializable, ErrorDisplay, MasterPa
         }
     }
 
-    private SecureStorageSettings.CacheClearMethod getCacheClearMethod() {
+    private Settings.CacheClearMethod getCacheClearMethod() {
         if (radioBtnDontClear.isSelected()) {
-            return SecureStorageSettings.CacheClearMethod.NONE;
+            return Settings.CacheClearMethod.NONE;
         } else if (radioBtnMaxUses.isSelected()) {
-            return SecureStorageSettings.CacheClearMethod.MAX_USES;
+            return Settings.CacheClearMethod.MAX_USES;
         } else {
-            return SecureStorageSettings.CacheClearMethod.EXPIRATION_TIME;
+            return Settings.CacheClearMethod.EXPIRATION_TIME;
         }
     }
 
@@ -172,7 +201,7 @@ public class ControllerSettings implements Initializable, ErrorDisplay, MasterPa
                 setMPButtonDisplay();
             }
         } catch (SecurityException | AuthenticationException ex) {
-            showError(ResourceStore.getString("status.wrong_master_password"));
+            showErrorWrongMasterPW();
         } catch (Exception ex) {
             showError(ex.getMessage());
         }
@@ -215,6 +244,7 @@ public class ControllerSettings implements Initializable, ErrorDisplay, MasterPa
                 setMPButtonDisplay();
             }
         } catch (Exception ex) {
+            ex.printStackTrace();
             showError(ex.getMessage());
         }
     }
@@ -224,5 +254,16 @@ public class ControllerSettings implements Initializable, ErrorDisplay, MasterPa
                 ResourceStore.getString("settings.confirm_reset_mp.title"),
                 ResourceStore.getString("settings.confirm_reset_mp.header"),
                 ResourceStore.getString("settings.confirm_reset_mp.content"));
+    }
+
+    @FXML
+    public void onBtnChoosePathClick(ActionEvent actionEvent) {
+        DirectoryChooser dirChooser = new DirectoryChooser();
+        dirChooser.setTitle(ResourceStore.getString("settings.select_path.title"));
+        dirChooser.setInitialDirectory(Utils.getDeepestExistingDirectory(txtPath.getText()));
+        File selectedFile = dirChooser.showDialog(txtPath.getScene().getWindow());
+        if (selectedFile != null) {
+            txtPath.setText(selectedFile.getAbsolutePath());
+        }
     }
 }
