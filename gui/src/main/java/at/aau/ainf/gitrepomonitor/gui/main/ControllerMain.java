@@ -439,4 +439,25 @@ public class ControllerMain extends StatusBarController implements Initializable
     public void btnEditAuthClicked(ActionEvent actionEvent) throws IOException {
         ControllerAuthList.openWindow();
     }
+
+    @FXML
+    public void onBtnAddToWatchlistClicked(ActionEvent actionEvent) {
+        DirectoryChooser dirChooser = new DirectoryChooser();
+        dirChooser.setTitle(ResourceStore.getString("main.select_repo_path_to_add.title"));
+        addRepoToWatchlist(dirChooser.showDialog(lblStatus.getScene().getWindow()));
+    }
+
+    private void addRepoToWatchlist(File newRepoFolder) {
+        try {
+            if (newRepoFolder != null) {
+                if (!Utils.validateRepositoryPath(newRepoFolder.getAbsolutePath())) {
+                    throw new IllegalArgumentException();
+                }
+                fileManager.addToWatchlist(new RepositoryInformation(newRepoFolder.getAbsolutePath()));
+            }
+        } catch (IllegalArgumentException ex) {
+            showError(ResourceStore.getString("main.invalid_repo_path_selected.header"),
+                    ResourceStore.getString("main.invalid_repo_path_selected.message", newRepoFolder.getAbsolutePath()));
+        }
+    }
 }

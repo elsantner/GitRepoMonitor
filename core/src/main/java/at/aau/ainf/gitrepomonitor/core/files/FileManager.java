@@ -362,8 +362,25 @@ public class FileManager {
     }
 
     public synchronized void addToFoundRepos(RepositoryInformation repo) {
+        // only add to found repos if watchlist does not already contain repo
         if (!getWatchlist().contains(repo)) {
             addToList(FOUND, repo);
+            addToDB(repo);
+        }
+    }
+
+    public synchronized void addToWatchlist(RepositoryInformation repo) {
+        // only add to watchlist if it does not already contain repo
+        if (!getWatchlist().contains(repo)) {
+            // if repo is in found repos, remove it from found repo list first
+            if (getFoundRepos().contains(repo)) {
+                // repo is removed by ID, so get the old id by path
+                RepositoryInformation existingRepo = getFoundRepos().stream().findAny()
+                        .filter(r -> r.getPath().equals(repo.getPath())).get();
+                removeFromList(FOUND, existingRepo);
+                deleteFromDB(existingRepo);
+            }
+            addToList(WATCH, repo);
             addToDB(repo);
         }
     }
