@@ -278,6 +278,7 @@ public class ControllerEditRepo implements Initializable, AlertDisplay, MasterPa
         RepositoryInformation editedRepo = (RepositoryInformation) repo.clone();
         editedRepo.setPath(txtPath.getText());
         editedRepo.setName(txtName.getText());
+        editedRepo.setMergeStrategy(cbBoxMergeStrat.getValue());
         // if "None" is select as Auth Info, set auth info to null, otherwise use selected auth info
         if (cbBoxAuthInfo.getSelectionModel().getSelectedIndex() != 0) {
             editedRepo.setAuthID(cbBoxAuthInfo.getSelectionModel().getSelectedItem().getID());
