@@ -1,17 +1,18 @@
 package at.aau.ainf.gitrepomonitor.core.files.authentication;
 
-import at.aau.ainf.gitrepomonitor.core.files.RepositoryInformation;
+import at.aau.ainf.gitrepomonitor.core.files.Settings;
 import at.aau.ainf.gitrepomonitor.core.files.Utils;
-import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.dataformat.xml.XmlMapper;
-import org.eclipse.jgit.transport.UsernamePasswordCredentialsProvider;
 
-import javax.crypto.*;
+import javax.crypto.BadPaddingException;
+import javax.crypto.Cipher;
+import javax.crypto.IllegalBlockSizeException;
+import javax.crypto.SecretKeyFactory;
 import javax.crypto.spec.IvParameterSpec;
 import javax.crypto.spec.PBEKeySpec;
 import javax.crypto.spec.SecretKeySpec;
 import javax.naming.AuthenticationException;
-import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.security.SecureRandom;
@@ -22,11 +23,8 @@ import java.util.logging.Logger;
 
 public abstract class SecureStorage {
 
-    // salt for AES ciphers
-    protected static final String SALT = "3JN3DXVqcVxzxtZK";
-    protected static SecureStorageSettings settings;
+    protected static Settings settings;
     protected static XmlMapper mapper;
-    protected static File fileSettings = new File(Utils.getProgramHomeDir() + "settings.xml");
 
     protected char[] masterPassword;
     protected int mpUseCount = 0;
@@ -35,8 +33,8 @@ public abstract class SecureStorage {
     protected final Object lockMasterPasswordReset = new Object();
 
     static {
-        mapper = XmlMapper.xmlBuilder().build();
-        loadSettings();
+        settings = Settings.getSettings();
+        mapper = XmlMapper.xmlBuilder().configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false).build();
     }
 
     /**
@@ -50,29 +48,11 @@ public abstract class SecureStorage {
                 return SecureKeyringStorage.getInstance();
             } else {
                 settings.setUseKeyring(false);
-                persistSettings();
+                Settings.persist();
                 return SecureFileStorage.getInstance();
             }
         } else {
             return SecureFileStorage.getInstance();
-        }
-    }
-
-    private static void loadSettings() {
-        try {
-            settings = mapper.readValue(fileSettings, new TypeReference<>() {});
-        } catch (IOException e) {
-            e.printStackTrace();
-            settings = new SecureStorageSettings();
-        }
-    }
-
-    private static void persistSettings() {
-        try {
-            mapper.writeValue(fileSettings, settings);
-            Logger.getAnonymousLogger().info("Wrote settings to " + fileSettings.getAbsolutePath());
-        } catch (IOException ex) {
-            ex.printStackTrace();
         }
     }
 
@@ -99,25 +79,21 @@ public abstract class SecureStorage {
             masterPassword = null;
             stopMPExpirationTimer();
         }
-        persistSettings();
+        Settings.persist();
     }
 
     public boolean isMasterPasswordCacheEnabled() {
         return settings.isCacheEnabled();
     }
 
-    public synchronized void setMasterPasswordCacheMethod(SecureStorageSettings.CacheClearMethod method, Integer value) {
+    public synchronized void setMasterPasswordCacheMethod(Settings.CacheClearMethod method, Integer value) {
         settings.setClearMethod(method);
         settings.setClearValue(value);
-        persistSettings();
+        Settings.persist();
         // reset mp cache & clearing mechanisms
         resetMPUseCount();
         stopMPExpirationTimer();
         clearCachedMasterPassword();
-    }
-
-    public SecureStorageSettings getSettings() {
-        return (SecureStorageSettings) settings.clone();
     }
 
     /**
@@ -280,7 +256,7 @@ public abstract class SecureStorage {
     }
 
     protected synchronized void incrementAndCheckMPUseCount() {
-        if (settings.isCacheEnabled() && settings.getClearMethod() == SecureStorageSettings.CacheClearMethod.MAX_USES) {
+        if (settings.isCacheEnabled() && settings.getClearMethod() == Settings.CacheClearMethod.MAX_USES) {
             mpUseCount++;
             if (mpUseCount > settings.getClearValue()) {
                 synchronized (lockMasterPasswordReset) {
@@ -297,7 +273,7 @@ public abstract class SecureStorage {
     }
 
     protected synchronized void startMPExpirationTimerIfNotStarted() {
-        if (settings.isCacheEnabled() && settings.getClearMethod() == SecureStorageSettings.CacheClearMethod.EXPIRATION_TIME &&
+        if (settings.isCacheEnabled() && settings.getClearMethod() == Settings.CacheClearMethod.EXPIRATION_TIME &&
                 mpExpirationTimerTask == null) {
             synchronized (lockMasterPasswordReset) {
                 mpExpirationTimerTask = new TimerTask() {

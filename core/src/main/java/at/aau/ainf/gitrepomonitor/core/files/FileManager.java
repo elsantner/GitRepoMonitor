@@ -3,17 +3,16 @@ package at.aau.ainf.gitrepomonitor.core.files;
 import at.aau.ainf.gitrepomonitor.core.files.authentication.AuthenticationInformation;
 import at.aau.ainf.gitrepomonitor.core.files.authentication.HttpsCredentials;
 import at.aau.ainf.gitrepomonitor.core.files.authentication.SSLInformation;
+import at.aau.ainf.gitrepomonitor.core.files.authentication.SecureStorage;
 import at.aau.ainf.gitrepomonitor.core.git.GitManager;
-import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.fasterxml.jackson.databind.DeserializationFeature;
-import com.fasterxml.jackson.dataformat.xml.XmlMapper;
-import org.eclipse.jgit.lib.Repository;
-import org.eclipse.jgit.storage.file.FileRepositoryBuilder;
 
 import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.sql.*;
 import java.util.*;
 import java.util.logging.Logger;
@@ -33,8 +32,7 @@ public class FileManager {
     private final List<PropertyChangeListener> listenersRepoStatus;
     private final List<PropertyChangeListener> listenersAuthInfo;
 
-    private final XmlMapper mapper;
-    private final File fileDB;
+    private File fileDB;
     private Connection conn;
 
     public static synchronized FileManager getInstance() {
@@ -51,9 +49,16 @@ public class FileManager {
         this.listenersFoundRepos = new ArrayList<>();
         this.listenersRepoStatus = new ArrayList<>();
         this.listenersAuthInfo = new ArrayList<>();
+        reloadDBFile();
+    }
 
-        this.mapper = XmlMapper.xmlBuilder().configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false).build();
-        this.fileDB = new File(Utils.getProgramHomeDir() + "data.db");
+    public void reloadDBFile() {
+        try {
+            conn.close();
+        } catch (Exception e) {
+            // no action needed
+        }
+        this.fileDB = new File(Settings.getSettings().getStoragePath() + "data.db");
     }
 
     public void addWatchlistListener(PropertyChangeListener l) { listenersWatchlist.add(l); }
@@ -140,7 +145,6 @@ public class FileManager {
     }
 
     public void addToList(RepoList list, Collection<RepositoryInformation> repos) {
-        // TODO: Why check paths here?
         checkRepoPathValidity(repos);
         switch (list) {
             case WATCH:
@@ -250,6 +254,34 @@ public class FileManager {
         }
     }
 
+    /**
+     * Change data location to newPath.
+     * If there is no data.db at newPath, move the current one over there.
+     * If there is a data.db at newPath, read that data. (data.db at old location is not moved)
+     * @param newPath
+     */
+    public void migrateData(String newPath) {
+        try {
+            conn.close();
+
+            File newDBFile = new File(Utils.addConcludingSeparator(newPath)+"data.db");
+            fileDB = newDBFile;
+            if (!newDBFile.exists()) {
+                Files.move(Paths.get(fileDB.toURI()),
+                        Paths.get(newDBFile.toURI()));
+                openDatabaseConnection();
+            } else {
+                init();
+            }
+            notifyFoundReposChanged();
+            notifyWatchlistChanged();
+            notifyAuthInfoChanged();
+            SecureStorage.getImplementation().clearCachedMasterPassword();
+        } catch (Exception ex) {
+            throw new RuntimeException(ex);
+        }
+    }
+
     public enum RepoList {
         FOUND,
         WATCH
@@ -257,21 +289,24 @@ public class FileManager {
 
     /**
      * Loads all stored repos.
-     * @return True, if data could not be accessed
      */
-    public synchronized boolean init() throws ClassNotFoundException, SQLException {
-        boolean dbExists = fileDB.exists();
+    public synchronized void init() throws ClassNotFoundException, SQLException {
+        openDatabaseConnection();
+        loadRepos();
+        checkRepoPathValidity();
+    }
 
+    public boolean isDatabaseAccessible() {
+        return fileDB.exists() && fileDB.canRead() && fileDB.canWrite();
+    }
+
+    public synchronized void openDatabaseConnection() throws ClassNotFoundException, SQLException {
+        boolean dbExists = fileDB.exists();
         Class.forName("org.sqlite.JDBC");
         conn = DriverManager.getConnection("jdbc:sqlite:" + fileDB.getAbsolutePath());
         if (!dbExists) {
             setupDatabase();
         }
-        loadRepos();
-
-        // TODO: rework
-        checkRepoPathValidity();
-        return false;
     }
 
     public void loadRepos() {

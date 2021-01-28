@@ -44,7 +44,19 @@ public abstract class Utils {
     }
 
     public static String getProgramHomeDir() {
-        return System.getenv("APPDATA") + "/GitRepoMonitor/";
+        String path = System.getenv("APPDATA") + "/GitRepoMonitor/";
+        return separatorsToSystem(path);
+    }
+
+    public static String separatorsToSystem(String res) {
+        if (res == null) return null;
+        if (File.separatorChar=='\\') {
+            // From Windows to Linux/Mac
+            return res.replace('/', File.separatorChar);
+        } else {
+            // From Linux/Mac to Windows
+            return res.replace('\\', File.separatorChar);
+        }
     }
 
     public static char[] toCharOrNull(String str) {
@@ -103,5 +115,13 @@ public abstract class Utils {
             return o.toString();
         else
             return null;
+    }
+
+    public static String addConcludingSeparator(String path) {
+        path = separatorsToSystem(path);
+        if (path.charAt(path.length()-1) != File.separatorChar) {
+            path += File.separatorChar;
+        }
+        return path;
     }
 }
