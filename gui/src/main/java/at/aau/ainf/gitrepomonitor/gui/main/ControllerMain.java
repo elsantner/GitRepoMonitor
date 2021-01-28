@@ -25,7 +25,10 @@ import javafx.geometry.Bounds;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
+import javafx.scene.input.Dragboard;
 import javafx.scene.input.MouseEvent;
+import javafx.scene.input.TransferMode;
+import javafx.scene.layout.AnchorPane;
 import javafx.stage.DirectoryChooser;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
@@ -180,6 +183,32 @@ public class ControllerMain extends StatusBarController implements Initializable
         indicatorScanRunning.managedProperty().bind(indicatorScanRunning.visibleProperty());
         setupCommitLogDisplay();
         setupSwitchBranch();
+        setupDragAndDropRepoAdd();
+    }
+
+    /**
+     * Allow the user to drag & drop repository folders from Os explorer
+     */
+    private void setupDragAndDropRepoAdd() {
+        watchlist.setOnDragOver(event -> {
+
+            if (event.getDragboard().hasFiles()) {
+                event.acceptTransferModes(TransferMode.LINK);
+                event.consume();
+            }
+        });
+
+        watchlist.setOnDragDropped(event -> {
+
+            Dragboard db = event.getDragboard();
+            boolean success = false;
+            if (db.hasFiles()) {
+                addRepoToWatchlist(db.getFiles().get(0));
+                success = true;
+            }
+            event.setDropCompleted(success);
+            event.consume();
+        });
     }
 
     private void setupSwitchBranch() {
@@ -438,5 +467,26 @@ public class ControllerMain extends StatusBarController implements Initializable
     @FXML
     public void btnEditAuthClicked(ActionEvent actionEvent) throws IOException {
         ControllerAuthList.openWindow();
+    }
+
+    @FXML
+    public void onBtnAddToWatchlistClicked(ActionEvent actionEvent) {
+        DirectoryChooser dirChooser = new DirectoryChooser();
+        dirChooser.setTitle(ResourceStore.getString("main.select_repo_path_to_add.title"));
+        addRepoToWatchlist(dirChooser.showDialog(lblStatus.getScene().getWindow()));
+    }
+
+    private void addRepoToWatchlist(File newRepoFolder) {
+        try {
+            if (newRepoFolder != null) {
+                if (!Utils.validateRepositoryPath(newRepoFolder.getAbsolutePath())) {
+                    throw new IllegalArgumentException();
+                }
+                fileManager.addToWatchlist(new RepositoryInformation(newRepoFolder.getAbsolutePath()));
+            }
+        } catch (IllegalArgumentException ex) {
+            showError(ResourceStore.getString("main.invalid_repo_path_selected.header"),
+                    ResourceStore.getString("main.invalid_repo_path_selected.message", newRepoFolder.getAbsolutePath()));
+        }
     }
 }

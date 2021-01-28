@@ -43,9 +43,13 @@ public class RepositoryInformationListViewCell extends ListCell<RepositoryInform
         }
     }
 
+    /**
+     * Allow the user to change the order of repos by using drag & drop
+     */
     private void setupDragAndDrop() {
         ListCell<RepositoryInformation> thisCell = this;
 
+        // store dragged list item
         setOnDragDetected(event -> {
             if (getItem() == null) {
                 return;
@@ -59,15 +63,16 @@ public class RepositoryInformationListViewCell extends ListCell<RepositoryInform
             event.consume();
         });
 
+        // show move action is allowed
         setOnDragOver(event -> {
             if (event.getGestureSource() != thisCell &&
                     event.getDragboard().hasString()) {
                 event.acceptTransferModes(TransferMode.MOVE);
+                event.consume();
             }
-
-            event.consume();
         });
 
+        // grey out repo hovered over
         setOnDragEntered(event -> {
             if (event.getGestureSource() != thisCell &&
                     event.getDragboard().hasString()) {
@@ -75,6 +80,7 @@ public class RepositoryInformationListViewCell extends ListCell<RepositoryInform
             }
         });
 
+        // restore full color if drag exited
         setOnDragExited(event -> {
             if (event.getGestureSource() != thisCell &&
                     event.getDragboard().hasString()) {
@@ -82,6 +88,7 @@ public class RepositoryInformationListViewCell extends ListCell<RepositoryInform
             }
         });
 
+        // handle position swap
         setOnDragDropped(event -> {
             if (getItem() == null) {
                 return;
@@ -90,12 +97,14 @@ public class RepositoryInformationListViewCell extends ListCell<RepositoryInform
             Dragboard db = event.getDragboard();
             boolean success = false;
 
+            // if string (i.e. dragged item index) is present
             if (db.hasString()) {
                 ObservableList<RepositoryInformation> items = getListView().getItems();
 
                 int draggedIdx = Integer.parseInt(db.getString());
                 int thisIdx = items.indexOf(getItem());
 
+                // swap position of items
                 RepositoryInformation draggedItem = items.get(draggedIdx);
                 RepositoryInformation droppedItem = items.get(thisIdx);
                 items.set(draggedIdx, droppedItem);
@@ -105,6 +114,7 @@ public class RepositoryInformationListViewCell extends ListCell<RepositoryInform
                 getListView().getItems().setAll(itemscopy);
 
                 success = true;
+                // update custom index
                 draggedItem.setCustomOrderIndex(thisIdx);
                 droppedItem.setCustomOrderIndex(draggedIdx);
                 fileManager.editRepo(draggedItem.getPath(), draggedItem);

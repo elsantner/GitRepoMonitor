@@ -5,3 +5,11 @@
 .combo-box-popup .list-view .list-cell:hover {
     -fx-text-fill: black;
 }
+
+#lblWatchlist {
+    -fx-font-weight: bold;
+}
+
+#btnAddToWatchlist {
+    -fx-background-color: transparent;
+}
