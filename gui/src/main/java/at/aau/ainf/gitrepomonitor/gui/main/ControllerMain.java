@@ -86,7 +86,9 @@ public class ControllerMain extends StatusBarController implements Initializable
         fileManager = FileManager.getInstance();
         try {
             // check if data path is accessible and take action
-            checkAndHandleDataInaccessible();
+            if (!Settings.isFirstUse()) {
+                checkAndHandleDataInaccessible();
+            }
             fileManager.init();
         } catch (SQLException e) {
             // if error occurs, fall back to home dir
