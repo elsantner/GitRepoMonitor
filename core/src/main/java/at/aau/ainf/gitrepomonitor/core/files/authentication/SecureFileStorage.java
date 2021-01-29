@@ -83,8 +83,8 @@ public class SecureFileStorage extends SecureStorage {
                 if (id.equals(MasterPasswordAuthInfo.ID)) {
                     newEncValue = encrypt(new String(hashedNewPW), hashedNewPW, MasterPasswordAuthInfo.ID.toString());
                 } else {
-                    newEncValue = encrypt(decrypt(encValues.get(id), hashedCurrentPW, MasterPasswordAuthInfo.ID.toString()),
-                            hashedNewPW, MasterPasswordAuthInfo.ID.toString());
+                    newEncValue = encrypt(decrypt(encValues.get(id), hashedCurrentPW, id.toString()),
+                            hashedNewPW, id.toString());
                 }
                 fileManager.updateAuthentication(id, newEncValue);
             }
@@ -206,7 +206,7 @@ public class SecureFileStorage extends SecureStorage {
                             new TypeReference<>() {}));
                 }
             } catch (BadPaddingException | IllegalBlockSizeException | JsonProcessingException e) {
-                throw new SecurityException("authentication failed");
+                throw new AuthenticationException("authentication failed");
             } finally {
                 cacheMasterPasswordIfEnabled(masterPW);
                 Utils.clearArray(masterPW);

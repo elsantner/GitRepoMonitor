@@ -115,6 +115,7 @@ public class ControllerEditAuth implements Initializable, AlertDisplay, MasterPa
             loadCredentials(masterPW);
             return true;
         } catch (SecurityException ex) {
+            ex.printStackTrace();
             // nothing, method is aborted
             return false;
         } catch (AuthenticationException ex) {
