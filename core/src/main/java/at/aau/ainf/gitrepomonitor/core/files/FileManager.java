@@ -2,18 +2,18 @@ package at.aau.ainf.gitrepomonitor.core.files;
 
 import at.aau.ainf.gitrepomonitor.core.files.authentication.AuthenticationCredentials;
 import at.aau.ainf.gitrepomonitor.core.files.authentication.HttpsCredentials;
-import at.aau.ainf.gitrepomonitor.core.files.authentication.SslCredentials;
 import at.aau.ainf.gitrepomonitor.core.files.authentication.SecureStorage;
+import at.aau.ainf.gitrepomonitor.core.files.authentication.SslCredentials;
 import at.aau.ainf.gitrepomonitor.core.git.GitManager;
 
 import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
 import java.io.File;
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Paths;
 import java.sql.*;
 import java.util.*;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ThreadPoolExecutor;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -32,6 +32,7 @@ public class FileManager {
     private final List<PropertyChangeListener> listenersAuthInfo;
 
     private Connection conn;
+    private final ThreadPoolExecutor executor;
 
     public static synchronized FileManager getInstance() {
         if (instance == null) {
@@ -47,6 +48,11 @@ public class FileManager {
         this.listenersFoundRepos = new ArrayList<>();
         this.listenersRepoStatus = new ArrayList<>();
         this.listenersAuthInfo = new ArrayList<>();
+        this.executor = (ThreadPoolExecutor) Executors.newFixedThreadPool(10, r -> {
+            Thread t = Executors.defaultThreadFactory().newThread(r);
+            t.setDaemon(true);
+            return t;
+        });
     }
 
     public void addWatchlistListener(PropertyChangeListener l) { listenersWatchlist.add(l); }
@@ -296,14 +302,17 @@ public class FileManager {
 
     public void loadRepos() {
         try {
-            Map<UUID, RepositoryInformation> watchlist = new HashMap<>();
+            Map<UUID, RepositoryInformation> newWatchlist = new HashMap<>();
+            Map<UUID, RepositoryInformation> newFoundRepos = new HashMap<>();
             PreparedStatement stmt = conn.prepareStatement("SELECT * FROM repo");
 
             try (ResultSet results = stmt.executeQuery()) {
                 while (results.next()) {
                     String authID = results.getString("auth_id");
+                    Map<UUID, RepositoryInformation> list = RepoList.valueOf(results.getString("list")) == WATCH ?
+                            newWatchlist : newFoundRepos;
 
-                    watchlist.put(UUID.fromString(results.getString("id")),
+                    list.put(UUID.fromString(results.getString("id")),
                             new RepositoryInformation(
                                     UUID.fromString(results.getString("id")),
                                     results.getString("path"),
@@ -313,7 +322,8 @@ public class FileManager {
                                     results.getInt("order_idx")));
                 }
             }
-            this.watchlist = watchlist;
+            this.watchlist = newWatchlist;
+            this.foundRepos = newFoundRepos;
         } catch (SQLException ex) {
             throw new RuntimeException(ex);
         }
@@ -354,6 +364,17 @@ public class FileManager {
         }
     }
 
+    public void addToFoundReposAsync(RepositoryInformation repositoryInformation, FileOperationCallback cb) {
+        executor.submit(() -> {
+            try {
+                addToFoundRepos(repositoryInformation);
+                cb.finished(true, null);
+            } catch (Exception e) {
+                cb.finished(false, e);
+            }
+        });
+    }
+
     public synchronized void addToWatchlist(RepositoryInformation repo) {
         // only add to watchlist if it does not already contain repo
         if (!getWatchlist().contains(repo)) {
@@ -374,7 +395,7 @@ public class FileManager {
         addToList(WATCH, repos);
         removeFromList(FOUND, repos);
         for (RepositoryInformation repo: repos) {
-            updateInDB(repo);
+            executor.submit(() -> updateInDB(repo));
         }
     }
 
@@ -382,7 +403,7 @@ public class FileManager {
         removeFromList(WATCH, repos);
         addToList(FOUND, repos);
         for (RepositoryInformation repo: repos) {
-            updateInDB(repo);
+            executor.submit(() -> updateInDB(repo));
         }
     }
 

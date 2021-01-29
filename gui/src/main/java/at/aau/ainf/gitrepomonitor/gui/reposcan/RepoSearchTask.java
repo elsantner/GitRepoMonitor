@@ -24,11 +24,13 @@ public class RepoSearchTask extends Task<Integer> {
         this.repoScanner.scanForRepos(new RepoScanCallback() {
             @Override
             public void repoFound(File dir) {
-                Platform.runLater(() -> {
-                    FileManager.getInstance().addToFoundRepos(new RepositoryInformation(dir.getPath()));
-                    foundRepoCount++;
-                    updateStatusMessage();
-                });
+                FileManager.getInstance().addToFoundReposAsync(new RepositoryInformation(dir.getPath()),
+                        (success, ex) -> {
+                            Platform.runLater(() -> {
+                                foundRepoCount++;
+                                updateStatusMessage();
+                            });
+                        });
             }
 
             @Override
