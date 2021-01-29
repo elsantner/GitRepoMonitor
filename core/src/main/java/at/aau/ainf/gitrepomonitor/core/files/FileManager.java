@@ -21,7 +21,7 @@ import java.util.stream.Stream;
 import static at.aau.ainf.gitrepomonitor.core.files.FileManager.RepoList.FOUND;
 import static at.aau.ainf.gitrepomonitor.core.files.FileManager.RepoList.WATCH;
 
-public class FileManager {
+public class FileManager implements FileMonitor.Listener {
     private static FileManager instance;
 
     private Map<UUID, RepositoryInformation> watchlist;
@@ -30,9 +30,16 @@ public class FileManager {
     private final List<PropertyChangeListener> listenersFoundRepos;
     private final List<PropertyChangeListener> listenersRepoStatus;
     private final List<PropertyChangeListener> listenersAuthInfo;
+    private FileErrorListener fileErrorListener;
 
     private Connection conn;
     private final ThreadPoolExecutor executor;
+    private FileMonitor fileMonitor;
+
+    public enum RepoList {
+        FOUND,
+        WATCH
+    }
 
     public static synchronized FileManager getInstance() {
         if (instance == null) {
@@ -70,6 +77,10 @@ public class FileManager {
     public boolean removeRepoStatusListener(PropertyChangeListener l) { return listenersRepoStatus.remove(l); }
 
     public boolean removeAuthInfoListener(PropertyChangeListener l) { return listenersAuthInfo.remove(l); }
+
+    public void setFileErrorListener(FileErrorListener fileErrorListener) {
+        this.fileErrorListener = fileErrorListener;
+    }
 
     private void notifyWatchlistChanged() {
         listenersWatchlist.forEach(propertyChangeListener ->
@@ -259,6 +270,9 @@ public class FileManager {
      */
     public void storagePathChanged() {
         try {
+            if (fileMonitor != null) {
+                fileMonitor.stop();
+            }
             if (conn != null && !conn.isClosed()) {
                 conn.close();
             }
@@ -273,16 +287,12 @@ public class FileManager {
         }
     }
 
-    public enum RepoList {
-        FOUND,
-        WATCH
-    }
-
     /**
      * Loads all stored repos.
      */
     public synchronized void init() throws ClassNotFoundException, SQLException {
         openDatabaseConnection();
+        setupFileMonitor();
         loadRepos();
         checkRepoPathValidity();
     }
@@ -295,8 +305,25 @@ public class FileManager {
         boolean dbExists = getDBFile().exists();
         Class.forName("org.sqlite.JDBC");
         conn = DriverManager.getConnection("jdbc:sqlite:" + getDBFile().getAbsolutePath());
+
         if (!dbExists) {
             setupDatabase();
+        }
+    }
+
+    /**
+     * Setup monitor for database file.
+     * This aims to detect disconnects of external storage devices used to store program data.
+     */
+    private void setupFileMonitor() {
+        fileMonitor = new FileMonitor(getDBFile(), this);
+        fileMonitor.start();
+    }
+
+    @Override
+    public void fileUnavailable(File file) {
+        if (fileErrorListener != null) {
+            fileErrorListener.fileUnavailable(file);
         }
     }
 

@@ -44,7 +44,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 public class ControllerMain extends StatusBarController implements Initializable, AlertDisplay, MasterPasswordQuery,
-        StatusDisplay, PropertyChangeListener, PullListener {
+        StatusDisplay, PropertyChangeListener, PullListener, FileErrorListener {
 
     @FXML
     public Button btnPullAll;
@@ -98,6 +98,7 @@ public class ControllerMain extends StatusBarController implements Initializable
 
         fileManager.addWatchlistListener(this);
         fileManager.addRepoStatusListener(this);
+        fileManager.setFileErrorListener(this);
 
         gitManager = GitManager.getInstance();
         gitManager.setPullListener(this);
@@ -144,9 +145,10 @@ public class ControllerMain extends StatusBarController implements Initializable
     private int showDatabaseInaccessibleDialog() {
         ButtonType retry = new ButtonType(ResourceStore.getString("error.data_inaccessible.retry"), ButtonBar.ButtonData.OK_DONE);
         ButtonType reset = new ButtonType(ResourceStore.getString("error.data_inaccessible.reset"), ButtonBar.ButtonData.APPLY);
+        ButtonType cancel = new ButtonType(ResourceStore.getString("error.data_inaccessible.cancel"), ButtonBar.ButtonData.CANCEL_CLOSE);
         Alert alert = new Alert(Alert.AlertType.ERROR,
                 ResourceStore.getString("error.data_inaccessible.content", StoragePath.getCurrentPath()),
-                retry, reset);
+                retry, reset, cancel);
 
         ((Stage) alert.getDialogPane().getScene().getWindow()).getIcons().add(ResourceStore.getImage("icon_app.png"));
         alert.setTitle(ResourceStore.getString("error.data_inaccessible.title"));
@@ -484,5 +486,20 @@ public class ControllerMain extends StatusBarController implements Initializable
             showError(ResourceStore.getString("main.invalid_repo_path_selected.header"),
                     ResourceStore.getString("main.invalid_repo_path_selected.message", newRepoFolder.getAbsolutePath()));
         }
+    }
+
+    @Override
+    public void fileUnavailable(File path) {
+        // show error and exit after user has closed error message
+        Platform.runLater(() -> {
+            Alert a = new Alert(Alert.AlertType.ERROR);
+            ((Stage) a.getDialogPane().getScene().getWindow()).getIcons().add(ResourceStore.getImage("icon_app.png"));
+            a.setTitle(ResourceStore.getString("errordialog.title"));
+            a.setHeaderText(ResourceStore.getString("main.file_unavailable.header"));
+            a.setContentText(ResourceStore.getString("main.file_unavailable.content", path.getAbsolutePath()));
+            a.showAndWait();
+            System.exit(-1);
+        });
+
     }
 }
