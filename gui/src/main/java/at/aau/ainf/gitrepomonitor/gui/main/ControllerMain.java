@@ -1,9 +1,6 @@
 package at.aau.ainf.gitrepomonitor.gui.main;
 
-import at.aau.ainf.gitrepomonitor.core.files.FileManager;
-import at.aau.ainf.gitrepomonitor.core.files.RepositoryInformation;
-import at.aau.ainf.gitrepomonitor.core.files.Settings;
-import at.aau.ainf.gitrepomonitor.core.files.Utils;
+import at.aau.ainf.gitrepomonitor.core.files.*;
 import at.aau.ainf.gitrepomonitor.core.files.authentication.SecureStorage;
 import at.aau.ainf.gitrepomonitor.core.git.Branch;
 import at.aau.ainf.gitrepomonitor.core.git.GitManager;
@@ -86,21 +83,13 @@ public class ControllerMain extends StatusBarController implements Initializable
         fileManager = FileManager.getInstance();
         try {
             // check if data path is accessible and take action
-            if (!Settings.isFirstUse()) {
+            if (!StoragePath.isFirstUse()) {
                 checkAndHandleDataInaccessible();
             }
             fileManager.init();
         } catch (SQLException e) {
-            // if error occurs, fall back to home dir
-            Settings.getSettings().setStoragePath(Utils.getProgramHomeDir());
-            Settings.persist();
-            fileManager.reloadDBFile();
-            try {
-                fileManager.init();
-            } catch (ClassNotFoundException | SQLException ex) {
-                throw new RuntimeException(ex);
-            }
-        } catch (ClassNotFoundException e) {
+            e.printStackTrace();
+        } catch (ClassNotFoundException | IOException e) {
             // if severe error happens close program
             Logger.getLogger(getClass().getName()).log(Level.SEVERE, "error occurred during file manager init", e);
             showError(ResourceStore.getString("errormsg.file_access_denied"));
@@ -129,7 +118,7 @@ public class ControllerMain extends StatusBarController implements Initializable
     /**
      * Show dialog until user takes successful action
      */
-    private void checkAndHandleDataInaccessible() {
+    private void checkAndHandleDataInaccessible() throws IOException {
         boolean done = false;
         while (!fileManager.isDatabaseAccessible() && !done) {
             switch (showDatabaseInaccessibleDialog()) {
@@ -137,6 +126,9 @@ public class ControllerMain extends StatusBarController implements Initializable
                     System.exit(0);
                     break;
                 case 3:
+                    StoragePath.resetToDefaultPath();
+                    FileManager.getInstance().storagePathChanged();
+                    Settings.storagePathChanged();
                     done = true;
                     break;
             }
@@ -153,7 +145,7 @@ public class ControllerMain extends StatusBarController implements Initializable
         ButtonType retry = new ButtonType(ResourceStore.getString("error.data_inaccessible.retry"), ButtonBar.ButtonData.OK_DONE);
         ButtonType reset = new ButtonType(ResourceStore.getString("error.data_inaccessible.reset"), ButtonBar.ButtonData.APPLY);
         Alert alert = new Alert(Alert.AlertType.ERROR,
-                ResourceStore.getString("error.data_inaccessible.content", Settings.getSettings().getStoragePath()),
+                ResourceStore.getString("error.data_inaccessible.content", StoragePath.getCurrentPath()),
                 retry, reset);
 
         ((Stage) alert.getDialogPane().getScene().getWindow()).getIcons().add(ResourceStore.getImage("icon_app.png"));

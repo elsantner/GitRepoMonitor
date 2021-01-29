@@ -1,6 +1,7 @@
 package at.aau.ainf.gitrepomonitor.gui.settings;
 
 import at.aau.ainf.gitrepomonitor.core.files.FileManager;
+import at.aau.ainf.gitrepomonitor.core.files.StoragePath;
 import at.aau.ainf.gitrepomonitor.core.files.Utils;
 import at.aau.ainf.gitrepomonitor.core.files.authentication.SecureStorage;
 import at.aau.ainf.gitrepomonitor.core.files.Settings;
@@ -106,7 +107,7 @@ public class ControllerSettings implements Initializable, AlertDisplay, MasterPa
         ckboxCacheMP.setSelected(secStorage.isMasterPasswordCacheEnabled());
         Settings settings = Settings.getSettings();
 
-        txtPath.setText(settings.getStoragePath());
+        txtPath.setText(StoragePath.getCurrentPath());
 
         switch (settings.getClearMethod()) {
             case NONE:
@@ -135,18 +136,32 @@ public class ControllerSettings implements Initializable, AlertDisplay, MasterPa
         try {
             validatePath();
 
-            secStorage.enableMasterPasswordCache(ckboxCacheMP.isSelected());
-            if (ckboxCacheMP.isSelected()) {
-                secStorage.setMasterPasswordCacheMethod(getCacheClearMethod(), getCacheClearValue());
-            }
-            // if path was changed, perform data migration
-            if (!Settings.getSettings().getStoragePath().equals(txtPath.getText())) {
-                FileManager.getInstance().migrateData(txtPath.getText());
-                Settings.getSettings().setStoragePath(Utils.addConcludingSeparator(txtPath.getText()));
-                Settings.persist();
+            // if path was changed, reload data
+            if (!StoragePath.getCurrentPath().equals(txtPath.getText())) {
+
+                // check if new path already contains program files
+                if (!StoragePath.containsProgramFiles(txtPath.getText())) {
+                    // if user does not agree, abort method
+                    if (!showConfirmationDialog(Alert.AlertType.WARNING,
+                            ResourceStore.getString("settings.path_change_new.title"),
+                            ResourceStore.getString("settings.path_change_new.header"),
+                            ResourceStore.getString("settings.path_change_new.content"))) {
+                        return;
+                    }
+                }
+
+                StoragePath.setCurrentPath(txtPath.getText());
+                FileManager.getInstance().storagePathChanged();
+                Settings.storagePathChanged();
+
                 showInformationDialog(ResourceStore.getString("settings.migrate_success.title"),
                         ResourceStore.getString("settings.migrate_success.header"),
                         null);
+            }
+
+            secStorage.enableMasterPasswordCache(ckboxCacheMP.isSelected());
+            if (ckboxCacheMP.isSelected()) {
+                secStorage.setMasterPasswordCacheMethod(getCacheClearMethod(), getCacheClearValue());
             }
 
             Stage stage = (Stage) ckboxCacheMP.getScene().getWindow();

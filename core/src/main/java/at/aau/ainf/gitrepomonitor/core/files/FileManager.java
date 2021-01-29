@@ -31,7 +31,6 @@ public class FileManager {
     private final List<PropertyChangeListener> listenersRepoStatus;
     private final List<PropertyChangeListener> listenersAuthInfo;
 
-    private File fileDB;
     private Connection conn;
 
     public static synchronized FileManager getInstance() {
@@ -48,16 +47,6 @@ public class FileManager {
         this.listenersFoundRepos = new ArrayList<>();
         this.listenersRepoStatus = new ArrayList<>();
         this.listenersAuthInfo = new ArrayList<>();
-        reloadDBFile();
-    }
-
-    public void reloadDBFile() {
-        try {
-            conn.close();
-        } catch (Exception e) {
-            // no action needed
-        }
-        this.fileDB = new File(Settings.getSettings().getStoragePath() + "data.db");
     }
 
     public void addWatchlistListener(PropertyChangeListener l) { listenersWatchlist.add(l); }
@@ -253,25 +242,22 @@ public class FileManager {
         }
     }
 
+    private static File getDBFile() {
+        return new File(StoragePath.getCurrentPath() + "data.db");
+    }
+
     /**
      * Change data location to newPath.
      * If there is no data.db at newPath, move the current one over there.
      * If there is a data.db at newPath, read that data. (data.db at old location is not moved)
-     * @param newPath
      */
-    public void migrateData(String newPath) {
+    public void storagePathChanged() {
         try {
-            conn.close();
-
-            File newDBFile = new File(Utils.addConcludingSeparator(newPath)+"data.db");
-            fileDB = newDBFile;
-            if (!newDBFile.exists()) {
-                Files.move(Paths.get(fileDB.toURI()),
-                        Paths.get(newDBFile.toURI()));
-                openDatabaseConnection();
-            } else {
-                init();
+            if (conn != null && !conn.isClosed()) {
+                conn.close();
             }
+
+            init();
             notifyFoundReposChanged();
             notifyWatchlistChanged();
             notifyAuthInfoChanged();
@@ -296,13 +282,13 @@ public class FileManager {
     }
 
     public boolean isDatabaseAccessible() {
-        return fileDB.exists() && fileDB.canRead() && fileDB.canWrite();
+        return getDBFile().exists() && getDBFile().canRead() && getDBFile().canWrite();
     }
 
     public synchronized void openDatabaseConnection() throws ClassNotFoundException, SQLException {
-        boolean dbExists = fileDB.exists();
+        boolean dbExists = getDBFile().exists();
         Class.forName("org.sqlite.JDBC");
-        conn = DriverManager.getConnection("jdbc:sqlite:" + fileDB.getAbsolutePath());
+        conn = DriverManager.getConnection("jdbc:sqlite:" + getDBFile().getAbsolutePath());
         if (!dbExists) {
             setupDatabase();
         }
@@ -521,8 +507,8 @@ public class FileManager {
     }
 
     /**
-     *
-     * @param authID
+     * Get authentication string with provided ID
+     * @param authID ID of auth string
      * @return null if not found
      */
     public String readAuthenticationString(UUID authID) {
@@ -571,7 +557,7 @@ public class FileManager {
 
     /**
      * Delete auth info and set the auth_id of all using repos to null.
-     * @param authID
+     * @param authID ID of auth string
      */
     public void deleteAuthentication(UUID authID) {
         try {
