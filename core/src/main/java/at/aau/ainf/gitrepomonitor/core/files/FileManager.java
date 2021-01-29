@@ -1,8 +1,8 @@
 package at.aau.ainf.gitrepomonitor.core.files;
 
-import at.aau.ainf.gitrepomonitor.core.files.authentication.AuthenticationInformation;
+import at.aau.ainf.gitrepomonitor.core.files.authentication.AuthenticationCredentials;
 import at.aau.ainf.gitrepomonitor.core.files.authentication.HttpsCredentials;
-import at.aau.ainf.gitrepomonitor.core.files.authentication.SSLInformation;
+import at.aau.ainf.gitrepomonitor.core.files.authentication.SslCredentials;
 import at.aau.ainf.gitrepomonitor.core.files.authentication.SecureStorage;
 import at.aau.ainf.gitrepomonitor.core.git.GitManager;
 
@@ -11,7 +11,6 @@ import java.beans.PropertyChangeListener;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
-import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.sql.*;
 import java.util.*;
@@ -505,7 +504,7 @@ public class FileManager {
         }
     }
 
-    public void storeAuthentication(AuthenticationInformation authInfo, String encString) {
+    public void storeAuthentication(AuthenticationCredentials authInfo, String encString) {
         try {
             PreparedStatement stmt = conn.prepareStatement(
                     "INSERT INTO auth (id, name, type, enc_value) VALUES (?,?,?,?)");
@@ -540,7 +539,7 @@ public class FileManager {
         }
     }
 
-    public void updateAuthentication(AuthenticationInformation authInfo, String encString) {
+    public void updateAuthentication(AuthenticationCredentials authInfo, String encString) {
         try {
             PreparedStatement stmt = conn.prepareStatement(
                     "UPDATE auth SET name=?, type=?, enc_value=? WHERE id=?");
@@ -635,19 +634,19 @@ public class FileManager {
         }
     }
 
-    public List<AuthenticationInformation> getAllAuthenticationInfos() {
-        List<AuthenticationInformation> authInfos = new ArrayList<>();
+    public List<AuthenticationCredentials> getAllAuthenticationInfos() {
+        List<AuthenticationCredentials> authInfos = new ArrayList<>();
         try {
             // exclude MP_SET entry
             PreparedStatement stmt = conn.prepareStatement("SELECT id, name, type FROM auth WHERE type <> 'NONE'");
 
             try (ResultSet results = stmt.executeQuery()) {
                 while (results.next()) {
-                    AuthenticationInformation authInfo;
+                    AuthenticationCredentials authInfo;
                     if (results.getString("type").equals(RepositoryInformation.AuthMethod.HTTPS.name())) {
                         authInfo = new HttpsCredentials();
                     } else {
-                        authInfo = new SSLInformation();
+                        authInfo = new SslCredentials();
                     }
                     authInfo.setID(UUID.fromString(results.getString("id")));
                     authInfo.setName(results.getString("name"));
@@ -660,8 +659,8 @@ public class FileManager {
         }
     }
 
-    public List<AuthenticationInformation> getAllAuthenticationInfos(RepositoryInformation.AuthMethod authMethod) {
-        List<AuthenticationInformation> authInfos = new ArrayList<>();
+    public List<AuthenticationCredentials> getAllAuthenticationInfos(RepositoryInformation.AuthMethod authMethod) {
+        List<AuthenticationCredentials> authInfos = new ArrayList<>();
         try {
             // exclude MP_SET entry
             PreparedStatement stmt = conn.prepareStatement("SELECT id, name FROM auth WHERE type=?");
@@ -669,11 +668,11 @@ public class FileManager {
 
             try (ResultSet results = stmt.executeQuery()) {
                 while (results.next()) {
-                    AuthenticationInformation authInfo;
+                    AuthenticationCredentials authInfo;
                     if (authMethod == RepositoryInformation.AuthMethod.HTTPS) {
                         authInfo = new HttpsCredentials();
                     } else {
-                        authInfo = new SSLInformation();
+                        authInfo = new SslCredentials();
                     }
                     authInfo.setID(UUID.fromString(results.getString("id")));
                     authInfo.setName(results.getString("name"));

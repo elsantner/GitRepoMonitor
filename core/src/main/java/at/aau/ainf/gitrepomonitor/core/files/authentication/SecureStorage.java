@@ -39,21 +39,11 @@ public abstract class SecureStorage {
 
     /**
      * Gets the instance of the preferred storage type set in the settings.
-     * If a storage type is not supported, the default file storage is returned.
+     * Only SecureFileStorage is available at the moment.
      * @return Preferred (and supported) secure storage instance.
      */
     public static SecureStorage getImplementation() {
-        if (settings.isUseKeyring()) {
-            if (SecureKeyringStorage.getInstance().isSupported()) {
-                return SecureKeyringStorage.getInstance();
-            } else {
-                settings.setUseKeyring(false);
-                Settings.persist();
-                return SecureFileStorage.getInstance();
-            }
-        } else {
-            return SecureFileStorage.getInstance();
-        }
+        return SecureFileStorage.getInstance();
     }
 
     protected SecureStorage() {
@@ -142,25 +132,25 @@ public abstract class SecureStorage {
 
     public abstract void updateMasterPassword(char[] currentMasterPW, char[] newMasterPW) throws AuthenticationException, IOException;
 
-    public abstract void store(char[] masterPW, AuthenticationInformation authInfo) throws AuthenticationException;
+    public abstract void store(char[] masterPW, AuthenticationCredentials authInfo) throws AuthenticationException;
 
-    public abstract void store(char[] masterPW, Collection<AuthenticationInformation> authInfos) throws AuthenticationException;
+    public abstract void store(char[] masterPW, Collection<AuthenticationCredentials> authInfos) throws AuthenticationException;
 
-    public abstract void store(AuthenticationInformation authInfo) throws AuthenticationException;
+    public abstract void store(AuthenticationCredentials authInfo) throws AuthenticationException;
 
-    public abstract void update(char[] masterPW, AuthenticationInformation authInfo) throws AuthenticationException;
+    public abstract void update(char[] masterPW, AuthenticationCredentials authInfo) throws AuthenticationException;
 
-    public abstract void update(char[] masterPW, Collection<AuthenticationInformation> authInfos) throws AuthenticationException;
+    public abstract void update(char[] masterPW, Collection<AuthenticationCredentials> authInfos) throws AuthenticationException;
 
-    public abstract void update(AuthenticationInformation authInfo) throws AuthenticationException;
+    public abstract void update(AuthenticationCredentials authInfo) throws AuthenticationException;
 
     public abstract void delete(UUID id);
 
-    public abstract AuthenticationInformation get(char[] masterPW, UUID id) throws AuthenticationException;
+    public abstract AuthenticationCredentials get(char[] masterPW, UUID id) throws AuthenticationException;
 
-    public abstract Map<UUID, AuthenticationInformation> get(char[] masterPW, Collection<UUID> ids) throws AuthenticationException;
+    public abstract Map<UUID, AuthenticationCredentials> get(char[] masterPW, Collection<UUID> ids) throws AuthenticationException;
 
-    public abstract AuthenticationInformation get(UUID id) throws AuthenticationException;
+    public abstract AuthenticationCredentials get(UUID id) throws AuthenticationException;
 
     public abstract void resetMasterPassword() throws IOException;
 
@@ -241,7 +231,7 @@ public abstract class SecureStorage {
             KeySpec keySpec = new PBEKeySpec(key, salt.getBytes(), 65536, 256);
             SecretKeySpec secretKeySpec = new SecretKeySpec(factory.generateSecret(keySpec).getEncoded(), "AES");
 
-            Cipher cipher = Cipher.getInstance("AES/CTR/PKCS5Padding");
+            Cipher cipher = Cipher.getInstance("AES/CBC/PKCS5Padding");
             cipher.init(cipherMode, secretKeySpec, ivParams);
             return cipher;
         } catch (Exception ex) {

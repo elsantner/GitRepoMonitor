@@ -34,7 +34,7 @@ public class Authenticator {
                 authIDs.add(r.getAuthID());
             }
         }
-        Map<UUID, AuthenticationInformation> authInfoMap = secureStorage.get(masterPW, authIDs);
+        Map<UUID, AuthenticationCredentials> authInfoMap = secureStorage.get(masterPW, authIDs);
         for (RepositoryInformation r : repos) {
             authInfos.put(r.getID(), convertToAuthInfo(authInfoMap.get(r.getAuthID())));
         }
@@ -50,13 +50,13 @@ public class Authenticator {
         }
     }
 
-    private static Authenticator convertToAuthInfo(AuthenticationInformation ai) {
+    private static Authenticator convertToAuthInfo(AuthenticationCredentials ai) {
         if (ai instanceof HttpsCredentials) {
             return new Authenticator(new UsernamePasswordCredentialsProvider(
                     ((HttpsCredentials) ai).getUsername(), ((HttpsCredentials) ai).getPassword()));
-        } else if (ai instanceof SSLInformation) {
+        } else if (ai instanceof SslCredentials) {
             return new Authenticator(new SSLTransportConfigCallback(
-                    ((SSLInformation) ai).getSslKeyPath(), ((SSLInformation) ai).getSslPassphrase()));
+                    ((SslCredentials) ai).getSslKeyPath(), ((SslCredentials) ai).getSslPassphrase()));
         } else {
             return new Authenticator();
         }
@@ -64,13 +64,13 @@ public class Authenticator {
 
     public static Authenticator get(UUID authId, char[] masterPW) throws AuthenticationException {
         if (authId != null) {
-            AuthenticationInformation ai = secureStorage.get(masterPW, authId);
+            AuthenticationCredentials ai = secureStorage.get(masterPW, authId);
             if (ai instanceof HttpsCredentials) {
                 return new Authenticator(new UsernamePasswordCredentialsProvider(
                         ((HttpsCredentials) ai).getUsername(), ((HttpsCredentials) ai).getPassword()));
-            } else if (ai instanceof SSLInformation) {
+            } else if (ai instanceof SslCredentials) {
                 return new Authenticator(new SSLTransportConfigCallback(
-                        ((SSLInformation) ai).getSslKeyPath(), ((SSLInformation) ai).getSslPassphrase()));
+                        ((SslCredentials) ai).getSslKeyPath(), ((SslCredentials) ai).getSslPassphrase()));
             } else {
                 return new Authenticator();
             }

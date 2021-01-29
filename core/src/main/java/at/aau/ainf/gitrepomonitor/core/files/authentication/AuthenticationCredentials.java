@@ -13,18 +13,18 @@ import java.util.UUID;
         property = "type")
 @JsonSubTypes({
         @JsonSubTypes.Type(value = HttpsCredentials.class, name = "https"),
-        @JsonSubTypes.Type(value = SSLInformation.class, name = "ssl"),
+        @JsonSubTypes.Type(value = SslCredentials.class, name = "ssl"),
         @JsonSubTypes.Type(value = MasterPasswordAuthInfo.class, name = "mp")
 })
-public abstract class AuthenticationInformation {
+public abstract class AuthenticationCredentials {
     protected UUID id = UUID.randomUUID();
     protected String name;
 
-    protected AuthenticationInformation() {
+    protected AuthenticationCredentials() {
         // for serialization
     }
 
-    protected AuthenticationInformation(UUID id, String name) {
+    protected AuthenticationCredentials(UUID id, String name) {
         this.id = id;
         this.name = name;
     }
@@ -57,10 +57,10 @@ public abstract class AuthenticationInformation {
 
     @Override
     public boolean equals(Object o) {
-        if (o == null || id == null || ((AuthenticationInformation)o).id == null) {
+        if (o == null || id == null || ((AuthenticationCredentials)o).id == null) {
             return false;
         }
-        return Objects.equals(id, ((AuthenticationInformation)o).id);
+        return Objects.equals(id, ((AuthenticationCredentials)o).id);
     }
 
     @Override

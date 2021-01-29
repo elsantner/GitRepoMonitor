@@ -1,7 +1,7 @@
 package at.aau.ainf.gitrepomonitor.gui.auth;
 
 import at.aau.ainf.gitrepomonitor.core.files.FileManager;
-import at.aau.ainf.gitrepomonitor.core.files.authentication.AuthenticationInformation;
+import at.aau.ainf.gitrepomonitor.core.files.authentication.AuthenticationCredentials;
 import at.aau.ainf.gitrepomonitor.core.files.authentication.SecureStorage;
 import at.aau.ainf.gitrepomonitor.gui.AlertDisplay;
 import at.aau.ainf.gitrepomonitor.gui.ResourceStore;
@@ -9,18 +9,17 @@ import javafx.scene.control.*;
 import javafx.scene.control.MenuItem;
 import javafx.scene.effect.ColorAdjust;
 import javafx.scene.image.ImageView;
-import javafx.scene.input.KeyCode;
 import javafx.scene.input.MouseButton;
 import javafx.util.Callback;
 
 import java.io.IOException;
 
 public class AuthInfoCellFactory implements
-        Callback<ListView<AuthenticationInformation>, ListCell<AuthenticationInformation>> {
+        Callback<ListView<AuthenticationCredentials>, ListCell<AuthenticationCredentials>> {
 
     @Override
-    public ListCell<AuthenticationInformation> call(ListView<AuthenticationInformation> listView) {
-        ListCell<AuthenticationInformation> cell = new AuthInfoListViewCell();
+    public ListCell<AuthenticationCredentials> call(ListView<AuthenticationCredentials> listView) {
+        ListCell<AuthenticationCredentials> cell = new AuthInfoListViewCell();
 
         // ctx menu only on non-empty list entries
         cell.emptyProperty().addListener((obs, wasEmpty, isNowEmpty) -> {
@@ -42,7 +41,7 @@ public class AuthInfoCellFactory implements
         return cell;
     }
 
-    private static void openEditAuthInfoWindow(AuthenticationInformation authInfo) {
+    private static void openEditAuthInfoWindow(AuthenticationCredentials authInfo) {
         try {
             ControllerEditAuth.openWindow(authInfo);
         } catch (IOException e) {
@@ -50,9 +49,9 @@ public class AuthInfoCellFactory implements
         }
     }
 
-    static class AuthInfoListViewCell extends ListCell<AuthenticationInformation> {
+    static class AuthInfoListViewCell extends ListCell<AuthenticationCredentials> {
         @Override
-        protected void updateItem(AuthenticationInformation item, boolean empty) {
+        protected void updateItem(AuthenticationCredentials item, boolean empty) {
             super.updateItem(item, empty);
 
             // clear entry if no/empty item (required for clean refresh of listview)
@@ -65,9 +64,9 @@ public class AuthInfoCellFactory implements
     }
 
     static class AuthInfoContextMenu extends ContextMenu implements AlertDisplay {
-        private final AuthenticationInformation item;
+        private final AuthenticationCredentials item;
 
-        public AuthInfoContextMenu(ListCell<AuthenticationInformation> cell) {
+        public AuthInfoContextMenu(ListCell<AuthenticationCredentials> cell) {
             this.item = cell.getItem();
             setupMenuItems();
         }

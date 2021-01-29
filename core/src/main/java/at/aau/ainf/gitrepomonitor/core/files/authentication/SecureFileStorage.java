@@ -1,7 +1,6 @@
 package at.aau.ainf.gitrepomonitor.core.files.authentication;
 
 import at.aau.ainf.gitrepomonitor.core.files.FileManager;
-import at.aau.ainf.gitrepomonitor.core.files.RepositoryInformation;
 import at.aau.ainf.gitrepomonitor.core.files.Utils;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
@@ -110,7 +109,7 @@ public class SecureFileStorage extends SecureStorage {
      * @param masterPW
      * @return
      */
-    private String getEncryptedString(AuthenticationInformation authInfo, char[] masterPW) {
+    private String getEncryptedString(AuthenticationCredentials authInfo, char[] masterPW) {
         try {
             return encrypt(mapper.writeValueAsString(authInfo), masterPW, authInfo.getID().toString());
         } catch (JsonProcessingException e) {
@@ -120,19 +119,19 @@ public class SecureFileStorage extends SecureStorage {
     }
 
     @Override
-    public void store(char[] masterPW, AuthenticationInformation authInfo) throws AuthenticationException {
+    public void store(char[] masterPW, AuthenticationCredentials authInfo) throws AuthenticationException {
         store(masterPW, Collections.singletonList(authInfo));
     }
 
     @Override
-    public void store(char[] masterPW, Collection<AuthenticationInformation> authInfos) throws AuthenticationException {
+    public void store(char[] masterPW, Collection<AuthenticationCredentials> authInfos) throws AuthenticationException {
         synchronized (lockMasterPasswordReset) {
             masterPW = getCachedMasterPasswordHashIfPossible(masterPW);
 
             if (!isMasterPasswordCorrect(masterPW)) {
                 throw new AuthenticationException("wrong master password");
             }
-            for (AuthenticationInformation authInfo : authInfos) {
+            for (AuthenticationCredentials authInfo : authInfos) {
                 String encString = getEncryptedString(authInfo, masterPW);
                 fileManager.storeAuthentication(authInfo, encString);
                 authInfo.destroy();
@@ -145,25 +144,25 @@ public class SecureFileStorage extends SecureStorage {
     }
 
     @Override
-    public void store(AuthenticationInformation authInfo) throws AuthenticationException {
+    public void store(AuthenticationCredentials authInfo) throws AuthenticationException {
         throwIfMasterPasswordNotCached();
         store(null, authInfo);
     }
 
     @Override
-    public void update(char[] masterPW, AuthenticationInformation authInfo) throws AuthenticationException {
+    public void update(char[] masterPW, AuthenticationCredentials authInfo) throws AuthenticationException {
         update(masterPW, Collections.singletonList(authInfo));
     }
 
     @Override
-    public void update(char[] masterPW, Collection<AuthenticationInformation> authInfos) throws AuthenticationException {
+    public void update(char[] masterPW, Collection<AuthenticationCredentials> authInfos) throws AuthenticationException {
         synchronized (lockMasterPasswordReset) {
             masterPW = getCachedMasterPasswordHashIfPossible(masterPW);
 
             if (!isMasterPasswordCorrect(masterPW)) {
                 throw new AuthenticationException("wrong master password");
             }
-            for (AuthenticationInformation authInfo : authInfos) {
+            for (AuthenticationCredentials authInfo : authInfos) {
                 String encString = getEncryptedString(authInfo, masterPW);
                 fileManager.updateAuthentication(authInfo, encString);
                 authInfo.destroy();
@@ -176,7 +175,7 @@ public class SecureFileStorage extends SecureStorage {
     }
 
     @Override
-    public void update(AuthenticationInformation authInfo) throws AuthenticationException {
+    public void update(AuthenticationCredentials authInfo) throws AuthenticationException {
         throwIfMasterPasswordNotCached();
         update(null, authInfo);
     }
@@ -187,12 +186,12 @@ public class SecureFileStorage extends SecureStorage {
     }
 
     @Override
-    public AuthenticationInformation get(char[] masterPW, UUID id) throws AuthenticationException {
+    public AuthenticationCredentials get(char[] masterPW, UUID id) throws AuthenticationException {
         return get(masterPW, Collections.singletonList(id)).get(id);
     }
 
     @Override
-    public Map<UUID, AuthenticationInformation> get(char[] masterPW, Collection<UUID> ids) throws AuthenticationException {
+    public Map<UUID, AuthenticationCredentials> get(char[] masterPW, Collection<UUID> ids) throws AuthenticationException {
         synchronized (lockMasterPasswordReset) {
             masterPW = getCachedMasterPasswordHashIfPossible(masterPW);
 
@@ -200,7 +199,7 @@ public class SecureFileStorage extends SecureStorage {
                 throw new AuthenticationException("wrong master password");
             }
 
-            Map<UUID, AuthenticationInformation> authInfos = new HashMap<>();
+            Map<UUID, AuthenticationCredentials> authInfos = new HashMap<>();
             try {
                 for (UUID id : ids) {
                     authInfos.put(id, mapper.readValue(decrypt(fileManager.readAuthenticationString(id), masterPW, id.toString()),
@@ -218,7 +217,7 @@ public class SecureFileStorage extends SecureStorage {
     }
 
     @Override
-    public AuthenticationInformation get(UUID id) throws AuthenticationException {
+    public AuthenticationCredentials get(UUID id) throws AuthenticationException {
         throwIfMasterPasswordNotCached();
         return get(null, id);
     }

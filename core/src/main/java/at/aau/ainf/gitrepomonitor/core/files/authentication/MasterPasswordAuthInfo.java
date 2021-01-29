@@ -1,11 +1,10 @@
 package at.aau.ainf.gitrepomonitor.core.files.authentication;
 
 import at.aau.ainf.gitrepomonitor.core.files.RepositoryInformation;
-import at.aau.ainf.gitrepomonitor.core.files.Utils;
 
 import java.util.UUID;
 
-public class MasterPasswordAuthInfo extends AuthenticationInformation {
+public class MasterPasswordAuthInfo extends AuthenticationCredentials {
 
     public static UUID ID = new UUID(0, 0);
 

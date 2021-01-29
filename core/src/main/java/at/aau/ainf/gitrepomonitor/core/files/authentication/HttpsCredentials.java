@@ -3,9 +3,7 @@ package at.aau.ainf.gitrepomonitor.core.files.authentication;
 import at.aau.ainf.gitrepomonitor.core.files.RepositoryInformation;
 import at.aau.ainf.gitrepomonitor.core.files.Utils;
 
-import java.util.UUID;
-
-public class HttpsCredentials extends AuthenticationInformation {
+public class HttpsCredentials extends AuthenticationCredentials {
     private String username;
     private char[] password;
 

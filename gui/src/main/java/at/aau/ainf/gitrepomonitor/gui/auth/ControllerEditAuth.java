@@ -2,9 +2,9 @@ package at.aau.ainf.gitrepomonitor.gui.auth;
 
 import at.aau.ainf.gitrepomonitor.core.files.RepositoryInformation;
 import at.aau.ainf.gitrepomonitor.core.files.Utils;
-import at.aau.ainf.gitrepomonitor.core.files.authentication.AuthenticationInformation;
+import at.aau.ainf.gitrepomonitor.core.files.authentication.AuthenticationCredentials;
 import at.aau.ainf.gitrepomonitor.core.files.authentication.HttpsCredentials;
-import at.aau.ainf.gitrepomonitor.core.files.authentication.SSLInformation;
+import at.aau.ainf.gitrepomonitor.core.files.authentication.SslCredentials;
 import at.aau.ainf.gitrepomonitor.core.files.authentication.SecureStorage;
 import at.aau.ainf.gitrepomonitor.gui.AlertDisplay;
 import at.aau.ainf.gitrepomonitor.gui.MasterPasswordQuery;
@@ -67,7 +67,7 @@ public class ControllerEditAuth implements Initializable, AlertDisplay, MasterPa
     private TextField txtName;
 
     private SecureStorage secureStorage;
-    private AuthenticationInformation authInfo = null;
+    private AuthenticationCredentials authInfo = null;
     private boolean createNew = false;
 
     public static FXMLLoader getLoader() {
@@ -75,7 +75,7 @@ public class ControllerEditAuth implements Initializable, AlertDisplay, MasterPa
                 ResourceStore.getResourceBundle());
     }
 
-    public static void openWindow(AuthenticationInformation authInfo) throws IOException {
+    public static void openWindow(AuthenticationCredentials authInfo) throws IOException {
         FXMLLoader loader = ControllerEditAuth.getLoader();
         Parent root = loader.load();
         if (((ControllerEditAuth)loader.getController()).setAuthInfo(authInfo)) {     // set repo information to display
@@ -176,7 +176,7 @@ public class ControllerEditAuth implements Initializable, AlertDisplay, MasterPa
         return status;
     }
 
-    public boolean setAuthInfo(AuthenticationInformation authInfo) {
+    public boolean setAuthInfo(AuthenticationCredentials authInfo) {
         this.authInfo = authInfo;
 
         if (authInfo != null) {
@@ -197,7 +197,7 @@ public class ControllerEditAuth implements Initializable, AlertDisplay, MasterPa
         if (authMethod == RepositoryInformation.AuthMethod.HTTPS) {
             authInfo = new HttpsCredentials();
         } else {
-            authInfo = new SSLInformation();
+            authInfo = new SslCredentials();
         }
         createNew = true;
         setAuthMethodDisplay(authMethod);
@@ -217,7 +217,7 @@ public class ControllerEditAuth implements Initializable, AlertDisplay, MasterPa
      * Update the displayed information.
      * @param authInfo Auth information to be displayed.
      */
-    private void updateAuthDisplay(AuthenticationInformation authInfo) {
+    private void updateAuthDisplay(AuthenticationCredentials authInfo) {
         this.txtName.setText(authInfo.getName());
     }
 
@@ -297,12 +297,12 @@ public class ControllerEditAuth implements Initializable, AlertDisplay, MasterPa
             httpsCredentials.destroy();
         }
         else if (authInfo.getAuthMethod() == RepositoryInformation.AuthMethod.SSL) {
-            SSLInformation sslInformation = new SSLInformation(txtSslKeyPath.getText(),
+            SslCredentials sslCredentials = new SslCredentials(txtSslKeyPath.getText(),
                     Utils.toBytesOrNull(txtSslPassphraseHidden.getText()));
-            sslInformation.setID(authInfo.getID());
-            sslInformation.setName(txtName.getText());
-            secureStorage.store(Utils.toCharOrNull(masterPW), sslInformation);
-            sslInformation.destroy();
+            sslCredentials.setID(authInfo.getID());
+            sslCredentials.setName(txtName.getText());
+            secureStorage.store(Utils.toCharOrNull(masterPW), sslCredentials);
+            sslCredentials.destroy();
         }
     }
 
@@ -319,12 +319,12 @@ public class ControllerEditAuth implements Initializable, AlertDisplay, MasterPa
             httpsCredentials.destroy();
         }
         else if (authInfo.getAuthMethod() == RepositoryInformation.AuthMethod.SSL) {
-            SSLInformation sslInformation = new SSLInformation(txtSslKeyPath.getText(),
+            SslCredentials sslCredentials = new SslCredentials(txtSslKeyPath.getText(),
                     Utils.toBytesOrNull(txtSslPassphraseHidden.getText()));
-            sslInformation.setID(authInfo.getID());
-            sslInformation.setName(txtName.getText());
-            secureStorage.update(Utils.toCharOrNull(masterPW), sslInformation);
-            sslInformation.destroy();
+            sslCredentials.setID(authInfo.getID());
+            sslCredentials.setName(txtName.getText());
+            secureStorage.update(Utils.toCharOrNull(masterPW), sslCredentials);
+            sslCredentials.destroy();
         }
     }
 
@@ -377,8 +377,8 @@ public class ControllerEditAuth implements Initializable, AlertDisplay, MasterPa
         else if (authInfo.getAuthMethod() == RepositoryInformation.AuthMethod.SSL) {
             authContainerHTTPS.setVisible(false);
             authContainerSSL.setVisible(true);
-            txtSslKeyPath.setText(((SSLInformation)authInfo).getSslKeyPath());
-            txtSslPassphraseHidden.setText(new String(((SSLInformation)authInfo).getSslPassphrase()));
+            txtSslKeyPath.setText(((SslCredentials)authInfo).getSslKeyPath());
+            txtSslPassphraseHidden.setText(new String(((SslCredentials)authInfo).getSslPassphrase()));
         }
     }
 

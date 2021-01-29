@@ -2,11 +2,8 @@ package at.aau.ainf.gitrepomonitor.gui.repolist;
 
 import at.aau.ainf.gitrepomonitor.core.files.FileManager;
 import at.aau.ainf.gitrepomonitor.core.files.RepositoryInformation;
-import at.aau.ainf.gitrepomonitor.core.files.authentication.AuthenticationInformation;
-import at.aau.ainf.gitrepomonitor.core.files.authentication.SecureStorage;
 import at.aau.ainf.gitrepomonitor.gui.AlertDisplay;
 import at.aau.ainf.gitrepomonitor.gui.ResourceStore;
-import at.aau.ainf.gitrepomonitor.gui.auth.ControllerEditAuth;
 import at.aau.ainf.gitrepomonitor.gui.editrepo.ControllerEditRepo;
 import javafx.event.EventHandler;
 import javafx.scene.control.Alert;
@@ -14,7 +11,6 @@ import javafx.scene.control.ListView;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
 
-import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 

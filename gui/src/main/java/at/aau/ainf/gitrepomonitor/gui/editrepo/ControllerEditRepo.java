@@ -42,7 +42,7 @@ public class ControllerEditRepo implements Initializable, AlertDisplay, MasterPa
     @FXML
     public TextField txtRemotePath;
     @FXML
-    public ComboBox<AuthenticationInformation> cbBoxAuthInfo;
+    public ComboBox<AuthenticationCredentials> cbBoxAuthInfo;
     @FXML
     private TextField txtName;
     @FXML
@@ -209,7 +209,7 @@ public class ControllerEditRepo implements Initializable, AlertDisplay, MasterPa
     }
 
     private void setupCredentials() {
-        List<AuthenticationInformation> authInfo;
+        List<AuthenticationCredentials> authInfo;
         // do not query for authMethod NONE (i.e. if invalid repo path is entered)
         if (repo.getAuthMethod() == RepositoryInformation.AuthMethod.NONE) {
             authInfo = new ArrayList<>();
@@ -219,7 +219,7 @@ public class ControllerEditRepo implements Initializable, AlertDisplay, MasterPa
         // add "None" auth item as default
         authInfo.add(0, new AuthInfoNone(ResourceStore.getString("edit_repo.no_auth")));
         // set combobox items to all auth infos for repos auth method
-        cbBoxAuthInfo.setItems(new ImmutableObservableList<>(authInfo.toArray(new AuthenticationInformation[0])));
+        cbBoxAuthInfo.setItems(new ImmutableObservableList<>(authInfo.toArray(new AuthenticationCredentials[0])));
     }
 
     @FXML

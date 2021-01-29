@@ -3,17 +3,15 @@ package at.aau.ainf.gitrepomonitor.core.files.authentication;
 import at.aau.ainf.gitrepomonitor.core.files.RepositoryInformation;
 import at.aau.ainf.gitrepomonitor.core.files.Utils;
 
-import java.util.UUID;
-
-public class SSLInformation extends AuthenticationInformation {
+public class SslCredentials extends AuthenticationCredentials {
     private String sslKeyPath;
     private byte[] sslPassphrase;
 
-    public SSLInformation() {
+    public SslCredentials() {
         // for serialization
     }
 
-    public SSLInformation(String sslKeyPath, byte[] sslPassphrase) {
+    public SslCredentials(String sslKeyPath, byte[] sslPassphrase) {
         this.sslKeyPath = sslKeyPath;
         this.sslPassphrase = sslPassphrase;
     }

@@ -2,7 +2,7 @@ package at.aau.ainf.gitrepomonitor.gui.auth;
 
 import at.aau.ainf.gitrepomonitor.core.files.FileManager;
 import at.aau.ainf.gitrepomonitor.core.files.RepositoryInformation;
-import at.aau.ainf.gitrepomonitor.core.files.authentication.AuthenticationInformation;
+import at.aau.ainf.gitrepomonitor.core.files.authentication.AuthenticationCredentials;
 import at.aau.ainf.gitrepomonitor.core.files.authentication.SecureStorage;
 import at.aau.ainf.gitrepomonitor.gui.AlertDisplay;
 import at.aau.ainf.gitrepomonitor.gui.ResourceStore;
@@ -29,9 +29,9 @@ import java.util.ResourceBundle;
 public class ControllerAuthList implements Initializable, AlertDisplay, PropertyChangeListener {
 
     @FXML
-    public ListView<AuthenticationInformation> listHTTPS;
+    public ListView<AuthenticationCredentials> listHTTPS;
     @FXML
-    public ListView<AuthenticationInformation> listSSL;
+    public ListView<AuthenticationCredentials> listSSL;
 
     private FileManager fileManager;
 
@@ -97,7 +97,7 @@ public class ControllerAuthList implements Initializable, AlertDisplay, Property
     private void updateAuthLists() {
         listHTTPS.getItems().clear();
         listSSL.getItems().clear();
-        for (AuthenticationInformation authInfo : fileManager.getAllAuthenticationInfos()) {
+        for (AuthenticationCredentials authInfo : fileManager.getAllAuthenticationInfos()) {
             if (authInfo.getAuthMethod() == RepositoryInformation.AuthMethod.HTTPS) {
                 listHTTPS.getItems().add(authInfo);
             } else {
@@ -112,9 +112,9 @@ public class ControllerAuthList implements Initializable, AlertDisplay, Property
 
     static class KeyPressHandler implements EventHandler<KeyEvent>, AlertDisplay {
 
-        private ListView<AuthenticationInformation> listView;
+        private ListView<AuthenticationCredentials> listView;
 
-        public KeyPressHandler(ListView<AuthenticationInformation> listView) {
+        public KeyPressHandler(ListView<AuthenticationCredentials> listView) {
             this.listView = listView;
         }
 
@@ -122,19 +122,19 @@ public class ControllerAuthList implements Initializable, AlertDisplay, Property
         public void handle(KeyEvent event) {
             try {
                 if (event.getCode() == KeyCode.ENTER) {
-                    AuthenticationInformation authInfo = listView.getSelectionModel().getSelectedItem();
+                    AuthenticationCredentials authInfo = listView.getSelectionModel().getSelectedItem();
                     if (authInfo != null) {
                         ControllerEditAuth.openWindow(authInfo);
                     }
                 } else if (event.getCode() == KeyCode.DELETE) {
-                    List<AuthenticationInformation> selItems = new ArrayList<>(listView.getSelectionModel().getSelectedItems());
+                    List<AuthenticationCredentials> selItems = new ArrayList<>(listView.getSelectionModel().getSelectedItems());
                     if (!selItems.isEmpty()) {
                         if (showConfirmationDialog(Alert.AlertType.WARNING,
                                 ResourceStore.getString("auth_list.confirm_delete_multiple.title"),
                                 ResourceStore.getString("auth_list.confirm_delete_multiple.header", selItems.size()),
                                 ResourceStore.getString("auth_list.confirm_delete_multiple.content"))) {
 
-                            for (AuthenticationInformation ai : selItems) {
+                            for (AuthenticationCredentials ai : selItems) {
                                 SecureStorage.getImplementation().delete(ai.getID());
                             }
                         }
