@@ -1,5 +1,6 @@
 package at.aau.ainf.gitrepomonitor.core.files.authentication;
 
+import at.aau.ainf.gitrepomonitor.core.files.StoragePath;
 import at.aau.ainf.gitrepomonitor.core.files.Utils;
 
 import javax.crypto.BadPaddingException;
@@ -15,32 +16,24 @@ public class SecureFileStorageTestable extends SecureFileStorage {
         return CREDENTIALS_FILENAME;
     }
 
-    public String encrypt(String plaintext, char[] key) {
-        return super.encrypt(plaintext, key);
+    public String encrypt(String plaintext, char[] key, String salt) {
+        return super.encrypt(plaintext, key, salt);
     }
 
-    public String decrypt(String ciphertext, char[] key) throws BadPaddingException, IllegalBlockSizeException {
-        return super.decrypt(ciphertext, key);
+    public String decrypt(String ciphertext, char[] key, String salt) throws BadPaddingException, IllegalBlockSizeException {
+        return super.decrypt(ciphertext, key, salt);
     }
 
-    public String decryptFromBytes(byte[] ciphertext, char[] key) throws BadPaddingException, IllegalBlockSizeException {
-        return super.decryptFromBytes(ciphertext, key);
+    public String decryptFromBytes(byte[] ciphertext, char[] key, String salt) throws BadPaddingException, IllegalBlockSizeException {
+        return super.decryptFromBytes(ciphertext, key, salt);
     }
 
-    public byte[] encryptToBytes(String plaintext, char[] key) {
-        return super.encryptToBytes(plaintext, key);
-    }
-
-    public CredentialWrapper readCredentials(char[] masterPW) throws IOException {
-        return super.readCredentials(masterPW);
-    }
-
-    public void writeCredentials(CredentialWrapper credentials, char[] masterPW) throws IOException {
-        super.writeCredentials(credentials, masterPW);
+    public byte[] encryptToBytes(String plaintext, char[] key, String salt) {
+        return super.encryptToBytes(plaintext, key, salt);
     }
 
     public void removeCredentialTestFile() {
-        new File(Utils.getProgramHomeDir() + getCredentialsFilename()).delete();
+        new File(StoragePath.getCurrentPath() + getCredentialsFilename()).delete();
     }
 
     public char[] getCachedMasterPassword() {

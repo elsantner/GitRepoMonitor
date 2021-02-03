@@ -4,6 +4,9 @@ import java.util.Date;
 import java.util.Objects;
 import java.util.UUID;
 
+/**
+ * Stores all application-specific information (persistent and transient) about a Git repository.
+ */
 public class RepositoryInformation implements Comparable<RepositoryInformation>, Cloneable {
 
     private UUID id;

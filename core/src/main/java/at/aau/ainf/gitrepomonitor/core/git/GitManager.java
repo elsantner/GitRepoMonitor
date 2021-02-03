@@ -29,6 +29,9 @@ import java.util.regex.Pattern;
 
 import static at.aau.ainf.gitrepomonitor.core.files.RepositoryInformation.RepoStatus.*;
 
+/**
+ * Provides access to Git-specific functionality.
+ */
 public class GitManager {
     private static GitManager instance;
     private static final String PATTERN_HEAD_COMMIT = ".*HEAD$";
@@ -40,6 +43,11 @@ public class GitManager {
         return instance;
     }
 
+    /**
+     * Set authentication method of repoInfo according to Git config.
+     * @param repoInfo RepoInfo to set auth method on.
+     * @throws IOException If error during Git config read occurs.
+     */
     public static void setAuthMethod(RepositoryInformation repoInfo) throws IOException {
         Repository repo = new FileRepositoryBuilder()
                 .setGitDir(new File(repoInfo.getPath() + "/.git"))
@@ -55,8 +63,10 @@ public class GitManager {
         }
     }
 
+    // cache for Git objects
     private final HashMap<String, Git> repoCache;
     private final FileManager fileManager;
+    // thread pool for async operations
     private final ThreadPoolExecutor executor;
     private PullListener pullListener;
 
@@ -74,6 +84,19 @@ public class GitManager {
         this.pullListener = pullListener;
     }
 
+    private void notifyPullListener(RepositoryInformation repo, MergeResult.MergeStatus status) {
+        if (this.pullListener != null) {
+            this.pullListener.pullExecuted(repo, status);
+        }
+    }
+
+    /**
+     * Perform async pull command using stored credentials.
+     * @param repo Repo to perform pull on.
+     * @param masterPW Master Password (if null then try using cache)
+     * @param cb Callback
+     * @param progressMonitor Monitor for progress updates.
+     */
     public void pullRepoAsync(RepositoryInformation repo, char[] masterPW, PullCallback cb, ProgressMonitor progressMonitor) {
         executor.submit(() -> {
             MergeResult.MergeStatus status;
@@ -87,7 +110,7 @@ public class GitManager {
     }
 
     /**
-     * Updates the status of all repositories on the Watchlist.
+     * Updates the status of all repositories on the Watchlist asynchronously.
      * The master password is used to access stored credential information.
      * @param masterPW Master Password
      * @param cb Called when all repositories on the Watchlist have been checked.
@@ -102,7 +125,7 @@ public class GitManager {
         checksSuccessful.value = 0;
 
         // load credentials of all repos if correct masterPW
-        Map<UUID, Authenticator> authInfo = getAuthInfoIfPossible(masterPW, watchlist);
+        Map<UUID, Authenticator> authInfo = getAuthenticatorIfPossible(masterPW, watchlist);
 
         for (RepositoryInformation repo : watchlist) {
             updateRepoStatusAsync(repo, Optional.ofNullable(authInfo.get(repo.getID())).orElse(new Authenticator()),
@@ -127,6 +150,12 @@ public class GitManager {
         updateWatchlistStatusAsync(null, cb);
     }
 
+    /**
+     * Update the status of given repo asynchronously.
+     * @param repo Repo to update status of.
+     * @param authenticator Authenticator for repo access.
+     * @param cb Callback
+     */
     public void updateRepoStatusAsync(RepositoryInformation repo, Authenticator authenticator, UpdateStatusCallback cb) {
         executor.submit(() -> {
             try {
@@ -140,6 +169,12 @@ public class GitManager {
         });
     }
 
+    /**
+     * Update the status of given repo asynchronously.
+     * @param repo Repo to update status of.
+     * @param masterPW Master Password
+     * @param cb Callback
+     */
     public void updateRepoStatusAsync(RepositoryInformation repo, char[] masterPW, UpdateStatusCallback cb) {
         executor.submit(() -> {
             try {
@@ -151,6 +186,12 @@ public class GitManager {
         });
     }
 
+    /**
+     * Execute async pull commands for all repos on the Watchlist.
+     * @param masterPW Master password
+     * @param cb Callback (called when all pull commands have finished)
+     * @param progressMonitor Monitor for progress updates.
+     */
     public void pullWatchlistAsync(char[] masterPW, PullCallback cb, ProgressMonitor progressMonitor) {
         List<RepositoryInformation> watchlist = fileManager.getWatchlist();
         MutableInteger pullsFinished = new MutableInteger();
@@ -162,7 +203,7 @@ public class GitManager {
         AtomicBoolean wrongMasterPW = new AtomicBoolean(false);
 
         // load credentials of all repos if correct masterPW
-        Map<UUID, Authenticator> authInfo = getAuthInfoIfPossible(masterPW, watchlist);
+        Map<UUID, Authenticator> authInfo = getAuthenticatorIfPossible(masterPW, watchlist);
 
         List<PullCallback.PullResult> pullResults = new ArrayList<>();
         for (RepositoryInformation repo : watchlist) {
@@ -229,6 +270,12 @@ public class GitManager {
         return changes;
     }
 
+    /**
+     * Test the connection / authentication for the provided repo asynchronously.
+     * @param repo Repo to test
+     * @param authenticator Auth credentials to test
+     * @param cb Callback
+     */
     public void testRepoConnectionAsync(RepositoryInformation repo, Authenticator authenticator, ConnectionTestCallback cb) {
         executor.submit(() -> {
             RepositoryInformation.RepoStatus testResult = testRepoConnection(repo, authenticator);
@@ -237,6 +284,30 @@ public class GitManager {
         });
     }
 
+    /**
+     * Test repo connection / authentication for the provided repo.
+     * @param repo Repo to test
+     * @param authenticator Auth credentials to test
+     * @return Result of connection test
+     */
+    private RepositoryInformation.RepoStatus testRepoConnection(RepositoryInformation repo, Authenticator authenticator) {
+        RepositoryInformation.RepoStatus status;
+        try {
+            Git git = getRepoGit(repo.getPath());
+            status = getRepoStatus(git, authenticator);
+        } catch (IOException e) {
+            status = PATH_INVALID;
+        }
+        return status;
+    }
+
+    /**
+     * Get all branches of a repo.
+     * @param path Path of repo.
+     * @return All branches of the specified repo
+     * @throws IOException
+     * @throws GitAPIException
+     */
     public Collection<Branch> getBranchNames(String path) throws IOException, GitAPIException {
         Map<String, Branch> branches = new HashMap<>();
         Git repoGit = getRepoGit(path);
@@ -266,12 +337,25 @@ public class GitManager {
         return branches.values();
     }
 
+    /**
+     * Get the currently selected branch of a repo.
+     * @param path Path of repo.
+     * @return Currently selected branch
+     * @throws IOException
+     */
     public Branch getSelectedBranch(String path) throws IOException {
         Git repoGit = getRepoGit(path);
         // selected branch is always local
         return new Branch("refs/heads/" + repoGit.getRepository().getBranch(), false);
     }
 
+    /**
+     * Perform checkout command.
+     * @param repo Repo to perform command on.
+     * @param branchName Branch to check out
+     * @throws IOException
+     * @throws GitAPIException
+     */
     public void checkout(RepositoryInformation repo, String branchName) throws IOException, GitAPIException {
         Git repoGit = getRepoGit(repo.getPath());
         repoGit.checkout()
@@ -279,17 +363,18 @@ public class GitManager {
                 .call();
     }
 
+    /**
+     * Perform create branch command.
+     * @param repo Repo to perform command on.
+     * @param branchName Branch to create
+     * @throws IOException
+     * @throws GitAPIException
+     */
     public void createBranch(RepositoryInformation repo, String branchName) throws IOException, GitAPIException {
         Git repoGit = getRepoGit(repo.getPath());
         repoGit.branchCreate()
                 .setName(branchName)
                 .call();
-    }
-
-    private void notifyPullListener(RepositoryInformation repo, MergeResult.MergeStatus status) {
-        if (this.pullListener != null) {
-            this.pullListener.pullExecuted(repo, status);
-        }
     }
 
     /**
@@ -310,6 +395,13 @@ public class GitManager {
         return repoGit;
     }
 
+    /**
+     * Get all commits between {@code from} and {@code to} commit.
+     * @param git Git of repo
+     * @param from Start of commit list
+     * @param to End of commit list
+     * @return All commits between {@code from} and {@code to}.
+     */
     private List<RevCommit> getCommitsInRange(Git git, ObjectId from, ObjectId to) {
         List<RevCommit> commits = new ArrayList<>();
         try {
@@ -320,6 +412,18 @@ public class GitManager {
         return commits;
     }
 
+    /**
+     * Perform pull command and notify pull listener.
+     * Also sets new changes on repo object via FileManager.
+     * @param repo Repo to perform pull on.
+     * @param authenticator Auth credentials of repo
+     * @param progressMonitor Monitor for progress updates
+     * @return Merge status of pull command.
+     * @throws IOException
+     * @throws CredentialException
+     * @throws CheckoutConflictException
+     * @throws WrongRepositoryStateException
+     */
     private MergeResult.MergeStatus pullRepo(RepositoryInformation repo, Authenticator authenticator, ProgressMonitor progressMonitor) throws IOException, CredentialException, CheckoutConflictException, WrongRepositoryStateException {
         Git git = getRepoGit(repo.getPath());
         RepositoryInformation repoInfo = fileManager.getRepo(repo.getID());
@@ -352,6 +456,18 @@ public class GitManager {
         }
     }
 
+    /**
+     * Perform pull command and notify pull listener.
+     * Also sets new changes on repo object via FileManager.
+     * @param repo Repo to perform pull on.
+     * @param masterPW Master password
+     * @param progressMonitor Monitor for progress updates
+     * @return Merge status of pull command.
+     * @throws IOException
+     * @throws GitAPIException
+     * @throws CredentialException
+     * @throws AuthenticationException
+     */
     private MergeResult.MergeStatus pullRepo(RepositoryInformation repo, char[] masterPW, ProgressMonitor progressMonitor) throws IOException, GitAPIException, CredentialException, AuthenticationException {
         RepositoryInformation repoInfo = fileManager.getRepo(repo.getID());
         Authenticator authenticator = Authenticator.getFor(repoInfo, masterPW);
@@ -360,6 +476,13 @@ public class GitManager {
         return status;
     }
 
+    /**
+     * Perform async pull command.
+     * @param repo Repo to perform pull on.
+     * @param authenticator Auth credentials
+     * @param cb Callback
+     * @param progressMonitor Monitor for progress updates.
+     */
     private void pullRepoAsync(RepositoryInformation repo, Authenticator authenticator, PullCallback cb, ProgressMonitor progressMonitor) {
         executor.submit(() -> {
             MergeResult.MergeStatus status;
@@ -377,6 +500,12 @@ public class GitManager {
         });
     }
 
+    /**
+     * Call callback according to exception.
+     * @param ex Exception to handle.
+     * @param cb Callback which is called
+     * @param repo Repo which caused the exception
+     */
     private void handlePullException(Exception ex, PullCallback cb, RepositoryInformation repo) {
         // wrong master password
         if (ex instanceof AuthenticationException) {
@@ -396,14 +525,25 @@ public class GitManager {
         }
     }
 
+    /**
+     * Perform fetch command
+     * @param repoGit Git of repo to fetch
+     * @param authenticator Auth credentials
+     * @throws GitAPIException
+     */
     private void fetchRepo(Git repoGit, Authenticator authenticator) throws GitAPIException {
         FetchCommand cmd = repoGit.fetch();
         authenticator.configure(cmd);
         cmd.call();
     }
 
-
-    private Map<UUID, Authenticator> getAuthInfoIfPossible(char[] masterPW, List<RepositoryInformation> repos) {
+    /**
+     * Get authenticators for specified repos.
+     * @param masterPW Master password
+     * @param repos Repos to get authenticators for.
+     * @return Map of RepoID --> corresponding Authenticator
+     */
+    private Map<UUID, Authenticator> getAuthenticatorIfPossible(char[] masterPW, List<RepositoryInformation> repos) {
         Map<UUID, Authenticator> authInfo = new HashMap<>();
         try {
             authInfo = Authenticator.getFor(repos, masterPW);
@@ -438,6 +578,12 @@ public class GitManager {
         }
     }
 
+    /**
+     * Sets status of the Repo at the provided path.
+     * @param repo Repo to update status of.
+     * @param authenticator Auth credentials for repo.
+     * @throws IOException
+     */
     private void updateRepoStatus(RepositoryInformation repo, Authenticator authenticator) throws IOException {
         RepositoryInformation repoInfo = fileManager.getRepo(repo.getID());
         RepositoryInformation.RepoStatus status = WRONG_MASTER_PW;
@@ -503,7 +649,7 @@ public class GitManager {
     /**
      * Check if local changes are available to pull.
      * @param git Git of repository
-     * @return True, if local changes are available.
+     * @return True, iff local changes are available.
      * @throws IOException
      * @throws GitAPIException
      */
@@ -519,7 +665,7 @@ public class GitManager {
     /**
      * Check if remote changes are available to pull.
      * @param git Git of repository
-     * @return True, if remote changes are available.
+     * @return True, iff remote changes are available.
      * @throws IOException
      * @throws GitAPIException
      */
@@ -553,6 +699,13 @@ public class GitManager {
         return exclusiveCommits;
     }
 
+    /**
+     * Get commit by ID
+     * @param repo Repository to which the commit belongs.
+     * @param objectId ID of the commit
+     * @return Commit with specified ID
+     * @throws IOException
+     */
     private RevCommit getCommit(Repository repo, ObjectId objectId) throws IOException {
         RevCommit commit;
         try (RevWalk revWalk = new RevWalk(repo)) {
@@ -608,21 +761,20 @@ public class GitManager {
         }
     }
 
-    private RepositoryInformation.RepoStatus testRepoConnection(RepositoryInformation repo, Authenticator authenticator) {
-        RepositoryInformation.RepoStatus status;
-        try {
-            Git git = getRepoGit(repo.getPath());
-            status = getRepoStatus(git, authenticator);
-        } catch (IOException e) {
-            status = PATH_INVALID;
-        }
-        return status;
-    }
-
+    /**
+     * Check if a repo has a remote specified.
+     * @param path Path of repo to check.
+     * @return True, iff repo config has remote path.
+     */
     public boolean hasRemoteRepository(String path) {
         return getRemoteURL(path) != null;
     }
 
+    /**
+     * Get the remote URL of a repo.
+     * @param path Path of repo to check.
+     * @return Remote URL of the repo.
+     */
     public String getRemoteURL(String path) {
         try {
             Repository repo = getRepoGit(path).getRepository();

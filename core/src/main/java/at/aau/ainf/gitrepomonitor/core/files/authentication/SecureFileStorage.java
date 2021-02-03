@@ -10,14 +10,8 @@ import javax.crypto.IllegalBlockSizeException;
 import javax.naming.AuthenticationException;
 import java.util.*;
 
-
 /**
- * The idea of this credential storage system is as follows:
- * - The user can store repo credentials by inputting a master password
- * - The repository carries information whether it has associated credentials or not (in plaintext)
- * - All repo credentials are stored in a single file
- * - Upon requesting credentials, the whole file is loaded and decrypted
- * - Only the required credentials stay loaded, the rest is discarded
+ * File-based implementation of securely stored credentials manager.
  */
 public class SecureFileStorage extends SecureStorage {
 
@@ -48,6 +42,7 @@ public class SecureFileStorage extends SecureStorage {
      */
     @Override
     public boolean isMasterPasswordSet() {
+        // check if mp entry exists in Database
         return fileManager.readAuthenticationString(MasterPasswordAuthInfo.ID) != null;
     }
 
@@ -58,6 +53,7 @@ public class SecureFileStorage extends SecureStorage {
         }
         char[] hashedMP = Utils.sha3_256(masterPW);
         Utils.clearArray(masterPW);
+        // MP hash is stored encrypted under the same MP hash.
         fileManager.storeAuthentication(new MasterPasswordAuthInfo(),
                 encrypt(new String(hashedMP), hashedMP, MasterPasswordAuthInfo.ID.toString()));
         Utils.clearArray(hashedMP);
@@ -76,6 +72,7 @@ public class SecureFileStorage extends SecureStorage {
         }
 
         try {
+            // re-keying of all stored credentials
             Map<UUID, String> encValues = fileManager.getAllAuthenticationStrings(true);
             for (UUID id : encValues.keySet()) {
                 String newEncValue;
@@ -89,7 +86,6 @@ public class SecureFileStorage extends SecureStorage {
                 fileManager.updateAuthentication(id, newEncValue);
             }
         } catch (Exception ex) {
-            ex.printStackTrace();
             throw new AuthenticationException("error during key change");
         }
 
@@ -101,21 +97,6 @@ public class SecureFileStorage extends SecureStorage {
         // reset mp clear mechanisms
         resetMPUseCount();
         restartMPExpirationTimer();
-    }
-
-    /**
-     * Convert authInfo to XML and encrypt using masterPW
-     * @param authInfo
-     * @param masterPW
-     * @return
-     */
-    private String getEncryptedString(AuthenticationCredentials authInfo, char[] masterPW) {
-        try {
-            return encrypt(mapper.writeValueAsString(authInfo), masterPW, authInfo.getID().toString());
-        } catch (JsonProcessingException e) {
-            e.printStackTrace();
-            throw new RuntimeException(e);
-        }
     }
 
     @Override
@@ -131,6 +112,7 @@ public class SecureFileStorage extends SecureStorage {
             if (!isMasterPasswordCorrect(masterPW)) {
                 throw new AuthenticationException("wrong master password");
             }
+            // encrypt and store all credentials
             for (AuthenticationCredentials authInfo : authInfos) {
                 String encString = getEncryptedString(authInfo, masterPW);
                 fileManager.storeAuthentication(authInfo, encString);
@@ -162,6 +144,7 @@ public class SecureFileStorage extends SecureStorage {
             if (!isMasterPasswordCorrect(masterPW)) {
                 throw new AuthenticationException("wrong master password");
             }
+            // encrypt and update all credentials
             for (AuthenticationCredentials authInfo : authInfos) {
                 String encString = getEncryptedString(authInfo, masterPW);
                 fileManager.updateAuthentication(authInfo, encString);
@@ -202,10 +185,12 @@ public class SecureFileStorage extends SecureStorage {
             Map<UUID, AuthenticationCredentials> authInfos = new HashMap<>();
             try {
                 for (UUID id : ids) {
+                    // decrypt credentials and convert to AuthenticationCredentials objects
                     authInfos.put(id, mapper.readValue(decrypt(fileManager.readAuthenticationString(id), masterPW, id.toString()),
                             new TypeReference<>() {}));
                 }
             } catch (BadPaddingException | IllegalBlockSizeException | JsonProcessingException e) {
+                // invalid master key
                 throw new AuthenticationException("authentication failed");
             } finally {
                 cacheMasterPasswordIfEnabled(masterPW);
@@ -222,7 +207,26 @@ public class SecureFileStorage extends SecureStorage {
         return get(null, id);
     }
 
+    /**
+     * Convert authInfo to XML and encrypt using masterPW
+     * @param authInfo Auth credentials
+     * @param masterPW Master password.
+     * @return Encrypted credentials string.
+     */
+    private String getEncryptedString(AuthenticationCredentials authInfo, char[] masterPW) {
+        try {
+            return encrypt(mapper.writeValueAsString(authInfo), masterPW, authInfo.getID().toString());
+        } catch (JsonProcessingException e) {
+            e.printStackTrace();
+            throw new RuntimeException(e);
+        }
+    }
 
+    /**
+     * Check if the master password is correct.
+     * @param hashedCurrentPW Hash of master password.
+     * @return True, iff master password is correct.
+     */
     private boolean isMasterPasswordCorrect(char[] hashedCurrentPW) {
         String encHashedPW = fileManager.readAuthenticationString(MasterPasswordAuthInfo.ID);
         try {

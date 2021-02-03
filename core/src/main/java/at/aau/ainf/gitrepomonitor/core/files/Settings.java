@@ -9,6 +9,9 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.util.logging.Logger;
 
+/**
+ * Provides access to application settings.
+ */
 public class Settings implements Cloneable {
 
     private static XmlMapper mapper;
@@ -30,6 +33,9 @@ public class Settings implements Cloneable {
         return new File(StoragePath.getCurrentPath() + "settings.xml");
     }
 
+    /**
+     * Reload and persist settings from storage path.
+     */
     public static void storagePathChanged() {
         if (getSettingsFile().exists()) {
             loadSettings();
@@ -38,6 +44,10 @@ public class Settings implements Cloneable {
         }
     }
 
+    /**
+     * Load settings from storage path.
+     * If settings do not exist there, create them.
+     */
     private static void loadSettings() {
         try {
             settings = mapper.readValue(getSettingsFile(), new TypeReference<>() {});
@@ -47,6 +57,10 @@ public class Settings implements Cloneable {
         }
     }
 
+    /**
+     * Persist settings to storage path.
+     * (Creates all required directories)
+     */
     public static void persist() {
         try {
             if (!getSettingsFile().getParentFile().exists()) {

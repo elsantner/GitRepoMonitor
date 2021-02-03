@@ -85,7 +85,7 @@ public class ControllerEditRepo implements Initializable, AlertDisplay, MasterPa
         this.fileManager = FileManager.getInstance();
         this.gitManager = GitManager.getInstance();
         this.secureStorage = SecureStorage.getImplementation();
-        this.fileManager.addAuthInfoListener(this);
+        this.fileManager.addAuthCredListener(this);
         setupUI();
     }
 
@@ -214,7 +214,7 @@ public class ControllerEditRepo implements Initializable, AlertDisplay, MasterPa
         if (repo.getAuthMethod() == RepositoryInformation.AuthMethod.NONE) {
             authInfo = new ArrayList<>();
         } else {
-            authInfo = fileManager.getAllAuthenticationInfos(repo.getAuthMethod());
+            authInfo = fileManager.getAllAuthenticationCredentials(repo.getAuthMethod());
         }
         // add "None" auth item as default
         authInfo.add(0, new AuthInfoNone(ResourceStore.getString("edit_repo.no_auth")));

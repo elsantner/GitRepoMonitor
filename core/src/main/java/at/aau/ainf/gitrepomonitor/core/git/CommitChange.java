@@ -5,6 +5,10 @@ import org.eclipse.jgit.revwalk.RevCommit;
 
 import java.util.List;
 
+/**
+ * Wrapper for a commit change.
+ * Stores commit and all associated file changes.
+ */
 public class CommitChange {
     private RevCommit commit;
     private List<DiffEntry> fileChanges;

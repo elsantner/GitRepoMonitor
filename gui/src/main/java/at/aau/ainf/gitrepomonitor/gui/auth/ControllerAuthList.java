@@ -60,7 +60,7 @@ public class ControllerAuthList implements Initializable, AlertDisplay, Property
     @Override
     public void initialize(URL location, ResourceBundle resources) {
         this.fileManager = FileManager.getInstance();
-        fileManager.addAuthInfoListener(this);
+        fileManager.addAuthCredListener(this);
         setupUI();
     }
 
@@ -97,7 +97,7 @@ public class ControllerAuthList implements Initializable, AlertDisplay, Property
     private void updateAuthLists() {
         listHTTPS.getItems().clear();
         listSSL.getItems().clear();
-        for (AuthenticationCredentials authInfo : fileManager.getAllAuthenticationInfos()) {
+        for (AuthenticationCredentials authInfo : fileManager.getAllAuthenticationCredentials()) {
             if (authInfo.getAuthMethod() == RepositoryInformation.AuthMethod.HTTPS) {
                 listHTTPS.getItems().add(authInfo);
             } else {
@@ -107,7 +107,7 @@ public class ControllerAuthList implements Initializable, AlertDisplay, Property
     }
 
     public void cleanup() {
-        fileManager.removeAuthInfoListener(this);
+        fileManager.addAuthCredListener(this);
     }
 
     static class KeyPressHandler implements EventHandler<KeyEvent>, AlertDisplay {

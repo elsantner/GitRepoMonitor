@@ -8,7 +8,15 @@ import java.security.MessageDigest;
 import java.text.DateFormat;
 import java.util.*;
 
+/**
+ * Utility functionality.
+ */
 public abstract class Utils {
+    /**
+     * Get last modified date of any file in a directory
+     * @param path Directory to analyze.
+     * @return
+     */
     public static Date getLastChangedDate(String path) {
         File dir = new File(path);
         if (dir.isDirectory()) {
@@ -22,6 +30,11 @@ public abstract class Utils {
         return new Date(0);
     }
 
+    /**
+     * Check if the provided path contains a directory '.git'
+     * @param path
+     * @return
+     */
     public static boolean validateRepositoryPath(String path) {
         try {
             File dir = new File(path, ".git");
@@ -73,6 +86,11 @@ public abstract class Utils {
         return hexStr.toString();
     }
 
+    /**
+     * Convert character array to byte array
+     * @param chars
+     * @return
+     */
     private static byte[] toBytes(char[] chars) {
         CharBuffer bufChar = CharBuffer.wrap(chars);
         ByteBuffer bufByte = StandardCharsets.UTF_8.encode(bufChar);
@@ -82,6 +100,11 @@ public abstract class Utils {
         return bytes;
     }
 
+    /**
+     * Get the deepest existing directory in the provided path.
+     * @param path
+     * @return
+     */
     public static File getDeepestExistingDirectory(String path) {
         if (path == null || path.isBlank()) {
             return null;

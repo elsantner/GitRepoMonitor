@@ -21,6 +21,9 @@ import java.util.stream.Stream;
 import static at.aau.ainf.gitrepomonitor.core.files.FileManager.RepoList.FOUND;
 import static at.aau.ainf.gitrepomonitor.core.files.FileManager.RepoList.WATCH;
 
+/**
+ * Provides access to persistently stored data.
+ */
 public class FileManager implements FileMonitor.Listener {
     private static FileManager instance;
 
@@ -29,7 +32,7 @@ public class FileManager implements FileMonitor.Listener {
     private final List<PropertyChangeListener> listenersWatchlist;
     private final List<PropertyChangeListener> listenersFoundRepos;
     private final List<PropertyChangeListener> listenersRepoStatus;
-    private final List<PropertyChangeListener> listenersAuthInfo;
+    private final List<PropertyChangeListener> listenersAuthCred;
     private FileErrorListener fileErrorListener;
 
     private Connection conn;
@@ -54,12 +57,22 @@ public class FileManager implements FileMonitor.Listener {
         this.listenersWatchlist = new ArrayList<>();
         this.listenersFoundRepos = new ArrayList<>();
         this.listenersRepoStatus = new ArrayList<>();
-        this.listenersAuthInfo = new ArrayList<>();
+        this.listenersAuthCred = new ArrayList<>();
         this.executor = (ThreadPoolExecutor) Executors.newFixedThreadPool(10, r -> {
             Thread t = Executors.defaultThreadFactory().newThread(r);
             t.setDaemon(true);
             return t;
         });
+    }
+
+    /**
+     * Loads all stored repos.
+     */
+    public synchronized void init() throws ClassNotFoundException, SQLException {
+        openDatabaseConnection();
+        setupFileMonitor();
+        loadRepos();
+        checkRepoPathValidity();
     }
 
     public void addWatchlistListener(PropertyChangeListener l) { listenersWatchlist.add(l); }
@@ -68,7 +81,7 @@ public class FileManager implements FileMonitor.Listener {
 
     public void addRepoStatusListener(PropertyChangeListener l) { listenersRepoStatus.add(l); }
 
-    public void addAuthInfoListener(PropertyChangeListener l) { listenersAuthInfo.add(l); }
+    public void addAuthCredListener(PropertyChangeListener l) { listenersAuthCred.add(l); }
 
     public boolean removeWatchlistListener(PropertyChangeListener l) { return listenersWatchlist.remove(l); }
 
@@ -76,7 +89,7 @@ public class FileManager implements FileMonitor.Listener {
 
     public boolean removeRepoStatusListener(PropertyChangeListener l) { return listenersRepoStatus.remove(l); }
 
-    public boolean removeAuthInfoListener(PropertyChangeListener l) { return listenersAuthInfo.remove(l); }
+    public boolean removeAuthCredListener(PropertyChangeListener l) { return listenersAuthCred.remove(l); }
 
     public void setFileErrorListener(FileErrorListener fileErrorListener) {
         this.fileErrorListener = fileErrorListener;
@@ -97,9 +110,9 @@ public class FileManager implements FileMonitor.Listener {
                 propertyChangeListener.propertyChange(new PropertyChangeEvent(this, "repoStatus", null, repo)));
     }
 
-    private void notifyAuthInfoChanged() {
-        listenersAuthInfo.forEach(propertyChangeListener ->
-                propertyChangeListener.propertyChange(new PropertyChangeEvent(this, "authInfo", null, null)));
+    private void notifyAuthCredChanged() {
+        listenersAuthCred.forEach(propertyChangeListener ->
+                propertyChangeListener.propertyChange(new PropertyChangeEvent(this, "authCred", null, null)));
     }
 
     public List<RepositoryInformation> getList(RepoList list) {
@@ -280,7 +293,7 @@ public class FileManager implements FileMonitor.Listener {
             init();
             notifyFoundReposChanged();
             notifyWatchlistChanged();
-            notifyAuthInfoChanged();
+            notifyAuthCredChanged();
             SecureStorage.getImplementation().clearCachedMasterPassword();
         } catch (Exception ex) {
             throw new RuntimeException(ex);
@@ -288,15 +301,9 @@ public class FileManager implements FileMonitor.Listener {
     }
 
     /**
-     * Loads all stored repos.
+     * Check if DB file exists and has RW permissions
+     * @return
      */
-    public synchronized void init() throws ClassNotFoundException, SQLException {
-        openDatabaseConnection();
-        setupFileMonitor();
-        loadRepos();
-        checkRepoPathValidity();
-    }
-
     public boolean isDatabaseAccessible() {
         return getDBFile().exists() && getDBFile().canRead() && getDBFile().canWrite();
     }
@@ -306,6 +313,7 @@ public class FileManager implements FileMonitor.Listener {
         Class.forName("org.sqlite.JDBC");
         conn = DriverManager.getConnection("jdbc:sqlite:" + getDBFile().getAbsolutePath());
 
+        // if DB was just created, create tables
         if (!dbExists) {
             setupDatabase();
         }
@@ -327,6 +335,9 @@ public class FileManager implements FileMonitor.Listener {
         }
     }
 
+    /**
+     * Load all stored repos from DB into transient collections.
+     */
     public void loadRepos() {
         try {
             Map<UUID, RepositoryInformation> newWatchlist = new HashMap<>();
@@ -356,6 +367,10 @@ public class FileManager implements FileMonitor.Listener {
         }
     }
 
+    /**
+     * Create required tables.
+     * @throws SQLException
+     */
     private void setupDatabase() throws SQLException {
         Statement stmt;
         String sql;
@@ -520,8 +535,8 @@ public class FileManager implements FileMonitor.Listener {
     }
 
     /**
-     * Enquires whether any repository on the watchlist has a authentication method (!= NONE) specified.
-     * @return True, if any repository on the watchlist has a authentication method specified
+     * Enquires whether any repository on the watchlist has a authID specified (!= null).
+     * @return True, if any repository on the watchlist has a authID specified.
      */
     public boolean isWatchlistAuthenticationRequired() {
         for (RepositoryInformation repo : getList(WATCH)) {
@@ -538,17 +553,17 @@ public class FileManager implements FileMonitor.Listener {
         }
     }
 
-    public void storeAuthentication(AuthenticationCredentials authInfo, String encString) {
+    public void storeAuthentication(AuthenticationCredentials authCred, String encString) {
         try {
             PreparedStatement stmt = conn.prepareStatement(
                     "INSERT INTO auth (id, name, type, enc_value) VALUES (?,?,?,?)");
-            stmt.setString(1, authInfo.getID().toString());
-            stmt.setString(2, authInfo.getName());
-            stmt.setString(3, authInfo.getAuthMethod().name());
+            stmt.setString(1, authCred.getID().toString());
+            stmt.setString(2, authCred.getName());
+            stmt.setString(3, authCred.getAuthMethod().name());
             stmt.setString(4, encString);
 
             stmt.executeUpdate();
-            notifyAuthInfoChanged();
+            notifyAuthCredChanged();
         } catch (SQLException ex) {
             throw new RuntimeException(ex);
         }
@@ -573,17 +588,17 @@ public class FileManager implements FileMonitor.Listener {
         }
     }
 
-    public void updateAuthentication(AuthenticationCredentials authInfo, String encString) {
+    public void updateAuthentication(AuthenticationCredentials authCred, String encString) {
         try {
             PreparedStatement stmt = conn.prepareStatement(
                     "UPDATE auth SET name=?, type=?, enc_value=? WHERE id=?");
-            stmt.setString(1, authInfo.getName());
-            stmt.setString(2, authInfo.getAuthMethod().name());
+            stmt.setString(1, authCred.getName());
+            stmt.setString(2, authCred.getAuthMethod().name());
             stmt.setString(3, encString);
-            stmt.setString(4, authInfo.getID().toString());
+            stmt.setString(4, authCred.getID().toString());
 
             stmt.executeUpdate();
-            notifyAuthInfoChanged();
+            notifyAuthCredChanged();
         } catch (SQLException ex) {
             throw new RuntimeException(ex);
         }
@@ -597,7 +612,7 @@ public class FileManager implements FileMonitor.Listener {
             stmt.setString(2, authID.toString());
 
             stmt.executeUpdate();
-            notifyAuthInfoChanged();
+            notifyAuthCredChanged();
         } catch (SQLException ex) {
             throw new RuntimeException(ex);
         }
@@ -628,7 +643,7 @@ public class FileManager implements FileMonitor.Listener {
             stmt.setString(1, authID.toString());
             stmt.executeUpdate();
 
-            notifyAuthInfoChanged();
+            notifyAuthCredChanged();
             notifyWatchlistChanged();
             notifyFoundReposChanged();
         } catch (SQLException ex) {
@@ -668,33 +683,33 @@ public class FileManager implements FileMonitor.Listener {
         }
     }
 
-    public List<AuthenticationCredentials> getAllAuthenticationInfos() {
-        List<AuthenticationCredentials> authInfos = new ArrayList<>();
+    public List<AuthenticationCredentials> getAllAuthenticationCredentials() {
+        List<AuthenticationCredentials> authCreds = new ArrayList<>();
         try {
             // exclude MP_SET entry
             PreparedStatement stmt = conn.prepareStatement("SELECT id, name, type FROM auth WHERE type <> 'NONE'");
 
             try (ResultSet results = stmt.executeQuery()) {
                 while (results.next()) {
-                    AuthenticationCredentials authInfo;
+                    AuthenticationCredentials authCred;
                     if (results.getString("type").equals(RepositoryInformation.AuthMethod.HTTPS.name())) {
-                        authInfo = new HttpsCredentials();
+                        authCred = new HttpsCredentials();
                     } else {
-                        authInfo = new SslCredentials();
+                        authCred = new SslCredentials();
                     }
-                    authInfo.setID(UUID.fromString(results.getString("id")));
-                    authInfo.setName(results.getString("name"));
-                    authInfos.add(authInfo);
+                    authCred.setID(UUID.fromString(results.getString("id")));
+                    authCred.setName(results.getString("name"));
+                    authCreds.add(authCred);
                 }
             }
-            return authInfos;
+            return authCreds;
         } catch (SQLException ex) {
             return new ArrayList<>();
         }
     }
 
-    public List<AuthenticationCredentials> getAllAuthenticationInfos(RepositoryInformation.AuthMethod authMethod) {
-        List<AuthenticationCredentials> authInfos = new ArrayList<>();
+    public List<AuthenticationCredentials> getAllAuthenticationCredentials(RepositoryInformation.AuthMethod authMethod) {
+        List<AuthenticationCredentials> authCreds = new ArrayList<>();
         try {
             // exclude MP_SET entry
             PreparedStatement stmt = conn.prepareStatement("SELECT id, name FROM auth WHERE type=?");
@@ -702,18 +717,18 @@ public class FileManager implements FileMonitor.Listener {
 
             try (ResultSet results = stmt.executeQuery()) {
                 while (results.next()) {
-                    AuthenticationCredentials authInfo;
+                    AuthenticationCredentials authCred;
                     if (authMethod == RepositoryInformation.AuthMethod.HTTPS) {
-                        authInfo = new HttpsCredentials();
+                        authCred = new HttpsCredentials();
                     } else {
-                        authInfo = new SslCredentials();
+                        authCred = new SslCredentials();
                     }
-                    authInfo.setID(UUID.fromString(results.getString("id")));
-                    authInfo.setName(results.getString("name"));
-                    authInfos.add(authInfo);
+                    authCred.setID(UUID.fromString(results.getString("id")));
+                    authCred.setName(results.getString("name"));
+                    authCreds.add(authCred);
                 }
             }
-            return authInfos;
+            return authCreds;
         } catch (SQLException ex) {
             return new ArrayList<>();
         }

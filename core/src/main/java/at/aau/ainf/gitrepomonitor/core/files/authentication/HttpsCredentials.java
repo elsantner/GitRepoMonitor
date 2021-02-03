@@ -3,6 +3,9 @@ package at.aau.ainf.gitrepomonitor.core.files.authentication;
 import at.aau.ainf.gitrepomonitor.core.files.RepositoryInformation;
 import at.aau.ainf.gitrepomonitor.core.files.Utils;
 
+/**
+ * Wrapper for HTTPS credentials (Username & password)
+ */
 public class HttpsCredentials extends AuthenticationCredentials {
     private String username;
     private char[] password;

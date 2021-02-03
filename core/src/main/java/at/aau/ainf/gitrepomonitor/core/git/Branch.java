@@ -2,6 +2,9 @@ package at.aau.ainf.gitrepomonitor.core.git;
 
 import java.util.Objects;
 
+/**
+ * Data class for repository branches.
+ */
 public class Branch implements Comparable<Branch> {
     private String identifier;
     private boolean isRemoteOnly;
@@ -27,6 +30,10 @@ public class Branch implements Comparable<Branch> {
         isRemoteOnly = remoteOnly;
     }
 
+    /**
+     * Get only the name of the branch without any "path".
+     * @return Short name of branch
+     */
     public String getShortName() {
         return identifier
                 .replace("refs/heads/", "")

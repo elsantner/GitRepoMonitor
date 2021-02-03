@@ -20,19 +20,26 @@ import java.security.spec.KeySpec;
 import java.util.*;
 import java.util.logging.Logger;
 
-
+/**
+ * Abstract implementation of credential access.
+ * This class provides implementations for master password caching and crypto.
+ */
 public abstract class SecureStorage {
 
     protected static Settings settings;
     protected static XmlMapper mapper;
-
+    // master password HASH cache
     protected char[] masterPassword;
+    // operation counter for mp (reset after n uses)
     protected int mpUseCount = 0;
+    // timer for mp reset
     protected Timer timer;
     protected TimerTask mpExpirationTimerTask;
+    // lock to avoid timer-based mp reset during operations
     protected final Object lockMasterPasswordReset = new Object();
 
     static {
+        // load settings
         settings = Settings.getSettings();
         mapper = XmlMapper.xmlBuilder().configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false).build();
     }
@@ -76,6 +83,11 @@ public abstract class SecureStorage {
         return settings.isCacheEnabled();
     }
 
+    /**
+     * Set the method for master password caching.
+     * @param method Caching method to use
+     * @param value Associated value (use count or expiration time)
+     */
     public synchronized void setMasterPasswordCacheMethod(Settings.CacheClearMethod method, Integer value) {
         settings.setClearMethod(method);
         settings.setClearValue(value);
@@ -93,6 +105,9 @@ public abstract class SecureStorage {
         return masterPassword != null;
     }
 
+    /**
+     * Clear master password cache
+     */
     public void clearCachedMasterPassword() {
         if (masterPassword != null) {
             Utils.clearArray(masterPassword);
@@ -100,18 +115,32 @@ public abstract class SecureStorage {
         }
     }
 
+    /**
+     * Cache master password if caching is enabled.
+     * @param masterPassword Master password to cache.
+     */
     protected synchronized void cacheMasterPasswordIfEnabled(char[] masterPassword) {
         if (settings.isCacheEnabled()) {
             this.masterPassword = Arrays.copyOf(masterPassword, masterPassword.length);
         }
     }
 
-    protected void throwIfMasterPasswordNotCached() {
+    /**
+     * Throw exception if master password is not cached.
+     * @throws SecurityException If master password is not cached.
+     */
+    protected void throwIfMasterPasswordNotCached() throws SecurityException {
         if (!isMasterPasswordCached()) {
             throw new SecurityException("master password not cached but required");
         }
     }
 
+    /**
+     * Get master password SHA3-256 hash.
+     * @param mp Master password
+     * @return If {@code mp} is null and the master password is cached, get the cached hash.
+     *         Else return the hash of {@code mp}.
+     */
     protected char[] getCachedMasterPasswordHashIfPossible(char[] mp) {
         if (mp == null || isMasterPasswordCached()) {
             throwIfMasterPasswordNotCached();
@@ -128,30 +157,108 @@ public abstract class SecureStorage {
      */
     public abstract boolean isMasterPasswordSet();
 
+    /**
+     * Set the master password persistently.
+     * @param masterPW Master password
+     * @throws AuthenticationException
+     * @throws IOException
+     */
     public abstract void setMasterPassword(char[] masterPW) throws AuthenticationException, IOException;
 
+    /**
+     * Update the master password persistently.
+     * @param currentMasterPW Current master password.
+     * @param newMasterPW New master password.
+     * @throws AuthenticationException
+     * @throws IOException
+     */
     public abstract void updateMasterPassword(char[] currentMasterPW, char[] newMasterPW) throws AuthenticationException, IOException;
 
+    /**
+     * Store auth credentials securely.
+     * @param masterPW Master password.
+     * @param authInfo Auth credentials.
+     * @throws AuthenticationException
+     */
     public abstract void store(char[] masterPW, AuthenticationCredentials authInfo) throws AuthenticationException;
 
+    /**
+     * Store all auth credentials securely.
+     * @param masterPW Master password.
+     * @param authInfos Auth credentials.
+     * @throws AuthenticationException
+     */
     public abstract void store(char[] masterPW, Collection<AuthenticationCredentials> authInfos) throws AuthenticationException;
 
+    /**
+     * Store auth credentials securely.
+     * Uses cached master password.
+     * @param authInfo Auth credentials.
+     * @throws AuthenticationException
+     */
     public abstract void store(AuthenticationCredentials authInfo) throws AuthenticationException;
 
+    /**
+     * Update auth credentials.
+     * @param masterPW Master password
+     * @param authInfo Auth credentials
+     * @throws AuthenticationException
+     */
     public abstract void update(char[] masterPW, AuthenticationCredentials authInfo) throws AuthenticationException;
 
+    /**
+     * Update all auth credentials.
+     * @param masterPW Master password
+     * @param authInfos Auth credentials
+     * @throws AuthenticationException
+     */
     public abstract void update(char[] masterPW, Collection<AuthenticationCredentials> authInfos) throws AuthenticationException;
 
+    /**
+     * Update auth credentials.
+     * Uses cached master password.
+     * @param authInfo Auth credentials
+     * @throws AuthenticationException
+     */
     public abstract void update(AuthenticationCredentials authInfo) throws AuthenticationException;
 
+    /**
+     * Delete auth credentials.
+     * @param id ID of auth credentials.
+     */
     public abstract void delete(UUID id);
 
+    /**
+     * Get auth credentials by ID.
+     * @param masterPW Master password
+     * @param id ID of auth credentials.
+     * @return Auth credentials with ID.
+     * @throws AuthenticationException
+     */
     public abstract AuthenticationCredentials get(char[] masterPW, UUID id) throws AuthenticationException;
 
+    /**
+     * Get all auth credentials by IDs.
+     * @param masterPW Master password
+     * @param ids IDs of auth credentials to get
+     * @return Map of all requested auth credentials by ID
+     * @throws AuthenticationException
+     */
     public abstract Map<UUID, AuthenticationCredentials> get(char[] masterPW, Collection<UUID> ids) throws AuthenticationException;
 
+    /**
+     * Get auth credentials by ID.
+     * Uses cached master password.
+     * @param id ID of auth credentials
+     * @return Auth credentials with ID.
+     * @throws AuthenticationException
+     */
     public abstract AuthenticationCredentials get(UUID id) throws AuthenticationException;
 
+    /**
+     * Clear / reset master password.
+     * @throws IOException
+     */
     public abstract void resetMasterPassword() throws IOException;
 
     /**
@@ -225,6 +332,14 @@ public abstract class SecureStorage {
         return decryptFromBytes(Base64.getDecoder().decode(ciphertext), key, salt);
     }
 
+    /**
+     * Get AES instance with provided parameters.
+     * @param cipherMode Encrypt or decrypt
+     * @param key Secret Key
+     * @param salt Salt
+     * @param ivParams IV
+     * @return AES Cipher instance in CBC mode with PKCS5 padding.
+     */
     private Cipher getCipherInstantiation(int cipherMode, char[] key, String salt, IvParameterSpec ivParams) {
         try {
             SecretKeyFactory factory = SecretKeyFactory.getInstance("PBKDF2WithHmacSHA256");
@@ -240,11 +355,17 @@ public abstract class SecureStorage {
         }
     }
 
+    /**
+     * Increment and check mp cache use count and reset if necessary.
+     */
     protected synchronized void clearMasterPasswordIfRequired() {
         incrementAndCheckMPUseCount();
         startMPExpirationTimerIfNotStarted();
     }
 
+    /**
+     * If cache method is set to MAX_USES, increment use count and clear cache if necessary.
+     */
     protected synchronized void incrementAndCheckMPUseCount() {
         if (settings.isCacheEnabled() && settings.getClearMethod() == Settings.CacheClearMethod.MAX_USES) {
             mpUseCount++;
@@ -258,27 +379,40 @@ public abstract class SecureStorage {
         }
     }
 
+    /**
+     * Set MP use count to 0
+     */
     protected synchronized void resetMPUseCount() {
         mpUseCount = 0;
     }
 
+    /**
+     * If MP reset timer is not started already and cache method is set to EXPIRATION_TIME,
+     * schedule a new rest timer.
+     */
     protected synchronized void startMPExpirationTimerIfNotStarted() {
         if (settings.isCacheEnabled() && settings.getClearMethod() == Settings.CacheClearMethod.EXPIRATION_TIME &&
                 mpExpirationTimerTask == null) {
-            synchronized (lockMasterPasswordReset) {
-                mpExpirationTimerTask = new TimerTask() {
-                    @Override
-                    public void run() {
+
+            mpExpirationTimerTask = new TimerTask() {
+                @Override
+                public void run() {
+                    // clear MP cache (lock to make sure this does not happen during an operation)
+                    synchronized (lockMasterPasswordReset) {
                         clearCachedMasterPassword();
                         Logger.getAnonymousLogger().info("Reset mp (timer)");
                     }
-                };
-                timer = new Timer();
-                timer.schedule(mpExpirationTimerTask, settings.getClearValue() * 60 * 1000);
-            }
+                }
+            };
+            timer = new Timer();
+            timer.schedule(mpExpirationTimerTask, settings.getClearValue() * 60 * 1000);
+
         }
     }
 
+    /**
+     * Stop running MP reset timer.
+     */
     protected synchronized void stopMPExpirationTimer() {
         if (mpExpirationTimerTask != null) {
             mpExpirationTimerTask.cancel();
@@ -286,11 +420,17 @@ public abstract class SecureStorage {
         }
     }
 
+    /**
+     * Restart MP reset timer from 0s.
+     */
     protected synchronized void restartMPExpirationTimer() {
         stopMPExpirationTimer();
         startMPExpirationTimerIfNotStarted();
     }
 
+    /**
+     * Stop running timer.
+     */
     public void cleanup() {
         if (timer != null) {
             timer.cancel();

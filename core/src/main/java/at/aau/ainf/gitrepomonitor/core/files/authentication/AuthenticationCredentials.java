@@ -8,6 +8,10 @@ import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import java.util.Objects;
 import java.util.UUID;
 
+/**
+ * Abstract wrapper class for authentication credentials.
+ */
+// required for deserialization as abstract super class
 @JsonTypeInfo(
         use = JsonTypeInfo.Id.NAME,
         property = "type")
@@ -48,6 +52,9 @@ public abstract class AuthenticationCredentials {
     @JsonIgnore
     public abstract RepositoryInformation.AuthMethod getAuthMethod();
 
+    /**
+     * Destroy any sensitive information (e.g. passwords).
+     */
     public abstract void destroy();
 
     @Override
@@ -55,6 +62,11 @@ public abstract class AuthenticationCredentials {
         return name;
     }
 
+    /**
+     * Compare credentials based on ID.
+     * @param o Other object
+     * @return True, if equal
+     */
     @Override
     public boolean equals(Object o) {
         if (o == null || id == null || ((AuthenticationCredentials)o).id == null) {

@@ -9,15 +9,14 @@ import org.eclipse.jgit.transport.SshTransport;
 import org.eclipse.jgit.transport.Transport;
 import org.eclipse.jgit.util.FS;
 
+/**
+ * Implements functionality to configure JSch SSL connection used by JGit.
+ */
 public class SSLTransportConfigCallback implements TransportConfigCallback {
 
     private String sslKeyPath;
     private byte[] sslKeyPassphrase;
     private JSch defaultJSch;
-
-    public SSLTransportConfigCallback() {
-
-    }
 
     public SSLTransportConfigCallback(String sslKeyPath, byte[] sslKeyPassphrase) {
         this.sslKeyPath = sslKeyPath;

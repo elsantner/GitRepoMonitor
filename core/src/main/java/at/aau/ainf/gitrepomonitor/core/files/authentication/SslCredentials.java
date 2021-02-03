@@ -3,6 +3,9 @@ package at.aau.ainf.gitrepomonitor.core.files.authentication;
 import at.aau.ainf.gitrepomonitor.core.files.RepositoryInformation;
 import at.aau.ainf.gitrepomonitor.core.files.Utils;
 
+/**
+ * Wrapper for SSL credentials (Private key path and passphrase)
+ */
 public class SslCredentials extends AuthenticationCredentials {
     private String sslKeyPath;
     private byte[] sslPassphrase;

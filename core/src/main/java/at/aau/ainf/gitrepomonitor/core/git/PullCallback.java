@@ -7,6 +7,10 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
+/**
+ * Callback for async pull command.
+ * (For result of individual command.)
+ */
 public interface PullCallback {
     void finished(List<PullResult> results, int pullsSuccessful, int pullsFailed, boolean wrongMasterPW);
 
@@ -22,6 +26,9 @@ public interface PullCallback {
         finished(Collections.singletonList(new PullResult(repo, status, ex)), 0, 1, wrongMasterPW);
     }
 
+    /**
+     * Wrapper for pull result.
+     */
     class PullResult {
         private final RepositoryInformation repo;
         private final MergeResult.MergeStatus status;

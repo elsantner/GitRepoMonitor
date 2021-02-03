@@ -6,6 +6,9 @@ import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * Scanner for Git repositories on current PC.
+ */
 public class RepoScanner {
 
     private File rootDir;
@@ -36,6 +39,12 @@ public class RepoScanner {
         isStopped = true;
     }
 
+    /**
+     * Scan PC. If a root dir (!= null) is specified, scan all directories below.
+     * If no root is specified, scan all drives on the PC.
+     * @param cb Callback
+     * @return List of all found repos
+     */
     public List<File> scanForRepos(RepoScanCallback cb) {
         isStopped = false;
         List<File> repos = new ArrayList<>();
@@ -51,6 +60,12 @@ public class RepoScanner {
         return repos;
     }
 
+    /**
+     * Scan all directories below {@code rootDir}
+     * @param rootDir Root
+     * @param repos Current repo list
+     * @param cb Callback
+     */
     private void scanForReposRecursive(File rootDir, List<File> repos, RepoScanCallback cb) {
         if (!isStopped) {
             // if repo found
