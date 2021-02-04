@@ -25,6 +25,9 @@ import java.awt.*;
 import java.io.File;
 import java.io.IOException;
 
+/**
+ * Custom context menu for repository list entries
+ */
 public class RepositoryInformationContextMenu extends ContextMenu implements AlertDisplay, MasterPasswordQuery {
 
     private final GitManager gitManager;
@@ -33,6 +36,12 @@ public class RepositoryInformationContextMenu extends ContextMenu implements Ale
     private final ProgressMonitor progressMonitor;
     private final SecureStorage secureStorage;
 
+    /**
+     * Create context menu.
+     * @param cell Cell to attach context menu to.
+     * @param statusDisplay Status display
+     * @param progressMonitor Monitor for progress updates
+     */
     public RepositoryInformationContextMenu(ListCell<RepositoryInformation> cell, StatusDisplay statusDisplay, ProgressMonitor progressMonitor) {
         this.secureStorage = SecureStorage.getImplementation();
         this.gitManager = GitManager.getInstance();
@@ -42,6 +51,10 @@ public class RepositoryInformationContextMenu extends ContextMenu implements Ale
         setupMenuItems();
     }
 
+    /**
+     * Setup context menu items
+     * Check status, Pull, Edit, Delete, Show in explorer
+     */
     private void setupMenuItems() {
         MenuItem checkStatusItem = new MenuItem();
         checkStatusItem.setText(ResourceStore.getString("ctxmenu.check_status"));
@@ -133,6 +146,7 @@ public class RepositoryInformationContextMenu extends ContextMenu implements Ale
             }
         });
 
+        // disable pull if path is invalid
         if (item.getStatus() == RepositoryInformation.RepoStatus.PATH_INVALID) {
             pullItem.setDisable(true);
         }
@@ -140,6 +154,11 @@ public class RepositoryInformationContextMenu extends ContextMenu implements Ale
         this.getItems().addAll(checkStatusItem, pullItem, editItem, deleteItem, showInExplorerItem);
     }
 
+    /**
+     * Get appropriate status message for pull result.
+     * @param status Pull result
+     * @return Status message according to pull result
+     */
     private String getStatusMessage(MergeResult.MergeStatus status) {
         String statusMsg = null;
         if (status.isSuccessful() && status != MergeResult.MergeStatus.ALREADY_UP_TO_DATE) {

@@ -32,8 +32,10 @@ import java.util.List;
 import java.util.ResourceBundle;
 import java.util.UUID;
 
+/**
+ * Controller for edit repo properties.
+ */
 public class ControllerEditRepo implements Initializable, AlertDisplay, MasterPasswordQuery, PropertyChangeListener {
-
 
     @FXML
     public ComboBox<RepositoryInformation.MergeStrategy> cbBoxMergeStrat;
@@ -58,11 +60,20 @@ public class ControllerEditRepo implements Initializable, AlertDisplay, MasterPa
     private String originalPath;
     private RepositoryInformation repo;
 
+    /**
+     * Get FXML loader for this GUI component.
+     * @return configured FXML loader
+     */
     public static FXMLLoader getLoader() {
         return new FXMLLoader(ControllerEditRepo.class.getResource("/at/aau/ainf/gitrepomonitor/gui/editrepo/edit_repo.fxml"),
                 ResourceStore.getResourceBundle());
     }
 
+    /**
+     * Open edit repo window for provided repo.
+     * @param repo Repo to edit
+     * @throws IOException
+     */
     public static void openWindow(RepositoryInformation repo) throws IOException {
         FXMLLoader loader = ControllerEditRepo.getLoader();
         Parent root = loader.load();
@@ -95,13 +106,14 @@ public class ControllerEditRepo implements Initializable, AlertDisplay, MasterPa
                 validateTextFieldPath();
             }
         });
-
+        // if path is changed, reflect change on other GUI elements
         txtPath.focusedProperty().addListener((observable, oldValue, newValue) -> {
             if (oldValue && !newValue) {
                 handlePathChanged();
             }
         });
 
+        // setup merge strategy selection
         cbBoxMergeStrat.setItems(new ImmutableObservableList<>(RepositoryInformation.MergeStrategy.values()));
         cbBoxMergeStrat.setCellFactory(new Callback<>() {
             @Override
@@ -137,6 +149,11 @@ public class ControllerEditRepo implements Initializable, AlertDisplay, MasterPa
         }
     }
 
+    /**
+     * Get tooltip text for merge strategy
+     * @param item Merge strategy
+     * @return Tooltip text
+     */
     private String getTooltipText(RepositoryInformation.MergeStrategy item) {
         switch (item) {
             case OURS:
@@ -154,10 +171,19 @@ public class ControllerEditRepo implements Initializable, AlertDisplay, MasterPa
         }
     }
 
+    /**
+     * Validate all text fields and set error style.
+     * @return True, iff all text fields are valid.
+     */
     private boolean validateTextFields() {
         return validateTextFieldPath();
     }
 
+    /**
+     * Validate path input and set error style.
+     * Path must be a valid repo path.
+     * @return True, iff path input is valid.
+     */
     private boolean validateTextFieldPath() {
         boolean status;
         if (status = Utils.validateRepositoryPath(txtPath.getText())) {
@@ -200,7 +226,6 @@ public class ControllerEditRepo implements Initializable, AlertDisplay, MasterPa
             this.cbBoxAuthInfo.getSelectionModel().select(0);
         }
 
-
         validateTextFields();
 
         // if repo path is not valid, disable connection test
@@ -208,6 +233,9 @@ public class ControllerEditRepo implements Initializable, AlertDisplay, MasterPa
         lblTestConnectionStatus.setVisible(repo.getAuthMethod() != RepositoryInformation.AuthMethod.NONE);
     }
 
+    /**
+     * Fill auth credentials combo box with appropriate credentials depending on auth method (HTTPS or SSL)
+     */
     private void setupCredentials() {
         List<AuthenticationCredentials> authInfo;
         // do not query for authMethod NONE (i.e. if invalid repo path is entered)
@@ -229,6 +257,10 @@ public class ControllerEditRepo implements Initializable, AlertDisplay, MasterPa
         stage.close();
     }
 
+    /**
+     * Show required confirmation dialogs and update repo info persistently.
+     * @param actionEvent Event
+     */
     @FXML
     public void onBtnSaveClick(ActionEvent actionEvent) {
         try {
@@ -260,6 +292,10 @@ public class ControllerEditRepo implements Initializable, AlertDisplay, MasterPa
         }
     }
 
+    /**
+     * Show confirmation dialog for applying a merge strategy to all repos.
+     * @return True, iff action is confirmed.
+     */
     private boolean showConfirmMergeStratApplyAllDialog() {
         return showConfirmationDialog(Alert.AlertType.CONFIRMATION,
                 ResourceStore.getString("edit_repo.merge_strat_apply_all.title"),
@@ -267,6 +303,10 @@ public class ControllerEditRepo implements Initializable, AlertDisplay, MasterPa
                 ResourceStore.getString("edit_repo.merge_strat_apply_all.content"));
     }
 
+    /**
+     * Show confirmation dialog if repo has no remote.
+     * @return True, iff action is confirmed.
+     */
     private boolean showNoRemoteWarningDialog() {
         return showConfirmationDialog(Alert.AlertType.WARNING,
                 ResourceStore.getString("edit_repo.warn_no_remote.title"),
@@ -274,6 +314,9 @@ public class ControllerEditRepo implements Initializable, AlertDisplay, MasterPa
                 ResourceStore.getString("edit_repo.warn_no_remote.content"));
     }
 
+    /**
+     * Persistently update repo information.
+     */
     private void updateRepoInformation() {
         RepositoryInformation editedRepo = (RepositoryInformation) repo.clone();
         editedRepo.setPath(txtPath.getText());
@@ -305,6 +348,10 @@ public class ControllerEditRepo implements Initializable, AlertDisplay, MasterPa
         }
     }
 
+    /**
+     * Prompt user to input master password if required and perform connection test.
+     * @param actionEvent Event
+     */
     @FXML
     public void onBtnTestConnClick(ActionEvent actionEvent) {
         try {
@@ -343,6 +390,10 @@ public class ControllerEditRepo implements Initializable, AlertDisplay, MasterPa
         lblTestConnectionStatus.setText(null);
     }
 
+    /**
+     * Set connection test status based upon repo status.
+     * @param status Status of connection test
+     */
     private void setConnectionStatusDisplay(RepositoryInformation.RepoStatus status) {
         String statusStringKey;
         boolean success = false;
@@ -369,6 +420,13 @@ public class ControllerEditRepo implements Initializable, AlertDisplay, MasterPa
         }
     }
 
+    /**
+     * Get the master password input by the user.
+     * If no MP was set yet, prompt user to set one.
+     * @return Master password input by user
+     * @throws AuthenticationException
+     * @throws IOException
+     */
     private String getMasterPasswordIfRequired() throws AuthenticationException, IOException {
         String masterPW = null;
         if (secureStorage.isMasterPasswordSet()) {

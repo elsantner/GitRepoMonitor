@@ -1,10 +1,10 @@
 package at.aau.ainf.gitrepomonitor.gui.settings;
 
 import at.aau.ainf.gitrepomonitor.core.files.FileManager;
+import at.aau.ainf.gitrepomonitor.core.files.Settings;
 import at.aau.ainf.gitrepomonitor.core.files.StoragePath;
 import at.aau.ainf.gitrepomonitor.core.files.Utils;
 import at.aau.ainf.gitrepomonitor.core.files.authentication.SecureStorage;
-import at.aau.ainf.gitrepomonitor.core.files.Settings;
 import at.aau.ainf.gitrepomonitor.gui.AlertDisplay;
 import at.aau.ainf.gitrepomonitor.gui.MasterPasswordQuery;
 import at.aau.ainf.gitrepomonitor.gui.ResourceStore;
@@ -16,7 +16,6 @@ import javafx.scene.control.*;
 import javafx.scene.layout.AnchorPane;
 import javafx.scene.layout.HBox;
 import javafx.stage.DirectoryChooser;
-import javafx.stage.FileChooser;
 import javafx.stage.Stage;
 import javafx.util.Pair;
 
@@ -26,6 +25,9 @@ import java.net.URL;
 import java.util.ResourceBundle;
 import java.util.regex.Pattern;
 
+/**
+ * Controller for settings window.
+ */
 public class ControllerSettings implements Initializable, AlertDisplay, MasterPasswordQuery {
 
     @FXML
@@ -62,6 +64,10 @@ public class ControllerSettings implements Initializable, AlertDisplay, MasterPa
     private SecureStorage secStorage;
     private final String REGEX_INTEGER_ONLY = "^\\d+$";
 
+    /**
+     * Get FXML loader for this GUI component.
+     * @return configured FXML loader
+     */
     public static FXMLLoader getLoader() {
         return new FXMLLoader(ControllerSettings.class.getResource("/at/aau/ainf/gitrepomonitor/gui/settings/settings.fxml"),
                 ResourceStore.getResourceBundle());
@@ -75,6 +81,9 @@ public class ControllerSettings implements Initializable, AlertDisplay, MasterPa
         loadSettings();
     }
 
+    /**
+     * Set master password related buttons depending on if an MP is set or not.
+     */
     private void setMPButtonDisplay() {
         if (!secStorage.isMasterPasswordSet()) {
             btnSetMP.setVisible(true);
@@ -103,6 +112,9 @@ public class ControllerSettings implements Initializable, AlertDisplay, MasterPa
         ckboxCacheMP.selectedProperty().addListener((observable, oldValue, newValue) -> validateInput());
     }
 
+    /**
+     * Load settings and display on GUI.
+     */
     private void loadSettings() {
         ckboxCacheMP.setSelected(secStorage.isMasterPasswordCacheEnabled());
         Settings settings = Settings.getSettings();
@@ -131,6 +143,10 @@ public class ControllerSettings implements Initializable, AlertDisplay, MasterPa
         stage.close();
     }
 
+    /**
+     * Persistently update settings.
+     * @param actionEvent Event
+     */
     @FXML
     public void onBtnSaveClick(ActionEvent actionEvent) {
         try {
@@ -159,6 +175,7 @@ public class ControllerSettings implements Initializable, AlertDisplay, MasterPa
                         null);
             }
 
+            // update master password cache settings
             secStorage.enableMasterPasswordCache(ckboxCacheMP.isSelected());
             if (ckboxCacheMP.isSelected()) {
                 secStorage.setMasterPasswordCacheMethod(getCacheClearMethod(), getCacheClearValue());
@@ -173,6 +190,10 @@ public class ControllerSettings implements Initializable, AlertDisplay, MasterPa
         }
     }
 
+    /**
+     * Validate path input.
+     * Path must exist and be a directory with RW rights.
+     */
     private void validatePath() {
         File storagePath = new File(txtPath.getText());
         if (!storagePath.exists() || !storagePath.isDirectory()) {
@@ -183,6 +204,10 @@ public class ControllerSettings implements Initializable, AlertDisplay, MasterPa
         }
     }
 
+    /**
+     * Get value for selected cache clear method (MAX_USES or EXPIRATION_TIME).
+     * @return Cache clear value, or null if "don't clear" is selected
+     */
     private Integer getCacheClearValue() {
         if (radioBtnDontClear.isSelected()) {
             return null;
@@ -193,6 +218,10 @@ public class ControllerSettings implements Initializable, AlertDisplay, MasterPa
         }
     }
 
+    /**
+     * Get selected cache clear method.
+     * @return Selected cache clear method.
+     */
     private Settings.CacheClearMethod getCacheClearMethod() {
         if (radioBtnDontClear.isSelected()) {
             return Settings.CacheClearMethod.NONE;
@@ -203,6 +232,10 @@ public class ControllerSettings implements Initializable, AlertDisplay, MasterPa
         }
     }
 
+    /**
+     * Propt user to change master password.
+     * @param actionEvent Event
+     */
     @FXML
     public void onBtnChangeMPClick(ActionEvent actionEvent) {
         try {
@@ -222,6 +255,10 @@ public class ControllerSettings implements Initializable, AlertDisplay, MasterPa
         }
     }
 
+    /**
+     * Validate cache clear method input and enable/disable save button accordingly.
+     * Max uses and expiration time must be integers
+     */
     private void validateInput() {
         if (!ckboxCacheMP.isSelected() || radioBtnDontClear.isSelected()) {
             btnSave.setDisable(false);
@@ -232,6 +269,10 @@ public class ControllerSettings implements Initializable, AlertDisplay, MasterPa
         }
     }
 
+    /**
+     * Propt user to set master password.
+     * @param actionEvent Event
+     */
     @FXML
     public void onBtnSetMPClick(ActionEvent actionEvent) {
         try {
@@ -247,6 +288,10 @@ public class ControllerSettings implements Initializable, AlertDisplay, MasterPa
         }
     }
 
+    /**
+     * Show confirmation dialog and if confirmed reset master password
+     * @param actionEvent Event
+     */
     @FXML
     public void onBtnResetMPClick(ActionEvent actionEvent) {
         try {
@@ -264,6 +309,10 @@ public class ControllerSettings implements Initializable, AlertDisplay, MasterPa
         }
     }
 
+    /**
+     * Show confirmation dialog for master password reset.
+     * @return True, iff confirmed.
+     */
     private boolean showConfirmResetMPDialog() {
         return showConfirmationDialog(Alert.AlertType.WARNING,
                 ResourceStore.getString("settings.confirm_reset_mp.title"),

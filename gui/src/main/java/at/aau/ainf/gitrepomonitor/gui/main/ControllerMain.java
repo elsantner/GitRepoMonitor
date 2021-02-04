@@ -25,7 +25,6 @@ import javafx.scene.control.*;
 import javafx.scene.input.Dragboard;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.input.TransferMode;
-import javafx.scene.layout.AnchorPane;
 import javafx.stage.DirectoryChooser;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
@@ -43,6 +42,9 @@ import java.util.*;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+/**
+ * Controller for main window.
+ */
 public class ControllerMain extends StatusBarController implements Initializable, AlertDisplay, MasterPasswordQuery,
         StatusDisplay, PropertyChangeListener, PullListener, FileErrorListener {
 
@@ -71,6 +73,10 @@ public class ControllerMain extends StatusBarController implements Initializable
     private SecureStorage secureStorage;
     private List<PullCallback.PullResult> pullResults;
 
+    /**
+     * Get FXML loader for this GUI component.
+     * @return configured FXML loader
+     */
     public static FXMLLoader getLoader() {
         return new FXMLLoader(ControllerScan.class.getResource("/at/aau/ainf/gitrepomonitor/gui/main/main.fxml"),
                 ResourceStore.getResourceBundle());
@@ -185,19 +191,19 @@ public class ControllerMain extends StatusBarController implements Initializable
     }
 
     /**
-     * Allow the user to drag & drop repository folders from Os explorer
+     * Allow the user to drag & drop repository folders from OS explorer
      */
     private void setupDragAndDropRepoAdd() {
+        // indicate link opportunity upon drag over (with files)
         watchlist.setOnDragOver(event -> {
-
             if (event.getDragboard().hasFiles()) {
                 event.acceptTransferModes(TransferMode.LINK);
                 event.consume();
             }
         });
 
+        // try to add repo to watchlist upon drop
         watchlist.setOnDragDropped(event -> {
-
             Dragboard db = event.getDragboard();
             boolean success = false;
             if (db.hasFiles()) {
@@ -209,6 +215,9 @@ public class ControllerMain extends StatusBarController implements Initializable
         });
     }
 
+    /**
+     * Setup branch combo box and action when selection is changed.
+     */
     private void setupSwitchBranch() {
         cbBoxBranch.getSelectionModel().selectedItemProperty().addListener((observable, oldValue, newValue) -> {
             try {
@@ -234,6 +243,9 @@ public class ControllerMain extends StatusBarController implements Initializable
         cbBoxBranch.setCellFactory(param -> new BranchListCell());
     }
 
+    /**
+     * Setup commit log update upon watchlist selection change
+     */
     private void setupCommitLogDisplay() {
         watchlist.getSelectionModel().selectedItemProperty().addListener((observable, oldValue, newValue) -> {
             updateBranches(newValue);
@@ -247,7 +259,7 @@ public class ControllerMain extends StatusBarController implements Initializable
 
     /**
      * Update branch selection ComboBox according to given repo
-     * @param repo Repo
+     * @param repo Repo to update branches for.
      */
     private void updateBranches(RepositoryInformation repo) {
         try {
@@ -273,6 +285,10 @@ public class ControllerMain extends StatusBarController implements Initializable
         }
     }
 
+    /**
+     * Update commit log for {@code repo}
+     * @param repo Repo to update commit log for.
+     */
     private void updateCommitLog(RepositoryInformation repo) {
         if (repo != null) {
             gitManager.getLogAsync(repo, (success, changes, ex) -> Platform.runLater(() -> {
@@ -295,7 +311,6 @@ public class ControllerMain extends StatusBarController implements Initializable
         }
         catch (Exception ex) {
             Logger.getAnonymousLogger().severe(ex.getMessage());
-            ex.printStackTrace();
         }
     }
 
@@ -316,6 +331,10 @@ public class ControllerMain extends StatusBarController implements Initializable
         stage.setMinHeight(stage.getHeight());
     }
 
+    /**
+     * Update status of all repo on watchlist.
+     * @param actionEvent
+     */
     @FXML
     public void btnCheckStatusClicked(ActionEvent actionEvent) {
         String masterPW = null;
@@ -335,6 +354,10 @@ public class ControllerMain extends StatusBarController implements Initializable
         });
     }
 
+    /**
+     * Called when watchlist or status of a repo on the watchlist changes.
+     * @param e Change event
+     */
     @Override
     public void propertyChange(PropertyChangeEvent e) {
         Platform.runLater(() -> {
@@ -346,6 +369,10 @@ public class ControllerMain extends StatusBarController implements Initializable
         });
     }
 
+    /**
+     * Set watchlist items and sort items.
+     * @param repoInfo New Watchlist items
+     */
     private synchronized void setWatchlistDisplay(Collection<RepositoryInformation> repoInfo) {
         watchlist.getItems().clear();
         watchlist.getItems().addAll(repoInfo);
@@ -362,6 +389,10 @@ public class ControllerMain extends StatusBarController implements Initializable
         }
     }
 
+    /**
+     * Pull all repos on watchlist.
+     * @param actionEvent Event
+     */
     @FXML
     public void btnPullAllClicked(ActionEvent actionEvent) {
         String masterPW = null;
@@ -387,6 +418,12 @@ public class ControllerMain extends StatusBarController implements Initializable
         }, progessMonitor);
     }
 
+    /**
+     * Called when a pull operation is finished.
+     * Used to update commit log.
+     * @param repo Repo for which pull was executed
+     * @param status Status of pull
+     */
     @Override
     public void pullExecuted(RepositoryInformation repo, MergeResult.MergeStatus status) {
         RepositoryInformation selectedItem = watchlist.getSelectionModel().getSelectedItem();
@@ -412,6 +449,10 @@ public class ControllerMain extends StatusBarController implements Initializable
         stage.setMinHeight(stage.getHeight());
     }
 
+    /**
+     * Set status bar and clear pull results.
+     * @param status
+     */
     @Override
     public void displayStatus(String status) {
         super.displayStatus(status);
@@ -454,7 +495,7 @@ public class ControllerMain extends StatusBarController implements Initializable
                 });
             }
         } catch (Exception ex) {
-            ex.printStackTrace();
+            Logger.getAnonymousLogger().severe(ex.getMessage());
         }
     }
 
@@ -474,6 +515,11 @@ public class ControllerMain extends StatusBarController implements Initializable
         addRepoToWatchlist(dirChooser.showDialog(lblStatus.getScene().getWindow()));
     }
 
+    /**
+     * Attempt to add repo to watchlist.
+     * Repo path must be valid.
+     * @param newRepoFolder Repo to attempt to add.
+     */
     private void addRepoToWatchlist(File newRepoFolder) {
         try {
             if (newRepoFolder != null) {
@@ -488,6 +534,10 @@ public class ControllerMain extends StatusBarController implements Initializable
         }
     }
 
+    /**
+     * Called when a required program file becomes unavailable (e.g. due to USB stick disconnect)
+     * @param path File which became unavailable
+     */
     @Override
     public void fileUnavailable(File path) {
         // show error and exit after user has closed error message

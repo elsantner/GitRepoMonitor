@@ -14,6 +14,10 @@ import javafx.util.Callback;
 
 import java.io.IOException;
 
+/**
+ * Custom cell factory for authentication credentials.
+ * Includes custom context menu.
+ */
 public class AuthInfoCellFactory implements
         Callback<ListView<AuthenticationCredentials>, ListCell<AuthenticationCredentials>> {
 
@@ -45,7 +49,7 @@ public class AuthInfoCellFactory implements
         try {
             ControllerEditAuth.openWindow(authInfo);
         } catch (IOException e) {
-            e.printStackTrace();
+            throw new RuntimeException(e);
         }
     }
 
@@ -63,6 +67,10 @@ public class AuthInfoCellFactory implements
         }
     }
 
+    /**
+     * Custom context menu for auth credentials.
+     * Menu Items: Edit, Remove
+     */
     static class AuthInfoContextMenu extends ContextMenu implements AlertDisplay {
         private final AuthenticationCredentials item;
 
@@ -75,15 +83,14 @@ public class AuthInfoCellFactory implements
             MenuItem editItem = new MenuItem();
             editItem.setText(ResourceStore.getString("ctxmenu.edit"));
             editItem.setGraphic(getCtxMenuIcon("icon_edit.png"));
-            editItem.setOnAction(event -> {
-                openEditAuthInfoWindow(item);
-            });
+            editItem.setOnAction(event -> openEditAuthInfoWindow(item));
 
             MenuItem deleteItem = new MenuItem();
             deleteItem.setText(ResourceStore.getString("ctxmenu.remove"));
             deleteItem.setGraphic(getCtxMenuIcon("icon_delete.png"));
             deleteItem.setOnAction(event -> {
                 int affectedRepoCount = FileManager.getInstance().getUsingRepoCount(item.getID());
+                // show warning if repos are using this auth credentials entry
                 if (affectedRepoCount > 0) {
                     if (showConfirmationDialog(Alert.AlertType.WARNING,
                             ResourceStore.getString("auth_list.confirm_delete.title"),
@@ -93,6 +100,7 @@ public class AuthInfoCellFactory implements
                         SecureStorage.getImplementation().delete(item.getID());
                     }
                 } else {
+                    // show confirmation dialog
                     if (showConfirmationDialog(Alert.AlertType.INFORMATION,
                             ResourceStore.getString("auth_list.confirm_delete.title"),
                             ResourceStore.getString("auth_list.confirm_delete.header_no_affected_repos"),
@@ -106,6 +114,11 @@ public class AuthInfoCellFactory implements
             this.getItems().addAll(editItem, deleteItem);
         }
 
+        /**
+         * Get icon adapted for context menu.
+         * @param iconName Icon name (without path)
+         * @return Icon adapted for context menu
+         */
         private ImageView getCtxMenuIcon(String iconName) {
             ImageView icon = new ImageView(ResourceStore.getImage(iconName));
             icon.setFitWidth(18);

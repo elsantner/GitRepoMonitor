@@ -15,12 +15,16 @@ import java.net.URL;
 import java.text.DecimalFormat;
 import java.util.ResourceBundle;
 
-public class StatusBarController implements Initializable, StatusDisplay {
+/**
+ * Controller for GUI containing a status bar.
+ * This provides common functionality for the status bar.
+ */
+abstract public class StatusBarController implements Initializable, StatusDisplay {
     @FXML
     protected Label lblStatus;
     private Animation statusAnimation;
 
-    protected MainProgessMonitor progessMonitor;
+    protected MainProgressMonitor progessMonitor;
 
     @Override
     public void displayStatus(String status) {
@@ -32,7 +36,8 @@ public class StatusBarController implements Initializable, StatusDisplay {
 
     @Override
     public void initialize(URL location, ResourceBundle resources) {
-        progessMonitor = new MainProgessMonitor();
+        progessMonitor = new MainProgressMonitor();
+        // define status bar change animation
         statusAnimation = new Transition() {
             {
                 setCycleDuration(Duration.millis(1000));
@@ -47,7 +52,10 @@ public class StatusBarController implements Initializable, StatusDisplay {
         };
     }
 
-    protected class MainProgessMonitor implements ProgressMonitor {
+    /**
+     * Implementation of monitor to display progress information on status bar.
+     */
+    protected class MainProgressMonitor implements ProgressMonitor {
 
         private int totalWork;
         private final DecimalFormat df = new DecimalFormat("##.##%");

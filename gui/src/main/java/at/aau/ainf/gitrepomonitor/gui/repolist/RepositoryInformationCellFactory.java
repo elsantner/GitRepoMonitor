@@ -1,30 +1,20 @@
 package at.aau.ainf.gitrepomonitor.gui.repolist;
 
 import at.aau.ainf.gitrepomonitor.core.files.RepositoryInformation;
-import at.aau.ainf.gitrepomonitor.core.git.GitManager;
-import at.aau.ainf.gitrepomonitor.gui.ResourceStore;
 import at.aau.ainf.gitrepomonitor.gui.StatusDisplay;
 import at.aau.ainf.gitrepomonitor.gui.editrepo.ControllerEditRepo;
-import javafx.beans.property.ObjectProperty;
-import javafx.event.EventHandler;
-import javafx.fxml.FXMLLoader;
-import javafx.scene.Parent;
-import javafx.scene.Scene;
 import javafx.scene.control.ContextMenu;
-import javafx.scene.control.Control;
 import javafx.scene.control.ListCell;
 import javafx.scene.control.ListView;
-import javafx.scene.input.KeyCode;
-import javafx.scene.input.KeyEvent;
 import javafx.scene.input.MouseButton;
-import javafx.stage.Modality;
-import javafx.stage.Stage;
-import javafx.stage.StageStyle;
 import javafx.util.Callback;
 import org.eclipse.jgit.lib.ProgressMonitor;
 
 import java.io.IOException;
 
+/**
+ * Custom list cell factory for repositories
+ */
 public class RepositoryInformationCellFactory
         implements Callback<ListView<RepositoryInformation>, ListCell<RepositoryInformation>> {
 
@@ -40,6 +30,7 @@ public class RepositoryInformationCellFactory
      * Create cell factory for repository information
      * @param statusDisplay displayStatus() is called when a status update occurs due to context menu operation
      * @param progressMonitor used for Git operations
+     * @param isDraggable If true, allow drag and drop to move list items.
      */
     public RepositoryInformationCellFactory(StatusDisplay statusDisplay, ProgressMonitor progressMonitor, boolean isDraggable) {
         this();

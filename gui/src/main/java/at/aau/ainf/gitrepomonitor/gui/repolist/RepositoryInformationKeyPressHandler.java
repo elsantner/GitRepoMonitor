@@ -14,6 +14,11 @@ import javafx.scene.input.KeyEvent;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * Handler for key press operations on repo lists
+ * ENTER opens edit repo window.
+ * DEL triggers deletion dialog.
+ */
 public class RepositoryInformationKeyPressHandler implements EventHandler<KeyEvent>, AlertDisplay {
 
     private ListView<RepositoryInformation> listView;

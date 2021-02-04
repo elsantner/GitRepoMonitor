@@ -10,11 +10,19 @@ import javafx.concurrent.Task;
 
 import java.io.File;
 
+/**
+ * Async task scanning for repos.
+ */
 public class RepoSearchTask extends Task<Integer> {
     private int scannedDirCount = 0;
     private int foundRepoCount = 0;
     private RepoScanner repoScanner;
 
+    /**
+     * Create scanner task
+     * @param rootDir Root to scan from (if null then all drives on the PC are scanned)
+     * @param excludeNoRemote If true, all Git repos having no remote are NOT returned.
+     */
     public RepoSearchTask(File rootDir, boolean excludeNoRemote) {
         this.repoScanner = new RepoScanner(rootDir, excludeNoRemote);
     }
@@ -42,6 +50,9 @@ public class RepoSearchTask extends Task<Integer> {
         return scannedDirCount;
     }
 
+    /**
+     * Set message property according to current status.
+     */
     private void updateStatusMessage() {
         updateMessage(ResourceStore.getString("scanpc.scan_status", scannedDirCount, foundRepoCount));
     }

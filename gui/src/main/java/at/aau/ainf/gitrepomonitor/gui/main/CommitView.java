@@ -22,6 +22,9 @@ import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.List;
 
+/**
+ * Custom GUI element to display commits including file changes.
+ */
 public class CommitView extends Region {
     public static final int MIN_HEIGHT = 35;
     public static int FILE_DISPLAYED_DEFAULT = 0;
@@ -59,6 +62,7 @@ public class CommitView extends Region {
     private static DateFormat df = new SimpleDateFormat(ResourceStore.getString("date_time_format"));
 
     public CommitView(CommitChange commitChange) {
+        // load FXML and setup GUI
         if (loader == null) {
             loader = new FXMLLoader(
                     getClass().getResource("/at/aau/ainf/gitrepomonitor/gui/main/commit_view.fxml"),
@@ -87,6 +91,12 @@ public class CommitView extends Region {
         this.getChildren().add(containerMain);
     }
 
+    /**
+     * Generate a deterministic color for the person.
+     * (Currently just uses email)
+     * @param author Person to get color for
+     * @return Deterministic color
+     */
     private Color getUserColor(PersonIdent author) {
         int hash = author.getEmailAddress().hashCode();
         int r = hash & 0x0000FF;
@@ -96,11 +106,21 @@ public class CommitView extends Region {
         return Color.rgb(r, g, b);
     }
 
+    /**
+     * Get author and email
+     * @param author Author
+     * @return Author name and email
+     */
     private String getFullAuthorName(PersonIdent author) {
         return author.getName() +
                 " <" + author.getEmailAddress() + ">";
     }
 
+    /**
+     * Add all file changes behind a link.
+     * If user clicks on link, the changes are listed.
+     * @param fileChanges File changes.
+     */
     private void addFileChanges(List<DiffEntry> fileChanges) {
         for (int i=0; i<Math.min(FILE_DISPLAYED_DEFAULT, fileChanges.size()); i++) {
             boxFileChanges.getChildren().add(new FileChange(fileChanges.get(i)));
@@ -123,7 +143,10 @@ public class CommitView extends Region {
         lblNewChange.setVisible(isNew);
     }
 
-    private class FileChange extends Region {
+    /**
+     * Custom GUI element to display file changes.
+     */
+    private static class FileChange extends Region {
 
         @FXML
         private ImageView iconChange;
@@ -135,6 +158,7 @@ public class CommitView extends Region {
         private FXMLLoader loader;
 
         private FileChange(DiffEntry fileChange) {
+            // load FXML and setup GUI
             if (loader == null) {
                 loader = new FXMLLoader(
                         getClass().getResource("/at/aau/ainf/gitrepomonitor/gui/main/file_change.fxml"),
@@ -148,11 +172,13 @@ public class CommitView extends Region {
                 }
             }
 
+            // set file path
             if (fileChange.getChangeType() == DiffEntry.ChangeType.DELETE) {
                 lblFileName.setText(fileChange.getOldPath());
             } else {
                 lblFileName.setText(fileChange.getNewPath());
             }
+            // set change type icon
             switch (fileChange.getChangeType()) {
                 case ADD:
                     iconChange.setImage(iconAdded);

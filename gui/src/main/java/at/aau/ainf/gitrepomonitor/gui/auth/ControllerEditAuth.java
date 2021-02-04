@@ -29,6 +29,9 @@ import java.io.IOException;
 import java.net.URL;
 import java.util.ResourceBundle;
 
+/**
+ * Controller for edit auth credentials window.
+ */
 public class ControllerEditAuth implements Initializable, AlertDisplay, MasterPasswordQuery {
 
     @FXML
@@ -47,8 +50,6 @@ public class ControllerEditAuth implements Initializable, AlertDisplay, MasterPa
     public ImageView iconShowPW;
     @FXML
     public Tooltip ttShowPW;
-    @FXML
-    public Button btnLoadCredentials;
     @FXML
     public TextField txtSslKeyPath;
     @FXML
@@ -70,11 +71,20 @@ public class ControllerEditAuth implements Initializable, AlertDisplay, MasterPa
     private AuthenticationCredentials authInfo = null;
     private boolean createNew = false;
 
+    /**
+     * Get FXML loader for this GUI component.
+     * @return configured FXML loader
+     */
     public static FXMLLoader getLoader() {
         return new FXMLLoader(ControllerEditAuth.class.getResource("/at/aau/ainf/gitrepomonitor/gui/auth/edit_auth.fxml"),
                 ResourceStore.getResourceBundle());
     }
 
+    /**
+     * Open edit window for provided auth credentials
+     * @param authInfo Auth credentials to edit
+     * @throws IOException
+     */
     public static void openWindow(AuthenticationCredentials authInfo) throws IOException {
         FXMLLoader loader = ControllerEditAuth.getLoader();
         Parent root = loader.load();
@@ -83,6 +93,11 @@ public class ControllerEditAuth implements Initializable, AlertDisplay, MasterPa
         }
     }
 
+    /**
+     * Open edit window for new auth credentials
+     * @param authMethod Type of new auth credentials (HTTPS or SSL)
+     * @throws IOException
+     */
     public static void openWindowNewAuth(RepositoryInformation.AuthMethod authMethod) throws IOException {
         FXMLLoader loader = ControllerEditAuth.getLoader();
         Parent root = loader.load();
@@ -90,6 +105,10 @@ public class ControllerEditAuth implements Initializable, AlertDisplay, MasterPa
         configureStage(root);
     }
 
+    /**
+     * Setup and show stage for window.
+     * @param root Parent root
+     */
     private static void configureStage(Parent root) {
         Stage stage = new Stage();
         stage.initModality(Modality.APPLICATION_MODAL);
@@ -107,24 +126,6 @@ public class ControllerEditAuth implements Initializable, AlertDisplay, MasterPa
     public void initialize(URL location, ResourceBundle resources) {
         this.secureStorage = SecureStorage.getImplementation();
         setupUI();
-    }
-
-    private boolean attemptLoadCredentials() {
-        try {
-            String masterPW = getMasterPasswordIfRequired();
-            loadCredentials(masterPW);
-            return true;
-        } catch (SecurityException ex) {
-            ex.printStackTrace();
-            // nothing, method is aborted
-            return false;
-        } catch (AuthenticationException ex) {
-            showErrorWrongMasterPW();
-            return false;
-        } catch (Exception e) {
-            showError(e.getMessage());
-            return false;
-        }
     }
 
     private void setupUI() {
@@ -166,6 +167,11 @@ public class ControllerEditAuth implements Initializable, AlertDisplay, MasterPa
         });
     }
 
+    /**
+     * Validate name input and set error style.
+     * Must not be blank.
+     * @return True, iff name input is valid.
+     */
     private boolean validateTextFieldName() {
         boolean status;
         if (status = !txtName.getText().isBlank()) {
@@ -177,6 +183,11 @@ public class ControllerEditAuth implements Initializable, AlertDisplay, MasterPa
         return status;
     }
 
+    /**
+     * Set and load auth info to edit.
+     * @param authInfo Auth info to display
+     * @return True, iff load was successful
+     */
     public boolean setAuthInfo(AuthenticationCredentials authInfo) {
         this.authInfo = authInfo;
 
@@ -194,6 +205,33 @@ public class ControllerEditAuth implements Initializable, AlertDisplay, MasterPa
         return true;
     }
 
+    /**
+     * Attempt to load credentials for {@code this.authInfo}.
+     * This method may invoke an user input dialog if required.
+     * @return True, iff load was successful
+     */
+    private boolean attemptLoadCredentials() {
+        try {
+            String masterPW = getMasterPasswordIfRequired();
+            loadCredentials(masterPW);
+            return true;
+        } catch (SecurityException ex) {
+            ex.printStackTrace();
+            // nothing, method is aborted
+            return false;
+        } catch (AuthenticationException ex) {
+            showErrorWrongMasterPW();
+            return false;
+        } catch (Exception e) {
+            showError(e.getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * Setup GUI for creating a new auth credentials entry.
+     * @param authMethod Type of new credentials
+     */
     public void setCreateNew(RepositoryInformation.AuthMethod authMethod) {
         if (authMethod == RepositoryInformation.AuthMethod.HTTPS) {
             authInfo = new HttpsCredentials();
@@ -204,6 +242,10 @@ public class ControllerEditAuth implements Initializable, AlertDisplay, MasterPa
         setAuthMethodDisplay(authMethod);
     }
 
+    /**
+     * Setup GUI for specified auth method.
+     * @param authMethod Type of auth method.
+     */
     private void setAuthMethodDisplay(RepositoryInformation.AuthMethod authMethod) {
         if (authMethod == RepositoryInformation.AuthMethod.HTTPS) {
             authContainerHTTPS.setVisible(true);
@@ -224,15 +266,15 @@ public class ControllerEditAuth implements Initializable, AlertDisplay, MasterPa
 
     @FXML
     public void onBtnCancelClick(ActionEvent actionEvent) {
-        closeWindow();
-    }
-
-    private void closeWindow() {
         Stage stage = (Stage) txtName.getScene().getWindow();
         stage.setMinHeight(stage.getHeight());
         stage.close();
     }
 
+    /**
+     * Save current input persistently to secure storage.
+     * @param actionEvent Event
+     */
     @FXML
     public void onBtnSaveClick(ActionEvent actionEvent) {
         try {
@@ -246,10 +288,10 @@ public class ControllerEditAuth implements Initializable, AlertDisplay, MasterPa
             }
 
             if (!createNew) {
-                updateAuthInfo();
+                updateAuthCredentials();
                 authInfo.destroy();
             } else {
-                createAuthInfo();
+                createAuthCredentials();
             }
 
             Stage stage = (Stage) txtName.getScene().getWindow();
@@ -263,6 +305,13 @@ public class ControllerEditAuth implements Initializable, AlertDisplay, MasterPa
         }
     }
 
+    /**
+     * Get the master password input by the user.
+     * If no MP was set yet, prompt user to set one.
+     * @return Master password input by user
+     * @throws AuthenticationException
+     * @throws IOException
+     */
     private String getMasterPasswordIfRequired() throws AuthenticationException, IOException {
         String masterPW = null;
         if (secureStorage.isMasterPasswordSet()) {
@@ -285,7 +334,12 @@ public class ControllerEditAuth implements Initializable, AlertDisplay, MasterPa
         return masterPW;
     }
 
-    private void createAuthInfo() throws IOException, AuthenticationException {
+    /**
+     * Create new auth credentials form current input values.
+     * @throws IOException
+     * @throws AuthenticationException
+     */
+    private void createAuthCredentials() throws IOException, AuthenticationException {
         // master password is required whenever auth information is changed
         String masterPW = getMasterPasswordIfRequired();
 
@@ -307,7 +361,12 @@ public class ControllerEditAuth implements Initializable, AlertDisplay, MasterPa
         }
     }
 
-    private void updateAuthInfo() throws IOException, AuthenticationException {
+    /**
+     * Update current auth credentials with the current input values.
+     * @throws IOException
+     * @throws AuthenticationException
+     */
+    private void updateAuthCredentials() throws IOException, AuthenticationException {
         // master password is required whenever auth information is changed
         String masterPW = getMasterPasswordIfRequired();
 
@@ -329,6 +388,11 @@ public class ControllerEditAuth implements Initializable, AlertDisplay, MasterPa
         }
     }
 
+    /**
+     * Validate HTTPS input and set error styles.
+     * Username and Password must not be blank.
+     * Password requires a Username.
+     */
     private void validateHttpsInformation() {
         if (authContainerHTTPS.isVisible()) {
             if (txtHttpsUsername.getText().isBlank() && txtHttpsPasswordHidden.getText().isBlank()) {
@@ -347,6 +411,11 @@ public class ControllerEditAuth implements Initializable, AlertDisplay, MasterPa
         }
     }
 
+    /**
+     * Validate SSL input and set error style.
+     * Passphrase requires Key path.
+     * Key path must exist.
+     */
     private void validateSslInformation() {
         if (authContainerSSL.isVisible()) {
             if (txtSslKeyPath.getText().isBlank() && !txtSslPassphraseHidden.getText().isBlank()) {
@@ -366,6 +435,11 @@ public class ControllerEditAuth implements Initializable, AlertDisplay, MasterPa
         }
     }
 
+    /**
+     * Load stored credentials using master password
+     * @param masterPW Master Password
+     * @throws AuthenticationException Invalid master password
+     */
     private void loadCredentials(String masterPW) throws AuthenticationException {
         this.authInfo = secureStorage.get(Utils.toCharOrNull(masterPW), this.authInfo.getID());
 

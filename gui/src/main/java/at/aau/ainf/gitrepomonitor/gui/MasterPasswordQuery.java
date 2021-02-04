@@ -22,6 +22,11 @@ import java.util.regex.Pattern;
 public interface MasterPasswordQuery {
     String REGEX_PW = "^.{8,25}$";  // must be between 8 and 25 characters
 
+    /**
+     * Show input for master password.
+     * @param requireConfirmInput If true, then user must input the same password twice.
+     * @return User input password.
+     */
     default String showMasterPasswordInputDialog(boolean requireConfirmInput) {
         Dialog<String> dialog = new Dialog<>();
         dialog.setTitle(ResourceStore.getString("dialog.enter_mp"));
@@ -40,6 +45,11 @@ public interface MasterPasswordQuery {
         return input.orElse(null);
     }
 
+    /**
+     * Show dialog for changing the master password.
+     * User must first input the current master password and then the new master password twice.
+     * @return Pair of (Current MP, New MP)
+     */
     default Pair<String, String> showChangeMasterPasswordInputDialog() {
         Dialog<Pair<String, String>> dialog = new Dialog<>();
         dialog.setTitle(ResourceStore.getString("settings.change_mp"));
@@ -54,7 +64,11 @@ public interface MasterPasswordQuery {
         return input.orElse(null);
     }
 
-    private static  void setupChangeDialog(Dialog<Pair<String, String>> dialog) {
+    /**
+     * Setup change MP dialog.
+     * @param dialog Change MP dialog.
+     */
+    private static void setupChangeDialog(Dialog<Pair<String, String>> dialog) {
         dialog.setHeaderText(ResourceStore.getString("dialog.change_mp.header"));
         ((Stage) dialog.getDialogPane().getScene().getWindow()).getIcons().add(ResourceStore.getImage("icon_app.png"));
 
@@ -90,6 +104,10 @@ public interface MasterPasswordQuery {
         Platform.runLater(pwFieldCurrent::requestFocus);
     }
 
+    /**
+     * Setup dialog for single password input.
+     * @param dialog Dialog
+     */
     private static void setupDialogSingleInput(Dialog<String> dialog) {
         dialog.setHeaderText(ResourceStore.getString("dialog.enter_mp.header"));
         ((Stage) dialog.getDialogPane().getScene().getWindow()).getIcons().add(ResourceStore.getImage("icon_app.png"));
@@ -117,6 +135,10 @@ public interface MasterPasswordQuery {
         Platform.runLater(pwField::requestFocus);
     }
 
+    /**
+     * Setup dialog for double password input.
+     * @param dialog Dialog
+     */
     private static void setupDialogConfirmInput(Dialog<String> dialog) {
         dialog.setHeaderText(ResourceStore.getString("dialog.set_mp.header"));
         ((Stage) dialog.getDialogPane().getScene().getWindow()).getIcons().add(ResourceStore.getImage("icon_app.png"));
@@ -150,6 +172,12 @@ public interface MasterPasswordQuery {
         Platform.runLater(pwField::requestFocus);
     }
 
+    /**
+     * Create a HBox representing a row of elements.
+     * @param lbl Label positioned on the left
+     * @param txtField Text field positioned on the right.
+     * @return HBox containing lbl and txtField including layout properties
+     */
     private static HBox getRow(Label lbl, TextField txtField) {
         HBox row = new HBox();
         HBox leftSide = new HBox();
@@ -164,6 +192,9 @@ public interface MasterPasswordQuery {
         return row;
     }
 
+    /**
+     * Change listener for input validation.
+     */
     class ChangeListenerPassword implements ChangeListener<String> {
 
         private Button btnOK;

@@ -23,6 +23,9 @@ import java.io.File;
 import java.net.URL;
 import java.util.*;
 
+/**
+ * Controller for repo scanner.
+ */
 public class ControllerScan extends StatusBarController implements Initializable, PropertyChangeListener {
 
     private File rootDir;
@@ -53,10 +56,15 @@ public class ControllerScan extends StatusBarController implements Initializable
     @FXML
     public CheckBox ckboxExcludeRemote;
 
+    // custom property used by ControllerMain to determine if scan is running
     private static final SimpleBooleanProperty scanRunningProperty = new SimpleBooleanProperty(null, "scanRunning", false);
     private static RepoSearchTask searchTask;
     private FileManager fileManager;
 
+    /**
+     * Get FXML loader for this GUI component.
+     * @return configured FXML loader
+     */
     public static FXMLLoader getLoader() {
         return new FXMLLoader(ControllerScan.class.getResource("/at/aau/ainf/gitrepomonitor/gui/reposcan/scan.fxml"),
                 ResourceStore.getResourceBundle());
@@ -66,6 +74,9 @@ public class ControllerScan extends StatusBarController implements Initializable
         return scanRunningProperty;
     }
 
+    /**
+     * Stop scanning task.
+     */
     public static void stopScanningProcess() {
         if (searchTask != null) {
             searchTask.cancel(true);
@@ -110,6 +121,9 @@ public class ControllerScan extends StatusBarController implements Initializable
         lblDone.visibleProperty().bind(scanRunningProperty().not());
     }
 
+    /**
+     * Remove all registered listeners.
+     */
     public void cleanup() {
         fileManager.removeFoundReposListener(this);
         fileManager.removeWatchlistListener(this);
@@ -171,11 +185,18 @@ public class ControllerScan extends StatusBarController implements Initializable
         }
     }
 
+    /**
+     * Set scan finished
+     */
     private void scanFinished() {
         setScanRunningMode(false);
         scanRunningProperty.set(false);
     }
 
+    /**
+     * Setup GUI to reflect whether or not a scan is running.
+     * @param scanRunning True, if scan is running
+     */
     private void setScanRunningMode(boolean scanRunning) {
         btnStartScan.setVisible(!scanRunning);
         btnCancelScan.setVisible(scanRunning);
@@ -205,6 +226,10 @@ public class ControllerScan extends StatusBarController implements Initializable
         fileManager.watchlistToFound(selectedItems);
     }
 
+    /**
+     * Called when found repos, watchlist or repo status changes.
+     * @param e Event
+     */
     @Override
     public void propertyChange(PropertyChangeEvent e) {
         Platform.runLater(() -> {
@@ -223,12 +248,21 @@ public class ControllerScan extends StatusBarController implements Initializable
         });
     }
 
+    /**
+     * Set items to display in watchlist.
+     * @param repoInfo Repos to display.
+     */
     private synchronized void setWatchlistDisplay(Collection<RepositoryInformation> repoInfo) {
         listWatchlist.getItems().clear();
         listWatchlist.getItems().addAll(repoInfo);
         Collections.sort(listWatchlist.getItems());
     }
 
+    /**
+     * Set items to display in found repos.
+     * Found repos are sorted by last modification date in descending order.
+     * @param repoInfo Repos to display.
+     */
     private synchronized void setFoundReposDisplay(Collection<RepositoryInformation> repoInfo) {
         listFoundRepos.getItems().clear();
         listFoundRepos.getItems().addAll(repoInfo);

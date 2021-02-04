@@ -19,6 +19,9 @@ import java.net.URL;
 import java.util.List;
 import java.util.ResourceBundle;
 
+/**
+ * Controller for pull result display.
+ */
 public class ControllerPullResults implements Initializable {
 
     @FXML
@@ -26,11 +29,19 @@ public class ControllerPullResults implements Initializable {
 
     private FileManager fileManager;
 
+    /**
+     * Get FXML loader for this GUI component.
+     * @return configured FXML loader
+     */
     public static FXMLLoader getLoader() {
         return new FXMLLoader(ControllerSettings.class.getResource("/at/aau/ainf/gitrepomonitor/gui/main/pull_result_list.fxml"),
                 ResourceStore.getResourceBundle());
     }
 
+    /**
+     * Set pull results to display
+     * @param results Pull results
+     */
     public void setDisplay(List<PullCallback.PullResult> results) {
         listResults.setItems(new ImmutableObservableList<>(results.toArray(new PullCallback.PullResult[0])));
     }
@@ -41,6 +52,9 @@ public class ControllerPullResults implements Initializable {
         fileManager = FileManager.getInstance();
     }
 
+    /**
+     * Custom list cell for pull results
+     */
     private class PullResultListViewCell extends ListCell<PullCallback.PullResult> {
 
         @FXML

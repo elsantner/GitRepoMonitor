@@ -5,6 +5,9 @@ import at.aau.ainf.gitrepomonitor.gui.ResourceStore;
 import javafx.scene.control.ListCell;
 import javafx.scene.image.ImageView;
 
+/**
+ * Custom list cell to display branches.
+ */
 public class BranchListCell extends ListCell<Branch> {
 
     @Override

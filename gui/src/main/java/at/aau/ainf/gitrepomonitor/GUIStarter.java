@@ -12,7 +12,6 @@ import javafx.scene.Scene;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
 import javafx.scene.control.ButtonType;
-import javafx.scene.text.Text;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
 import javafx.stage.WindowEvent;
@@ -21,10 +20,16 @@ import java.util.Locale;
 import java.util.Optional;
 import java.util.ResourceBundle;
 
+/**
+ * Main JavaFX application which starts the main GUI
+ */
 public class GUIStarter extends Application {
 
     private Stage primaryStage;
 
+    /**
+     * Create and load main GUI.
+     */
     @Override
     public void start(Stage primaryStage) throws Exception {
         this.primaryStage = primaryStage;
@@ -45,6 +50,10 @@ public class GUIStarter extends Application {
         primaryStage.setMinHeight(primaryStage.getHeight());
     }
 
+    /**
+     * Event interceptor for showing a confirmation dialog if user attempts to close application
+     * while a repo scan is still running.
+     */
     private final EventHandler<WindowEvent> confirmCloseEventHandler = event -> {
         if (ControllerScan.scanRunningProperty().get()) {
             Alert closeConfirmation = new Alert(
@@ -61,9 +70,11 @@ public class GUIStarter extends Application {
             closeConfirmation.initOwner(primaryStage);
 
             Optional<ButtonType> closeResponse = closeConfirmation.showAndWait();
+            // if not confirmed, abort closing of program
             if (closeResponse.isEmpty() || !ButtonType.OK.equals(closeResponse.get())) {
                 event.consume();
             } else {
+                // if confirmed, stop scan and stop all secure storage processes.
                 ControllerScan.stopScanningProcess();
                 SecureStorage.getImplementation().cleanup();
             }

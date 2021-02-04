@@ -17,7 +17,8 @@ import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
 /**
- * Displays commits including changed files.
+ * Custom control to display commits including changed files.
+ * Also supports dynamic loading of commits as user scrolls down.
  */
 public class CommitLogView extends AnchorPane {
 
@@ -32,10 +33,10 @@ public class CommitLogView extends AnchorPane {
     private List<CommitChange> currentCommitLog = new ArrayList<>();
     private int currentCommitLogDisplayIndex;      // index up to which changes are currently displayed
     private ScheduledThreadPoolExecutor timer;
-    private boolean isTimerTaskScheduled = false;
     private int newCommitCount;
 
     public CommitLogView() {
+        // load FXML and setup GUI
         FXMLLoader loader = new FXMLLoader(getClass().
                 getResource("/at/aau/ainf/gitrepomonitor/gui/main/commit_log_view.fxml"),
                 ResourceStore.getResourceBundle());
@@ -64,10 +65,19 @@ public class CommitLogView extends AnchorPane {
         return currentCommitLog;
     }
 
+    /**
+     * Set commit log to display.
+     * @param currentCommitLog Commit log to display.
+     */
     public void setCommitLog(List<CommitChange> currentCommitLog) {
         setCommitLog(currentCommitLog, 0);
     }
 
+    /**
+     * Set commit log to display.
+     * @param currentCommitLog Commit log to display.
+     * @param newCommitCount Number of commits that should be marked as "new" (starting from the top)
+     */
     public void setCommitLog(List<CommitChange> currentCommitLog, int newCommitCount) {
         synchronized (lock) {       // avoid any problems with quickly switching between selected repos
             if (currentCommitLog == null) {
@@ -81,7 +91,11 @@ public class CommitLogView extends AnchorPane {
         }
     }
 
+    /**
+     * Setup loading of commit items when user scrolls down in list.
+     */
     private void setupLazyLoading() {
+        // when user scrolls to the last fourth of the list, render at most 10 more commits.
         scrollPane.vvalueProperty().addListener((observable, oldValue, newValue) -> {
             // load 10 more commits if scrolled in the bottom 25% of the list
             if ((double)newValue > scrollPane.getVmax() * 0.75) {
@@ -91,10 +105,8 @@ public class CommitLogView extends AnchorPane {
 
         // load appropriate amount of commits if the display size is changed
         this.heightProperty().addListener((observable, oldValue, newValue) -> {
-            isTimerTaskScheduled = true;
             timer.schedule(() -> Platform.runLater(() -> {
                 displayCommitChanges(newCommitCount);
-                isTimerTaskScheduled = false;
             }), 1000, TimeUnit.MILLISECONDS);
         });
     }
@@ -117,6 +129,11 @@ public class CommitLogView extends AnchorPane {
         }
     }
 
+    /**
+     * Create new commit view and append to list.
+     * @param commitChange Commit
+     * @param isNew If true, commit is marked as "new"
+     */
     private void addCommitView(CommitChange commitChange, boolean isNew) {
         CommitView commitView = new CommitView(commitChange);
         commitView.setNew(isNew);

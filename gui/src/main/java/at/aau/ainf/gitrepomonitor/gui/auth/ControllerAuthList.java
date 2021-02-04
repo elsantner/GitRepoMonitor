@@ -26,6 +26,9 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.ResourceBundle;
 
+/**
+ * Controller for authentication credentials list.
+ */
 public class ControllerAuthList implements Initializable, AlertDisplay, PropertyChangeListener {
 
     @FXML
@@ -35,11 +38,19 @@ public class ControllerAuthList implements Initializable, AlertDisplay, Property
 
     private FileManager fileManager;
 
+    /**
+     * Get FXML loader for this GUI component.
+     * @return configured FXML loader
+     */
     public static FXMLLoader getLoader() {
         return new FXMLLoader(ControllerAuthList.class.getResource("/at/aau/ainf/gitrepomonitor/gui/auth/auth_list.fxml"),
                 ResourceStore.getResourceBundle());
     }
 
+    /**
+     * Open auth list window.
+     * @throws IOException
+     */
     public static void openWindow() throws IOException {
         FXMLLoader loader = ControllerAuthList.getLoader();
         Parent root = loader.load();
@@ -89,11 +100,18 @@ public class ControllerAuthList implements Initializable, AlertDisplay, Property
         ControllerEditAuth.openWindowNewAuth(RepositoryInformation.AuthMethod.SSL);
     }
 
+    /**
+     * Called when auth credential list changes.
+     * @param evt Event
+     */
     @Override
     public void propertyChange(PropertyChangeEvent evt) {
         updateAuthLists();
     }
 
+    /**
+     * Reload auth credentials lists
+     */
     private void updateAuthLists() {
         listHTTPS.getItems().clear();
         listSSL.getItems().clear();
@@ -106,18 +124,30 @@ public class ControllerAuthList implements Initializable, AlertDisplay, Property
         }
     }
 
+    /**
+     * Remove registered listeners
+     */
     public void cleanup() {
         fileManager.addAuthCredListener(this);
     }
 
+    /**
+     * Handler for operations triggered by key presses
+     */
     static class KeyPressHandler implements EventHandler<KeyEvent>, AlertDisplay {
 
-        private ListView<AuthenticationCredentials> listView;
+        private final ListView<AuthenticationCredentials> listView;
 
         public KeyPressHandler(ListView<AuthenticationCredentials> listView) {
             this.listView = listView;
         }
 
+        /**
+         * Handle key press on listView.
+         * ENTER opens Edit window
+         * DEL triggers delete dialog
+         * @param event Event
+         */
         @Override
         public void handle(KeyEvent event) {
             try {

@@ -21,6 +21,9 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * Custom list cell for repositories
+ */
 public class RepositoryInformationListViewCell extends ListCell<RepositoryInformation> {
     @FXML
     private Label lblName;
@@ -36,6 +39,10 @@ public class RepositoryInformationListViewCell extends ListCell<RepositoryInform
     private FXMLLoader loader;
     private FileManager fileManager;
 
+    /**
+     * Create list cell.
+     * @param isDraggable If true, then cell item can be dragged and dropped to switch position.
+     */
     public RepositoryInformationListViewCell(boolean isDraggable) {
         this.fileManager = FileManager.getInstance();
         if (isDraggable) {
