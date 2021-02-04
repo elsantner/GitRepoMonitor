@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.Tooltip?>
+<?import javafx.scene.image.Image?>
+<?import javafx.scene.image.ImageView?>
+<?import javafx.scene.layout.HBox?>
+
+<HBox fx:id="container" xmlns="http://javafx.com/javafx/8.0.171" xmlns:fx="http://javafx.com/fxml/1">
+   <HBox HBox.hgrow="ALWAYS">
+      <Label fx:id="lblName" text="Label" HBox.hgrow="ALWAYS">
+         <HBox.margin>
+            <Insets />
+         </HBox.margin>
+      </Label>
+   </HBox>
+   <HBox alignment="TOP_RIGHT" HBox.hgrow="ALWAYS">
+      <Label fx:id="lblNewChange" visible="false">
+         <graphic>
+            <ImageView fitHeight="18.0" fitWidth="88.0" pickOnBounds="true" preserveRatio="true">
+               <Image url="@icons/icon_new.png" />
+            </ImageView>
+         </graphic>
+         <tooltip>
+            <Tooltip text="%status.repo.new_changes" />
+         </tooltip>
+      </Label>
+      <Label fx:id="lblIcon">
+         <graphic>
+            <ImageView fx:id="iconAttention" fitHeight="18.0" fitWidth="88.0" pickOnBounds="true" preserveRatio="true">
+               <Image url="@icons/icon_attention.png" />
+            </ImageView>
+         </graphic>
+      </Label>
+   </HBox>
+</HBox>
