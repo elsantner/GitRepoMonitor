@@ -1,0 +1,15 @@
+.list-view {
+    -fx-selection-bar:rgb(222, 76, 54, 0.1);
+}
+
+.combo-box-popup .list-view .list-cell:hover {
+    -fx-text-fill: black;
+}
+
+#lblWatchlist {
+    -fx-font-weight: bold;
+}
+
+#btnAddToWatchlist {
+    -fx-background-color: transparent;
+}

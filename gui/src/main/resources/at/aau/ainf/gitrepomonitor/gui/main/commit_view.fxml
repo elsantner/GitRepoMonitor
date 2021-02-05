@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.Tooltip?>
+<?import javafx.scene.image.Image?>
+<?import javafx.scene.image.ImageView?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.VBox?>
+
+<VBox fx:id="containerMain" maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" xmlns="http://javafx.com/javafx/8.0.171" xmlns:fx="http://javafx.com/fxml/1">
+   <padding>
+      <Insets bottom="5.0" />
+   </padding>
+   <HBox fx:id="container">
+      <Label fx:id="lblNewChange">
+         <graphic>
+            <ImageView fitHeight="18.0" fitWidth="88.0" pickOnBounds="true" preserveRatio="true">
+               <Image url="@../icons/icon_new.png" />
+            </ImageView>
+         </graphic>
+         <tooltip>
+            <Tooltip text="%status.repo.new_changes" />
+         </tooltip>
+         <padding>
+            <Insets right="3.0" />
+         </padding>
+      </Label>
+      <Label fx:id="lblMsg" style="-fx-font-weight: bold;" text="Commit Message" HBox.hgrow="ALWAYS">
+         <HBox.margin>
+            <Insets />
+         </HBox.margin>
+         <tooltip>
+            <Tooltip fx:id="ttCommitMessage" />
+         </tooltip>
+      </Label>
+      <Label text=" (" />
+      <Label fx:id="lblDate" text="Date" />
+      <Label text=" by " />
+      <Label fx:id="lblUsername" text="Username" textFill="#b9ac1a">
+         <tooltip>
+            <Tooltip fx:id="ttUsername" />
+         </tooltip>
+      </Label>
+      <Label text=")" />
+   </HBox>
+   <VBox fx:id="boxFileChanges">
+      <VBox.margin>
+         <Insets left="5.0" />
+      </VBox.margin>
+   </VBox>
+</VBox>

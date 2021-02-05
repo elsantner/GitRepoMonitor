@@ -1,0 +1,45 @@
+buildscript {
+    repositories {
+        mavenLocal()
+        mavenCentral()
+        maven { url "https://plugins.gradle.org/m2/" }
+        maven { url "https://oss.sonatype.org/content/repositories/snapshots/" }
+        jcenter()
+        google()
+    }
+    dependencies {
+        classpath "com.github.jengelman.gradle.plugins:shadow:5.2.0"
+    }
+}
+
+plugins {
+    id 'java'
+    id 'application'
+    id 'org.openjfx.javafxplugin' version '0.0.8'
+}
+apply plugin: 'com.github.johnrengelman.shadow'
+
+sourceSets.main.java.srcDirs = [ "src/main/java", "src/test/java" ]
+mainClassName = 'at.aau.ainf.gitrepomonitor.Main'
+
+jar {
+    manifest {
+        attributes 'Main-Class': 'at.aau.ainf.gitrepomonitor.Main'
+    }
+}
+
+version '1.0.0'
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    compile project(':core')
+    testCompile group: 'junit', name: 'junit', version: '4.12'
+}
+
+javafx {
+    version = "11"
+    modules = [ 'javafx.controls', 'javafx.fxml' ]
+}
