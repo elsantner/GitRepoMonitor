@@ -9,6 +9,9 @@ Stored credentials are encrypted using a master password and can be stored on an
 
 ![git_repo_monitor](https://user-images.githubusercontent.com/61832987/106963695-426e6b80-6741-11eb-96df-19c775241c20.PNG)
 
+## Download
+For download as an executable JAR please see the [Releases page](https://github.com/elsantner/GitRepoMonitor/releases).
+
 ## Used assets / libraries
 
 - All icons are either taken for https://material.io/resources/icons (Apache License, Version 2.0) or self-made.
