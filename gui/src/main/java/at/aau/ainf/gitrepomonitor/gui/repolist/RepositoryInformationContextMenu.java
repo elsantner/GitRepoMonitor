@@ -11,9 +11,7 @@ import at.aau.ainf.gitrepomonitor.gui.MasterPasswordQuery;
 import at.aau.ainf.gitrepomonitor.gui.ResourceStore;
 import at.aau.ainf.gitrepomonitor.gui.StatusDisplay;
 import at.aau.ainf.gitrepomonitor.gui.editrepo.ControllerEditRepo;
-import javafx.scene.control.Alert;
-import javafx.scene.control.ContextMenu;
-import javafx.scene.control.ListCell;
+import javafx.scene.control.*;
 import javafx.scene.control.MenuItem;
 import javafx.scene.effect.ColorAdjust;
 import javafx.scene.image.ImageView;
@@ -42,7 +40,7 @@ public class RepositoryInformationContextMenu extends ContextMenu implements Ale
      * @param statusDisplay Status display
      * @param progressMonitor Monitor for progress updates
      */
-    public RepositoryInformationContextMenu(ListCell<RepositoryInformation> cell, StatusDisplay statusDisplay, ProgressMonitor progressMonitor) {
+    public RepositoryInformationContextMenu(IndexedCell<RepositoryInformation> cell, StatusDisplay statusDisplay, ProgressMonitor progressMonitor) {
         this.secureStorage = SecureStorage.getImplementation();
         this.gitManager = GitManager.getInstance();
         this.item = cell.getItem();

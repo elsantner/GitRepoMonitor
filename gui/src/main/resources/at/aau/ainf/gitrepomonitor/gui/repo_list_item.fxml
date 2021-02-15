@@ -8,14 +8,7 @@
 <?import javafx.scene.layout.HBox?>
 
 <HBox fx:id="container" xmlns="http://javafx.com/javafx/8.0.171" xmlns:fx="http://javafx.com/fxml/1">
-   <HBox HBox.hgrow="ALWAYS">
-      <Label fx:id="lblName" text="Label" HBox.hgrow="ALWAYS">
-         <HBox.margin>
-            <Insets />
-         </HBox.margin>
-      </Label>
-   </HBox>
-   <HBox alignment="TOP_RIGHT" HBox.hgrow="ALWAYS">
+   <HBox spacing="2.0" HBox.hgrow="ALWAYS">
       <Label fx:id="lblNewChange" visible="false">
          <graphic>
             <ImageView fitHeight="18.0" fitWidth="88.0" pickOnBounds="true" preserveRatio="true">
@@ -32,6 +25,11 @@
                <Image url="@icons/icon_attention.png" />
             </ImageView>
          </graphic>
+      </Label>
+      <Label fx:id="lblName" text="Label" HBox.hgrow="ALWAYS">
+         <HBox.margin>
+            <Insets />
+         </HBox.margin>
       </Label>
    </HBox>
 </HBox>
