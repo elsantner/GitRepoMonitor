@@ -15,9 +15,8 @@
 <?import javafx.scene.layout.HBox?>
 <?import javafx.scene.layout.VBox?>
 
-<?import at.aau.ainf.gitrepomonitor.gui.main.CommitLogView?>
+<!--<?import at.aau.ainf.gitrepomonitor.gui.main.CommitLogView?>-->
 
-<?import javafx.scene.control.ListView?>
 <AnchorPane maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="379.0" prefWidth="672.0" stylesheets="@main.css" xmlns="http://javafx.com/javafx/8.0.171" xmlns:fx="http://javafx.com/fxml/1" fx:controller="at.aau.ainf.gitrepomonitor.gui.main.ControllerMain">
     <HBox AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="0.0">
         <padding>
@@ -83,8 +82,8 @@
         </HBox>
     </HBox>
    <Label fx:id="lblStatus" layoutX="14.0" layoutY="330.0" onMouseClicked="#onLabelStatusClicked" AnchorPane.bottomAnchor="10.0" AnchorPane.leftAnchor="10.0" AnchorPane.rightAnchor="10.0" />
-    <SplitPane dividerPositions="0.35" prefHeight="160.0" prefWidth="200.0" AnchorPane.bottomAnchor="30.0" AnchorPane.leftAnchor="10.0" AnchorPane.rightAnchor="10.0" AnchorPane.topAnchor="40.0">
-        <AnchorPane minHeight="0.0" minWidth="0.0" prefHeight="160.0" prefWidth="100.0">
+    <SplitPane dividerPositions="0.5" prefHeight="160.0" prefWidth="200.0" AnchorPane.bottomAnchor="30.0" AnchorPane.leftAnchor="10.0" AnchorPane.rightAnchor="10.0" AnchorPane.topAnchor="40.0">
+        <AnchorPane minHeight="0.0" minWidth="0.0" prefHeight="160.0" prefWidth="160.0">
             <HBox alignment="CENTER" AnchorPane.bottomAnchor="0.0" AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="0.0">
                 <VBox HBox.hgrow="ALWAYS">
                     <HBox>
@@ -107,10 +106,13 @@
                     </HBox>
                <TableView fx:id="tblWatchlist">
                  <columns>
-                   <TableColumn fx:id="wlColName" text="Name" />
-                   <TableColumn fx:id="wlColLastChange" text="Last Change" />
-                     <TableColumn fx:id="wlColPerson" text="Person" />
+                   <TableColumn fx:id="wlColName" prefWidth="160.0" text="%watchlist.name" />
+                   <TableColumn fx:id="wlColLastChange" text="%watchlist.last_change" />
+                     <TableColumn fx:id="wlColPerson" text="%watchlist.author" />
                  </columns>
+                  <columnResizePolicy>
+                     <TableView fx:constant="CONSTRAINED_RESIZE_POLICY" />
+                  </columnResizePolicy>
                </TableView>
                 </VBox>
             </HBox>
@@ -128,12 +130,12 @@
                     <ComboBox fx:id="cbBoxBranch" disable="true" />
                 </HBox>
             </HBox>
-            <CommitLogView fx:id="commitLogView" prefHeight="200.0" prefWidth="200.0" AnchorPane.bottomAnchor="0.0"
+            <!--<CommitLogView fx:id="commitLogView" prefHeight="200.0" prefWidth="200.0" AnchorPane.bottomAnchor="0.0"
                            AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="25.0">
                 <padding>
                     <Insets left="10.0"/>
                 </padding>
-            </CommitLogView>
+            </CommitLogView>-->
         </AnchorPane>
     </SplitPane>
 

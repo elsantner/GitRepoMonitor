@@ -5,6 +5,7 @@ import at.aau.ainf.gitrepomonitor.core.files.authentication.HttpsCredentials;
 import at.aau.ainf.gitrepomonitor.core.files.authentication.SecureStorage;
 import at.aau.ainf.gitrepomonitor.core.files.authentication.SslCredentials;
 import at.aau.ainf.gitrepomonitor.core.git.GitManager;
+import org.eclipse.jgit.api.errors.GitAPIException;
 
 import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
@@ -73,6 +74,7 @@ public class FileManager implements FileMonitor.Listener {
         setupFileMonitor();
         loadRepos();
         checkRepoPathValidity();
+        loadLastCommits();
     }
 
     public void addWatchlistListener(PropertyChangeListener l) { listenersWatchlist.add(l); }
@@ -214,6 +216,19 @@ public class FileManager implements FileMonitor.Listener {
                 }
             } catch (IOException e) {
                 repoInfo.setStatus(RepositoryInformation.RepoStatus.PATH_INVALID);
+            }
+        }
+    }
+
+    private void loadLastCommits() {
+        GitManager gitManager = GitManager.getInstance();
+        for (RepositoryInformation repoInfo : Stream.concat(watchlist.values().stream(),
+                foundRepos.values().stream()).collect(Collectors.toList())) {
+
+            try {
+                repoInfo.setLastCommit(gitManager.getLastCommit(repoInfo));
+            } catch (Exception e) {
+                repoInfo.setLastCommit(null);
             }
         }
     }

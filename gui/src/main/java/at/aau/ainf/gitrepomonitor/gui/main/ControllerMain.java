@@ -2,10 +2,7 @@ package at.aau.ainf.gitrepomonitor.gui.main;
 
 import at.aau.ainf.gitrepomonitor.core.files.*;
 import at.aau.ainf.gitrepomonitor.core.files.authentication.SecureStorage;
-import at.aau.ainf.gitrepomonitor.core.git.Branch;
-import at.aau.ainf.gitrepomonitor.core.git.GitManager;
-import at.aau.ainf.gitrepomonitor.core.git.PullCallback;
-import at.aau.ainf.gitrepomonitor.core.git.PullListener;
+import at.aau.ainf.gitrepomonitor.core.git.*;
 import at.aau.ainf.gitrepomonitor.gui.*;
 import at.aau.ainf.gitrepomonitor.gui.auth.ControllerAuthList;
 import at.aau.ainf.gitrepomonitor.gui.repolist.RepositoryInformationKeyPressHandler;
@@ -16,6 +13,8 @@ import at.aau.ainf.gitrepomonitor.gui.settings.ControllerSettings;
 import com.sun.javafx.collections.ImmutableObservableList;
 import javafx.application.Platform;
 import javafx.beans.value.ObservableValue;
+import javafx.collections.FXCollections;
+import javafx.collections.ObservableList;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
@@ -28,6 +27,7 @@ import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.input.Dragboard;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.input.TransferMode;
+import javafx.scene.paint.Color;
 import javafx.stage.DirectoryChooser;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
@@ -35,6 +35,7 @@ import javafx.stage.StageStyle;
 import javafx.util.Callback;
 import org.eclipse.jgit.api.MergeResult;
 import org.eclipse.jgit.api.errors.CheckoutConflictException;
+import org.eclipse.jgit.lib.PersonIdent;
 
 import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
@@ -42,6 +43,8 @@ import java.io.File;
 import java.io.IOException;
 import java.net.URL;
 import java.sql.SQLException;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -51,6 +54,8 @@ import java.util.logging.Logger;
  */
 public class ControllerMain extends StatusBarController implements Initializable, AlertDisplay, MasterPasswordQuery,
         StatusDisplay, PropertyChangeListener, PullListener, FileErrorListener {
+
+    private static final DateFormat df = new SimpleDateFormat(ResourceStore.getString("date_time_format"));
 
     @FXML
     public Button btnPullAll;
@@ -69,9 +74,9 @@ public class ControllerMain extends StatusBarController implements Initializable
     @FXML
     public TableColumn<RepositoryInformation, RepositoryInformation> wlColName;
     @FXML
-    public TableColumn<RepositoryInformation, String> wlColLastChange;
+    public TableColumn<RepositoryInformation, Date> wlColLastChange;
     @FXML
-    public TableColumn<RepositoryInformation, String> wlColPerson;
+    public TableColumn<RepositoryInformation, PersonIdent> wlColPerson;
 
     /**
      * Stage in which the gui is rendered. Used to display child stages.
@@ -186,21 +191,57 @@ public class ControllerMain extends StatusBarController implements Initializable
     }
 
     private void setupUI() {
-        tblWatchlist.setRowFactory(new RepositoryInformationTableRowFactory(this, progessMonitor));
-        tblWatchlist.setPlaceholder(new Label(ResourceStore.getString("repo_list.no_entries")));
-
-        wlColName.setCellValueFactory(new PropertyValueFactory<>("reflect"));
-        wlColName.setCellFactory(param -> new RepositoryInformationNameCell());
-
-        tblWatchlist.getSelectionModel().setSelectionMode(SelectionMode.MULTIPLE);
-        tblWatchlist.setOnKeyPressed(new RepositoryInformationKeyPressHandler(tblWatchlist));
-
+        setupTable();
         setWatchlistDisplay(fileManager.getWatchlist());
         indicatorScanRunning.visibleProperty().bind(ControllerScan.scanRunningProperty());
         indicatorScanRunning.managedProperty().bind(indicatorScanRunning.visibleProperty());
         setupCommitLogDisplay();
         setupSwitchBranch();
         setupDragAndDropRepoAdd();
+    }
+
+    private void setupTable() {
+        tblWatchlist.setRowFactory(new RepositoryInformationTableRowFactory(this, progessMonitor));
+        tblWatchlist.setPlaceholder(new Label(ResourceStore.getString("repo_list.no_entries")));
+        tblWatchlist.getSelectionModel().setSelectionMode(SelectionMode.MULTIPLE);
+        tblWatchlist.setOnKeyPressed(new RepositoryInformationKeyPressHandler(tblWatchlist));
+
+        wlColName.setCellValueFactory(new PropertyValueFactory<>("reflect"));
+        wlColName.setCellFactory(param -> new RepositoryInformationNameCell());
+
+        wlColLastChange.setCellValueFactory(new PropertyValueFactory<>("lastCommitDate"));
+        wlColLastChange.setCellFactory(param -> new TableCell<>() {
+            @Override
+            protected void updateItem(Date item, boolean empty) {
+                if (empty) {
+                    setText(null);
+                } else {
+                    if (item != null) {
+                        setText(df.format(item));
+                    } else {
+                        setText(ResourceStore.getString("watchlist.last_change.placeholder"));
+                    }
+                }
+            }
+        });
+
+        wlColPerson.setCellValueFactory(new PropertyValueFactory<>("lastCommitAuthor"));
+        wlColPerson.setCellFactory(param -> new TableCell<>() {
+            @Override
+            protected void updateItem(PersonIdent item, boolean empty) {
+                if (empty) {
+                    setText(null);
+                } else {
+                    if (item != null) {
+                        setText(item.getName());
+                        setTextFill(CommitView.getUserColor(item));
+                    } else {
+                        setText(ResourceStore.getString("watchlist.author.placeholder"));
+                        setTextFill(Color.BLACK);
+                    }
+                }
+            }
+        });
     }
 
     /**
@@ -387,9 +428,16 @@ public class ControllerMain extends StatusBarController implements Initializable
      * @param repoInfo New Watchlist items
      */
     private synchronized void setWatchlistDisplay(Collection<RepositoryInformation> repoInfo) {
-        tblWatchlist.getItems().clear();
-        tblWatchlist.getItems().addAll(repoInfo);
+        // remember sort order
+        TableColumn<RepositoryInformation, ?> sortCol = null;
+        if (!tblWatchlist.getSortOrder().isEmpty()) {
+            sortCol = tblWatchlist.getSortOrder().get(0);
+        }
+        tblWatchlist.setItems(FXCollections.observableArrayList(repoInfo));
         tblWatchlist.refresh();
+        if (sortCol != null) {
+            tblWatchlist.getSortOrder().add(sortCol);
+        }
     }
 
     /**
@@ -430,6 +478,7 @@ public class ControllerMain extends StatusBarController implements Initializable
     @Override
     public void pullExecuted(RepositoryInformation repo, MergeResult.MergeStatus status) {
         RepositoryInformation selectedItem = tblWatchlist.getSelectionModel().getSelectedItem();
+        tblWatchlist.refresh();
         if (selectedItem != null && selectedItem.getPath().equals(repo.getPath())) {
             updateCommitLog(selectedItem);
         }

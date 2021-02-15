@@ -1,5 +1,8 @@
 package at.aau.ainf.gitrepomonitor.core.files;
 
+import org.eclipse.jgit.lib.PersonIdent;
+import org.eclipse.jgit.revwalk.RevCommit;
+
 import java.util.Date;
 import java.util.Objects;
 import java.util.UUID;
@@ -67,6 +70,7 @@ public class RepositoryInformation implements Comparable<RepositoryInformation>,
     private int newCommitCount;
     private AuthMethod authMethod;
     private RepositoryInformation reflect;
+    private RevCommit lastCommit;
 
     public RepositoryInformation() {
         // generate random UUID upon creation
@@ -194,6 +198,22 @@ public class RepositoryInformation implements Comparable<RepositoryInformation>,
         return authID != null;
     }
 
+    public RevCommit getLastCommit() {
+        return lastCommit;
+    }
+
+    public Date getLastCommitDate() {
+        return lastCommit != null ? new Date((long)lastCommit.getCommitTime() * 1000) : null;
+    }
+
+    public PersonIdent getLastCommitAuthor() {
+        return lastCommit != null ? lastCommit.getAuthorIdent() : null;
+    }
+
+    public void setLastCommit(RevCommit lastCommit) {
+        this.lastCommit = lastCommit;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
@@ -235,7 +255,9 @@ public class RepositoryInformation implements Comparable<RepositoryInformation>,
     @Override
     public Object clone() {
         try {
-            return super.clone();
+            RepositoryInformation clone = (RepositoryInformation) super.clone();
+            clone.setReflect(clone);
+            return clone;
         } catch (CloneNotSupportedException e) {
             return null;
         }

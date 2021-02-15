@@ -439,6 +439,7 @@ public class GitManager {
 
             // set new update count
             fileManager.setNewChanges(repo.getID(), getCommitsInRange(git, oldHead, head).size());
+            repo.setLastCommit(getLastCommit(repo));
 
             notifyPullListener(repo, pullResult.getMergeResult().getMergeStatus());
             return pullResult.getMergeResult().getMergeStatus();
@@ -782,5 +783,10 @@ public class GitManager {
         } catch (IOException e) {
             return null;
         }
+    }
+
+    public RevCommit getLastCommit(RepositoryInformation repo) throws IOException, GitAPIException {
+        Git git = getRepoGit(repo.getPath());
+        return git.log().setMaxCount(1).call().iterator().next();
     }
 }
