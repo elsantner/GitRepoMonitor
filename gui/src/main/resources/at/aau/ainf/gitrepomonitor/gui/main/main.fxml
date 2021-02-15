@@ -15,7 +15,7 @@
 <?import javafx.scene.layout.HBox?>
 <?import javafx.scene.layout.VBox?>
 
-<!--<?import at.aau.ainf.gitrepomonitor.gui.main.CommitLogView?>-->
+<?import at.aau.ainf.gitrepomonitor.gui.main.CommitLogView?>
 
 <AnchorPane maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="379.0" prefWidth="672.0" stylesheets="@main.css" xmlns="http://javafx.com/javafx/8.0.171" xmlns:fx="http://javafx.com/fxml/1" fx:controller="at.aau.ainf.gitrepomonitor.gui.main.ControllerMain">
     <HBox AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="0.0">
@@ -130,12 +130,12 @@
                     <ComboBox fx:id="cbBoxBranch" disable="true" />
                 </HBox>
             </HBox>
-            <!--<CommitLogView fx:id="commitLogView" prefHeight="200.0" prefWidth="200.0" AnchorPane.bottomAnchor="0.0"
+            <CommitLogView fx:id="commitLogView" prefHeight="200.0" prefWidth="200.0" AnchorPane.bottomAnchor="0.0"
                            AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="25.0">
                 <padding>
                     <Insets left="10.0"/>
                 </padding>
-            </CommitLogView>-->
+            </CommitLogView>
         </AnchorPane>
     </SplitPane>
 

@@ -361,6 +361,7 @@ public class GitManager {
         repoGit.checkout()
                 .setName(branchName)
                 .call();
+        repo.setLastCommit(getLastCommit(repo));
     }
 
     /**

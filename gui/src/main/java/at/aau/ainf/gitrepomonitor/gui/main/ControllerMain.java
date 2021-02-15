@@ -286,6 +286,7 @@ public class ControllerMain extends StatusBarController implements Initializable
                         gitManager.checkout(repo, newValue.getShortName());
                     }
                     updateCommitLog(repo);
+                    tblWatchlist.refresh();
                 }
             } catch (CheckoutConflictException ex) {
                 cbBoxBranch.getSelectionModel().select(oldValue);
