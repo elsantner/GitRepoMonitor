@@ -14,6 +14,9 @@ import javafx.scene.layout.HBox;
 
 import java.io.IOException;
 
+/**
+ * Custom cell used to display repo info in table.
+ */
 public class RepositoryInformationNameCell extends TableCell<RepositoryInformation, RepositoryInformation> {
 
     @FXML
@@ -72,6 +75,7 @@ public class RepositoryInformationNameCell extends TableCell<RepositoryInformati
 
     private void setNewChange(RepositoryInformation item) {
         lblNewChange.setVisible(item.hasNewChanges());
+        lblNewChange.setManaged(item.hasNewChanges());
     }
 
     private void setIcon(RepositoryInformation item) {

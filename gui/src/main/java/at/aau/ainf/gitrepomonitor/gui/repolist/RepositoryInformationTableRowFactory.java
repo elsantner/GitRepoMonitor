@@ -11,7 +11,7 @@ import org.eclipse.jgit.lib.ProgressMonitor;
 import java.io.IOException;
 
 /**
- * Custom list cell factory for repositories
+ * Custom table row factory for repositories
  */
 public class RepositoryInformationTableRowFactory
         implements Callback<TableView<RepositoryInformation>, TableRow<RepositoryInformation>> {

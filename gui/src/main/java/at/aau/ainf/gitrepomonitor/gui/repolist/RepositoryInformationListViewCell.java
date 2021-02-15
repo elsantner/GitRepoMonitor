@@ -81,6 +81,7 @@ public class RepositoryInformationListViewCell extends ListCell<RepositoryInform
 
     private void setNewChange(RepositoryInformation item) {
         lblNewChange.setVisible(item.hasNewChanges());
+        lblNewChange.setManaged(item.hasNewChanges());
     }
 
     private void setIcon(RepositoryInformation item) {
