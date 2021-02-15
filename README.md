@@ -7,7 +7,7 @@ You also have the option to scan your PC for existing Git repositories.
 Git Repo Monitor allows for storing HTTPS and SSL login credentials for remote Git providers (e.g. GitHub, GitLab, ...).
 Stored credentials are encrypted using a master password and can be stored on an external storage device (e.g. USB stick) for maximum security.
 
-![git_repo_monitor](https://user-images.githubusercontent.com/61832987/106963695-426e6b80-6741-11eb-96df-19c775241c20.PNG)
+![git_repo_monitor](https://user-images.githubusercontent.com/61832987/107981722-f209d000-6fc2-11eb-81cf-ddd198b1ee11.PNG)
 
 ## Download
 For download as an executable JAR please see the [Releases page](https://github.com/elsantner/GitRepoMonitor/releases).
