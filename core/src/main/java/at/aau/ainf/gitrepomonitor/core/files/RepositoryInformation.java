@@ -1,5 +1,8 @@
 package at.aau.ainf.gitrepomonitor.core.files;
 
+import org.eclipse.jgit.lib.PersonIdent;
+import org.eclipse.jgit.revwalk.RevCommit;
+
 import java.util.Date;
 import java.util.Objects;
 import java.util.UUID;
@@ -14,7 +17,6 @@ public class RepositoryInformation implements Comparable<RepositoryInformation>,
     private String name;
     private UUID authID;
     private MergeStrategy mergeStrategy = MergeStrategy.RECURSIVE;
-    private int customOrderIndex = -1;
 
     public enum AuthMethod {
         HTTPS,
@@ -67,12 +69,15 @@ public class RepositoryInformation implements Comparable<RepositoryInformation>,
     private boolean persistentValueChanged = false;
     private int newCommitCount;
     private AuthMethod authMethod;
+    private RepositoryInformation reflect;
+    private RevCommit lastCommit;
 
     public RepositoryInformation() {
         // generate random UUID upon creation
         // this value is overwritten during deserialization
         this.id = UUID.randomUUID();
         this.status = RepoStatus.UNCHECKED;
+        this.reflect = this;
     }
 
     public RepositoryInformation(String path) {
@@ -81,6 +86,7 @@ public class RepositoryInformation implements Comparable<RepositoryInformation>,
 
     public RepositoryInformation(UUID id) {
         this.id = id;
+        this.reflect = this;
     }
 
     public RepositoryInformation(String path, String name) {
@@ -89,12 +95,11 @@ public class RepositoryInformation implements Comparable<RepositoryInformation>,
         this.name = name;
     }
 
-    public RepositoryInformation(UUID id, String path, String name, MergeStrategy mergeStrat, UUID authID, int orderIdx) {
+    public RepositoryInformation(UUID id, String path, String name, MergeStrategy mergeStrat, UUID authID) {
         this(path, name);
         this.id = id;
         this.mergeStrategy = mergeStrat;
         this.authID = authID;
-        this.customOrderIndex = orderIdx;
     }
 
     public UUID getID() {
@@ -172,13 +177,12 @@ public class RepositoryInformation implements Comparable<RepositoryInformation>,
         this.persistentValueChanged = true;
     }
 
-    public int getCustomOrderIndex() {
-        return customOrderIndex;
+    public RepositoryInformation getReflect() {
+        return reflect;
     }
 
-    public void setCustomOrderIndex(int customOrderIndex) {
-        this.customOrderIndex = customOrderIndex;
-        this.persistentValueChanged = true;
+    public void setReflect(RepositoryInformation reflect) {
+        this.reflect = reflect;
     }
 
     public UUID getAuthID() {
@@ -192,6 +196,22 @@ public class RepositoryInformation implements Comparable<RepositoryInformation>,
 
     public boolean isAuthenticated() {
         return authID != null;
+    }
+
+    public RevCommit getLastCommit() {
+        return lastCommit;
+    }
+
+    public Date getLastCommitDate() {
+        return lastCommit != null ? new Date((long)lastCommit.getCommitTime() * 1000) : null;
+    }
+
+    public PersonIdent getLastCommitAuthor() {
+        return lastCommit != null ? lastCommit.getAuthorIdent() : null;
+    }
+
+    public void setLastCommit(RevCommit lastCommit) {
+        this.lastCommit = lastCommit;
     }
 
     @Override
@@ -221,9 +241,7 @@ public class RepositoryInformation implements Comparable<RepositoryInformation>,
     public int compareTo(RepositoryInformation o) {
         if (this.equals(o)) return 0;
         int retVal = 0;
-        if (this.getCustomOrderIndex() != -1 && o.getCustomOrderIndex() != -1) {
-            retVal = this.getCustomOrderIndex() - o.getCustomOrderIndex();
-        } else if (this.getName() != null && !this.getName().isBlank() && o.getName() != null && !o.getName().isEmpty()) {
+        if (this.getName() != null && !this.getName().isBlank() && o.getName() != null && !o.getName().isEmpty()) {
             retVal = this.getName().compareTo(o.getName());
         } else if (this.getName() != null || o.getName() != null) {
             retVal = ( this.getName() == null || this.getName().isBlank() ) ? 1 : -1;
@@ -237,7 +255,9 @@ public class RepositoryInformation implements Comparable<RepositoryInformation>,
     @Override
     public Object clone() {
         try {
-            return super.clone();
+            RepositoryInformation clone = (RepositoryInformation) super.clone();
+            clone.setReflect(clone);
+            return clone;
         } catch (CloneNotSupportedException e) {
             return null;
         }
