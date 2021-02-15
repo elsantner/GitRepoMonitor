@@ -8,6 +8,7 @@ import at.aau.ainf.gitrepomonitor.gui.editrepo.ControllerEditRepo;
 import javafx.event.EventHandler;
 import javafx.scene.control.Alert;
 import javafx.scene.control.ListView;
+import javafx.scene.control.TableView;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
 
@@ -22,21 +23,42 @@ import java.util.List;
 public class RepositoryInformationKeyPressHandler implements EventHandler<KeyEvent>, AlertDisplay {
 
     private ListView<RepositoryInformation> listView;
+    private TableView<RepositoryInformation> tableView;
 
     public RepositoryInformationKeyPressHandler(ListView<RepositoryInformation> listView) {
         this.listView = listView;
+    }
+
+    public RepositoryInformationKeyPressHandler(TableView<RepositoryInformation> tableView) {
+        this.tableView = tableView;
+    }
+
+    private List<RepositoryInformation> getSelectedItems() {
+        if (listView != null) {
+            return listView.getSelectionModel().getSelectedItems();
+        } else {
+            return tableView.getSelectionModel().getSelectedItems();
+        }
+    }
+
+    private RepositoryInformation getSelectedItem() {
+        if (listView != null) {
+            return listView.getSelectionModel().getSelectedItem();
+        } else {
+            return tableView.getSelectionModel().getSelectedItem();
+        }
     }
 
     @Override
     public void handle(KeyEvent event) {
         try {
             if (event.getCode() == KeyCode.ENTER) {
-                RepositoryInformation repo = listView.getSelectionModel().getSelectedItem();
+                RepositoryInformation repo = getSelectedItem();
                 if (repo != null) {
                     ControllerEditRepo.openWindow(repo);
                 }
             } else if (event.getCode() == KeyCode.DELETE) {
-                List<RepositoryInformation> selItems = new ArrayList<>(listView.getSelectionModel().getSelectedItems());
+                List<RepositoryInformation> selItems = new ArrayList<>(getSelectedItems());
                 if (!selItems.isEmpty()) {
                     if (showConfirmationDialog(Alert.AlertType.WARNING,
                             ResourceStore.getString("repo_list.confirm_delete_multiple.title"),
