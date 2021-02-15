@@ -15,14 +15,14 @@ import java.io.IOException;
 /**
  * Custom list cell factory for repositories
  */
-public class RepositoryInformationCellFactory
+public class RepositoryInformationListCellFactory
         implements Callback<ListView<RepositoryInformation>, ListCell<RepositoryInformation>> {
 
     private StatusDisplay statusDisplay;
     private ProgressMonitor progressMonitor;
     private boolean isDraggable;
 
-    public RepositoryInformationCellFactory() {
+    public RepositoryInformationListCellFactory() {
         super();
     }
 
@@ -32,7 +32,7 @@ public class RepositoryInformationCellFactory
      * @param progressMonitor used for Git operations
      * @param isDraggable If true, allow drag and drop to move list items.
      */
-    public RepositoryInformationCellFactory(StatusDisplay statusDisplay, ProgressMonitor progressMonitor, boolean isDraggable) {
+    public RepositoryInformationListCellFactory(StatusDisplay statusDisplay, ProgressMonitor progressMonitor, boolean isDraggable) {
         this();
         this.statusDisplay = statusDisplay;
         this.progressMonitor = progressMonitor;

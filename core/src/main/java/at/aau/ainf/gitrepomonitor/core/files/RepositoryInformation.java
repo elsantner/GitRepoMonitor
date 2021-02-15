@@ -67,12 +67,14 @@ public class RepositoryInformation implements Comparable<RepositoryInformation>,
     private boolean persistentValueChanged = false;
     private int newCommitCount;
     private AuthMethod authMethod;
+    private RepositoryInformation reflect;
 
     public RepositoryInformation() {
         // generate random UUID upon creation
         // this value is overwritten during deserialization
         this.id = UUID.randomUUID();
         this.status = RepoStatus.UNCHECKED;
+        this.reflect = this;
     }
 
     public RepositoryInformation(String path) {
@@ -81,6 +83,7 @@ public class RepositoryInformation implements Comparable<RepositoryInformation>,
 
     public RepositoryInformation(UUID id) {
         this.id = id;
+        this.reflect = this;
     }
 
     public RepositoryInformation(String path, String name) {
@@ -179,6 +182,14 @@ public class RepositoryInformation implements Comparable<RepositoryInformation>,
     public void setCustomOrderIndex(int customOrderIndex) {
         this.customOrderIndex = customOrderIndex;
         this.persistentValueChanged = true;
+    }
+
+    public RepositoryInformation getReflect() {
+        return reflect;
+    }
+
+    public void setReflect(RepositoryInformation reflect) {
+        this.reflect = reflect;
     }
 
     public UUID getAuthID() {
