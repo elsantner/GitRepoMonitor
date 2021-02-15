@@ -20,7 +20,6 @@ public class RepositoryInformationListCellFactory
 
     private StatusDisplay statusDisplay;
     private ProgressMonitor progressMonitor;
-    private boolean isDraggable;
 
     public RepositoryInformationListCellFactory() {
         super();
@@ -30,18 +29,16 @@ public class RepositoryInformationListCellFactory
      * Create cell factory for repository information
      * @param statusDisplay displayStatus() is called when a status update occurs due to context menu operation
      * @param progressMonitor used for Git operations
-     * @param isDraggable If true, allow drag and drop to move list items.
      */
-    public RepositoryInformationListCellFactory(StatusDisplay statusDisplay, ProgressMonitor progressMonitor, boolean isDraggable) {
+    public RepositoryInformationListCellFactory(StatusDisplay statusDisplay, ProgressMonitor progressMonitor) {
         this();
         this.statusDisplay = statusDisplay;
         this.progressMonitor = progressMonitor;
-        this.isDraggable = isDraggable;
     }
 
     @Override
     public ListCell<RepositoryInformation> call(ListView<RepositoryInformation> listView) {
-        ListCell<RepositoryInformation> cell = new RepositoryInformationListViewCell(isDraggable);
+        ListCell<RepositoryInformation> cell = new RepositoryInformationListViewCell();
 
         // ctx menu only on non-empty list entries
         cell.emptyProperty().addListener((obs, wasEmpty, isNowEmpty) -> {

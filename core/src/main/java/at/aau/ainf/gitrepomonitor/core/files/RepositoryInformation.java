@@ -14,7 +14,6 @@ public class RepositoryInformation implements Comparable<RepositoryInformation>,
     private String name;
     private UUID authID;
     private MergeStrategy mergeStrategy = MergeStrategy.RECURSIVE;
-    private int customOrderIndex = -1;
 
     public enum AuthMethod {
         HTTPS,
@@ -92,12 +91,11 @@ public class RepositoryInformation implements Comparable<RepositoryInformation>,
         this.name = name;
     }
 
-    public RepositoryInformation(UUID id, String path, String name, MergeStrategy mergeStrat, UUID authID, int orderIdx) {
+    public RepositoryInformation(UUID id, String path, String name, MergeStrategy mergeStrat, UUID authID) {
         this(path, name);
         this.id = id;
         this.mergeStrategy = mergeStrat;
         this.authID = authID;
-        this.customOrderIndex = orderIdx;
     }
 
     public UUID getID() {
@@ -175,15 +173,6 @@ public class RepositoryInformation implements Comparable<RepositoryInformation>,
         this.persistentValueChanged = true;
     }
 
-    public int getCustomOrderIndex() {
-        return customOrderIndex;
-    }
-
-    public void setCustomOrderIndex(int customOrderIndex) {
-        this.customOrderIndex = customOrderIndex;
-        this.persistentValueChanged = true;
-    }
-
     public RepositoryInformation getReflect() {
         return reflect;
     }
@@ -232,9 +221,7 @@ public class RepositoryInformation implements Comparable<RepositoryInformation>,
     public int compareTo(RepositoryInformation o) {
         if (this.equals(o)) return 0;
         int retVal = 0;
-        if (this.getCustomOrderIndex() != -1 && o.getCustomOrderIndex() != -1) {
-            retVal = this.getCustomOrderIndex() - o.getCustomOrderIndex();
-        } else if (this.getName() != null && !this.getName().isBlank() && o.getName() != null && !o.getName().isEmpty()) {
+        if (this.getName() != null && !this.getName().isBlank() && o.getName() != null && !o.getName().isEmpty()) {
             retVal = this.getName().compareTo(o.getName());
         } else if (this.getName() != null || o.getName() != null) {
             retVal = ( this.getName() == null || this.getName().isBlank() ) ? 1 : -1;
