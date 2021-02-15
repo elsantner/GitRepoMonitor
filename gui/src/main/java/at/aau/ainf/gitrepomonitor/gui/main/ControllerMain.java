@@ -206,6 +206,13 @@ public class ControllerMain extends StatusBarController implements Initializable
         tblWatchlist.getSelectionModel().setSelectionMode(SelectionMode.MULTIPLE);
         tblWatchlist.setOnKeyPressed(new RepositoryInformationKeyPressHandler(tblWatchlist));
 
+        tblWatchlist.setColumnResizePolicy( TableView.CONSTRAINED_RESIZE_POLICY );
+        // set column sizes in percentage
+        // MAX_VALUE causes proportional downsizing, therefore corresponding to the set percentages
+        wlColName.setMaxWidth( 1f * Integer.MAX_VALUE * 50 );
+        wlColLastChange.setMaxWidth( 1f * Integer.MAX_VALUE * 25 );
+        wlColPerson.setMaxWidth( 1f * Integer.MAX_VALUE * 25 );
+
         wlColName.setCellValueFactory(new PropertyValueFactory<>("reflect"));
         wlColName.setCellFactory(param -> new RepositoryInformationNameCell());
 

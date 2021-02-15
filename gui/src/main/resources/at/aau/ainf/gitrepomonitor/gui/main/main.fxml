@@ -104,15 +104,12 @@
                             </Button>
                         </HBox>
                     </HBox>
-               <TableView fx:id="tblWatchlist">
+               <TableView fx:id="tblWatchlist" VBox.vgrow="ALWAYS">
                  <columns>
                    <TableColumn fx:id="wlColName" prefWidth="160.0" text="%watchlist.name" />
                    <TableColumn fx:id="wlColLastChange" text="%watchlist.last_change" />
                      <TableColumn fx:id="wlColPerson" text="%watchlist.author" />
                  </columns>
-                  <columnResizePolicy>
-                     <TableView fx:constant="CONSTRAINED_RESIZE_POLICY" />
-                  </columnResizePolicy>
                </TableView>
                 </VBox>
             </HBox>
