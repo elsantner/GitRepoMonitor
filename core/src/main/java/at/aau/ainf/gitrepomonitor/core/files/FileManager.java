@@ -5,6 +5,7 @@ import at.aau.ainf.gitrepomonitor.core.files.authentication.HttpsCredentials;
 import at.aau.ainf.gitrepomonitor.core.files.authentication.SecureStorage;
 import at.aau.ainf.gitrepomonitor.core.files.authentication.SslCredentials;
 import at.aau.ainf.gitrepomonitor.core.git.GitManager;
+import org.eclipse.jgit.api.errors.GitAPIException;
 
 import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
@@ -73,6 +74,7 @@ public class FileManager implements FileMonitor.Listener {
         setupFileMonitor();
         loadRepos();
         checkRepoPathValidity();
+        loadLastCommits();
     }
 
     public void addWatchlistListener(PropertyChangeListener l) { listenersWatchlist.add(l); }
@@ -218,6 +220,19 @@ public class FileManager implements FileMonitor.Listener {
         }
     }
 
+    private void loadLastCommits() {
+        GitManager gitManager = GitManager.getInstance();
+        for (RepositoryInformation repoInfo : Stream.concat(watchlist.values().stream(),
+                foundRepos.values().stream()).collect(Collectors.toList())) {
+
+            try {
+                repoInfo.setLastCommit(gitManager.getLastCommit(repoInfo));
+            } catch (Exception e) {
+                repoInfo.setLastCommit(null);
+            }
+        }
+    }
+
     public RepositoryInformation getRepo(UUID id) {
         RepositoryInformation repo = watchlist.get(id);
         if (repo == null) {
@@ -356,8 +371,7 @@ public class FileManager implements FileMonitor.Listener {
                                     results.getString("path"),
                                     results.getString("name"),
                                     RepositoryInformation.MergeStrategy.valueOf(results.getString("merge_strat")),
-                                    authID != null ? UUID.fromString(authID) : null,
-                                    results.getInt("order_idx")));
+                                    authID != null ? UUID.fromString(authID) : null));
                 }
             }
             this.watchlist = newWatchlist;
@@ -392,7 +406,6 @@ public class FileManager implements FileMonitor.Listener {
                 " name           TEXT, " +
                 " merge_strat    CHAR(50), " +
                 " auth_id        TEXT, " +
-                " order_idx      INT, " +
                 " FOREIGN KEY (auth_id) REFERENCES auth (id) )";
         stmt.executeUpdate(sql);
         stmt.close();
@@ -476,14 +489,13 @@ public class FileManager implements FileMonitor.Listener {
     private void addToDB(RepositoryInformation repo) {
         try {
             PreparedStatement stmt = conn.prepareStatement(
-                    "INSERT INTO repo (id, path, name, merge_strat, order_idx, list, auth_id) VALUES (?,?,?,?,?,?,?)");
+                    "INSERT INTO repo (id, path, name, merge_strat, list, auth_id) VALUES (?,?,?,?,?,?)");
             stmt.setString(1, repo.getID().toString());
             stmt.setString(2, repo.getPath());
             stmt.setString(3, repo.getName());
             stmt.setString(4, repo.getMergeStrategy().name());
-            stmt.setInt(5, repo.getCustomOrderIndex());
-            stmt.setString(6, getListName(repo).name());
-            stmt.setString(7, Utils.toStringOrNull(repo.getAuthID()));
+            stmt.setString(5, getListName(repo).name());
+            stmt.setString(6, Utils.toStringOrNull(repo.getAuthID()));
 
             stmt.executeUpdate();
             Logger.getAnonymousLogger().info("ADDED to DB: " + repo.getPath());
@@ -496,14 +508,13 @@ public class FileManager implements FileMonitor.Listener {
     private void updateInDB(RepositoryInformation repo) {
         try {
             PreparedStatement stmt = conn.prepareStatement(
-                    "UPDATE repo SET path=?, name=?, merge_strat=?, order_idx=?, list=?, auth_id=? WHERE id=?");
+                    "UPDATE repo SET path=?, name=?, merge_strat=?, list=?, auth_id=? WHERE id=?");
             stmt.setString(1, repo.getPath());
             stmt.setString(2, repo.getName());
             stmt.setString(3, repo.getMergeStrategy().name());
-            stmt.setInt(4, repo.getCustomOrderIndex());
-            stmt.setString(5, getListName(repo).name());
-            stmt.setString(6, Utils.toStringOrNull(repo.getAuthID()));
-            stmt.setString(7, repo.getID().toString());
+            stmt.setString(4, getListName(repo).name());
+            stmt.setString(5, Utils.toStringOrNull(repo.getAuthID()));
+            stmt.setString(6, repo.getID().toString());
 
             stmt.executeUpdate();
             Logger.getAnonymousLogger().info("UPDATED in DB: " + repo.getPath());

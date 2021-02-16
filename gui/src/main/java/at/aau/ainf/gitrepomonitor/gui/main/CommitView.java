@@ -97,7 +97,7 @@ public class CommitView extends Region {
      * @param author Person to get color for
      * @return Deterministic color
      */
-    private Color getUserColor(PersonIdent author) {
+    public static Color getUserColor(PersonIdent author) {
         int hash = author.getEmailAddress().hashCode();
         int r = hash & 0x0000FF;
         int g = (hash & 0x00FF00) >> 8;
