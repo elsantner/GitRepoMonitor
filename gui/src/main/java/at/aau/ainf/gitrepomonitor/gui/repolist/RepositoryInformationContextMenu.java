@@ -29,7 +29,7 @@ import java.io.IOException;
 public class RepositoryInformationContextMenu extends ContextMenu implements AlertDisplay, MasterPasswordQuery {
 
     private final GitManager gitManager;
-    private final RepositoryInformation item;
+    private final IndexedCell<RepositoryInformation> cell;
     private final StatusDisplay statusDisplay;
     private final ProgressMonitor progressMonitor;
     private final SecureStorage secureStorage;
@@ -43,7 +43,7 @@ public class RepositoryInformationContextMenu extends ContextMenu implements Ale
     public RepositoryInformationContextMenu(IndexedCell<RepositoryInformation> cell, StatusDisplay statusDisplay, ProgressMonitor progressMonitor) {
         this.secureStorage = SecureStorage.getImplementation();
         this.gitManager = GitManager.getInstance();
-        this.item = cell.getItem();
+        this.cell = cell;
         this.statusDisplay = statusDisplay;
         this.progressMonitor = progressMonitor;
         setupMenuItems();
@@ -59,7 +59,7 @@ public class RepositoryInformationContextMenu extends ContextMenu implements Ale
         checkStatusItem.setGraphic(getCtxMenuIcon("icon_update_status.png"));
         checkStatusItem.setOnAction(event -> {
             String masterPW = null;
-            if (item.isAuthenticated() && !secureStorage.isMasterPasswordCached()) {
+            if (cell.getItem().isAuthenticated() && !secureStorage.isMasterPasswordCached()) {
                 masterPW = showMasterPasswordInputDialog(false);
                 // abort if input dialog was cancelled
                 if (masterPW == null) {
@@ -68,7 +68,7 @@ public class RepositoryInformationContextMenu extends ContextMenu implements Ale
             }
 
             setStatus(ResourceStore.getString("status.update_repo_status"));
-            gitManager.updateRepoStatusAsync(item, Utils.toCharOrNull(masterPW), (success, reposChecked, reposFailed, ex) -> {
+            gitManager.updateRepoStatusAsync(cell.getItem(), Utils.toCharOrNull(masterPW), (success, reposChecked, reposFailed, ex) -> {
                 if (!success) {
                     setStatus(ResourceStore.getString("status.wrong_master_password"));
                     showErrorWrongMasterPW();
@@ -83,14 +83,14 @@ public class RepositoryInformationContextMenu extends ContextMenu implements Ale
         pullItem.setGraphic(getCtxMenuIcon("icon_pull.png"));
         pullItem.setOnAction(event -> {
             String masterPW = null;
-            if (item.isAuthenticated() && !secureStorage.isMasterPasswordCached()) {
+            if (cell.getItem().isAuthenticated() && !secureStorage.isMasterPasswordCached()) {
                 masterPW = showMasterPasswordInputDialog(false);
                 // abort if input dialog was cancelled
                 if (masterPW == null) {
                     return;
                 }
             }
-            gitManager.pullRepoAsync(item, Utils.toCharOrNull(masterPW), (results, pullsSuccess,
+            gitManager.pullRepoAsync(cell.getItem(), Utils.toCharOrNull(masterPW), (results, pullsSuccess,
                                                                                     pullsFailed, wrongMP) -> {
                 if (wrongMP) {
                     setStatus(ResourceStore.getString("status.wrong_master_password"));
@@ -114,7 +114,7 @@ public class RepositoryInformationContextMenu extends ContextMenu implements Ale
         editItem.setGraphic(getCtxMenuIcon("icon_edit.png"));
         editItem.setOnAction(event -> {
             try {
-                ControllerEditRepo.openWindow(item);
+                ControllerEditRepo.openWindow(cell.getItem());
             } catch (IOException e) {
                 e.printStackTrace();
             }
@@ -129,7 +129,7 @@ public class RepositoryInformationContextMenu extends ContextMenu implements Ale
                     ResourceStore.getString("repo_list.confirm_delete.header"),
                     ResourceStore.getString("repo_list.confirm_delete.content"))) {
 
-                FileManager.getInstance().deleteRepo(item);
+                FileManager.getInstance().deleteRepo(cell.getItem());
             }
         });
 
@@ -138,14 +138,14 @@ public class RepositoryInformationContextMenu extends ContextMenu implements Ale
         showInExplorerItem.setGraphic(getCtxMenuIcon("icon_explorer.png"));
         showInExplorerItem.setOnAction(event -> {
             try {
-                Desktop.getDesktop().open(new File(item.getPath()));
+                Desktop.getDesktop().open(new File(cell.getItem().getPath()));
             } catch (Exception e) {
                 showError(ResourceStore.getString("errormsg.open_in_explorer_failed"));
             }
         });
 
         // disable pull if path is invalid
-        if (item.getStatus() == RepositoryInformation.RepoStatus.PATH_INVALID) {
+        if (cell.getItem().getStatus() == RepositoryInformation.RepoStatus.PATH_INVALID) {
             pullItem.setDisable(true);
         }
 
