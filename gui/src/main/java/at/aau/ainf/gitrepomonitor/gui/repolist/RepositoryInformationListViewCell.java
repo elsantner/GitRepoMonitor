@@ -109,6 +109,10 @@ public class RepositoryInformationListViewCell extends ListCell<RepositoryInform
                 imgPath = "icon_missing_remote.png";
                 tooltipKey = "status.repo.no_remote";
                 break;
+            case NO_REMOTE_BRANCH:
+                imgPath = "icon_missing_remote_branch.png";
+                tooltipKey = "status.repo.no_remote_branch";
+                break;
             case INACCESSIBLE_REMOTE:
                 imgPath = "icon_lock.png";
                 tooltipKey = "status.repo.no_auth_info";
