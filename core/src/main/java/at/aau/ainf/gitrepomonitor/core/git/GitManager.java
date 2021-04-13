@@ -493,6 +493,8 @@ public class GitManager {
             try {
                 // detect wrong master password
                 if (repo.getAuthID() != null && !authenticator.hasInformation()) {
+                    // explicitly update status since pull is never executed in this case
+                    fileManager.updateRepoStatus(repo.getID(), WRONG_MASTER_PW);
                     throw new AuthenticationException("wrong master password");
                 }
 
