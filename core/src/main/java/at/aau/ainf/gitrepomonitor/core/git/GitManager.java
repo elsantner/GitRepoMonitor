@@ -445,6 +445,8 @@ public class GitManager {
             notifyPullListener(repo, pullResult.getMergeResult().getMergeStatus());
             return pullResult.getMergeResult().getMergeStatus();
 
+        } catch (RefNotAdvertisedException ex) {
+            throw new IllegalStateException("local branch has no remote branch associated");
         } catch (WrongRepositoryStateException | CheckoutConflictException ex) {
             throw ex;
         } catch (InvalidConfigurationException ex) {
@@ -512,8 +514,8 @@ public class GitManager {
         // wrong master password
         if (ex instanceof AuthenticationException) {
             cb.failed(repo, MergeResult.MergeStatus.FAILED, ex, true);
-        // wrong credentials or no remote
-        } else if (ex instanceof CredentialException || ex instanceof  NoRemoteRepositoryException) {
+        // wrong credentials or no remote or no remote branch
+        } else if (ex instanceof CredentialException || ex instanceof  NoRemoteRepositoryException || ex instanceof IllegalStateException) {
             cb.failed(repo, MergeResult.MergeStatus.FAILED, ex,false);
         // checkout failed
         } else if (ex instanceof CheckoutConflictException) {
@@ -632,6 +634,9 @@ public class GitManager {
                 status = UP_TO_DATE;
             }
         }
+        catch (IllegalStateException ex) {
+            status = NO_REMOTE_BRANCH;
+        }
         catch (NoRemoteRepositoryException | InvalidRemoteException ex) {
             status = NO_REMOTE;
         }
@@ -670,11 +675,15 @@ public class GitManager {
      * @return True, iff remote changes are available.
      * @throws IOException
      * @throws GitAPIException
+     * @throws IllegalStateException If the current branch is local-only, i.e. has no remote branch associated
      */
-    private boolean remoteChangesAvailable(Git git) throws IOException, GitAPIException {
+    private boolean remoteChangesAvailable(Git git) throws IOException, GitAPIException, IllegalStateException {
         Repository repository = git.getRepository();
         String branch = repository.getBranch();
         ObjectId fetchHead = repository.resolve("refs/remotes/origin/"+branch);
+        if (fetchHead == null) {
+            throw new IllegalStateException("current branch has no remote branch associated");
+        }
         ObjectId head = repository.resolve("refs/heads/"+branch);
         // check if there are any commits in remote tree which are not in local tree
         return !getExclusiveCommits(git.log().add(head).call(), git.log().add(fetchHead).call()).isEmpty();
