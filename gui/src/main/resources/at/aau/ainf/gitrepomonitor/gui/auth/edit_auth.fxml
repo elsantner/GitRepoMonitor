@@ -51,7 +51,16 @@
          </HBox>
          <HBox layoutX="10.0" layoutY="10.0" AnchorPane.leftAnchor="10.0" AnchorPane.rightAnchor="10.0" AnchorPane.topAnchor="30.0">
             <HBox maxWidth="140.0" minWidth="140.0" prefWidth="140.0" HBox.hgrow="NEVER">
-               <Label text="%lbl.password" HBox.hgrow="ALWAYS" />
+               <Label text="%lbl.password" HBox.hgrow="ALWAYS">
+                  <graphic>
+                     <ImageView fitHeight="17.0" fitWidth="19.0" pickOnBounds="true" preserveRatio="true">
+                        <Image url="@../icons/icon_info.png" />
+                     </ImageView>
+                  </graphic>
+                  <tooltip>
+                     <Tooltip text="%lbl.password.tooltip" />
+                  </tooltip>
+               </Label>
             </HBox>
             <HBox alignment="TOP_RIGHT" spacing="5.0" HBox.hgrow="ALWAYS">
                <StackPane HBox.hgrow="ALWAYS">
