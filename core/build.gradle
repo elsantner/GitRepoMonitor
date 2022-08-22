@@ -16,9 +16,9 @@ dependencies {
     // https://mvnrepository.com/artifact/com.fasterxml.jackson.core/jackson-databind
     compile group: 'com.fasterxml.jackson.core', name: 'jackson-databind', version: '2.11.3'
     // https://mvnrepository.com/artifact/org.eclipse.jgit/org.eclipse.jgit
-    compile group: 'org.eclipse.jgit', name: 'org.eclipse.jgit', version: '5.9.0.202009080501-r'
-    // https://mvnrepository.com/artifact/org.eclipse.jgit/org.eclipse.jgit.ssh.jsch
-    compile group: 'org.eclipse.jgit', name: 'org.eclipse.jgit.ssh.jsch', version: '5.9.0.202009080501-r'
+    compile 'org.eclipse.jgit:org.eclipse.jgit:6.2.0.202206071550-r'
+    // https://mvnrepository.com/artifact/org.eclipse.jgit/org.eclipse.jgit.ssh.apache
+    compile 'org.eclipse.jgit:org.eclipse.jgit.ssh.apache:6.2.0.202206071550-r'
     // https://mvnrepository.com/artifact/org.xerial/sqlite-jdbc
     compile group: 'org.xerial', name: 'sqlite-jdbc', version: '3.34.0'
 }
