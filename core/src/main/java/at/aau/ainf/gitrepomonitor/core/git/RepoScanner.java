@@ -1,6 +1,6 @@
-package at.aau.ainf.gitrepomonitor.core.files;
+package at.aau.ainf.gitrepomonitor.core.git;
 
-import at.aau.ainf.gitrepomonitor.core.git.GitManager;
+import at.aau.ainf.gitrepomonitor.core.files.RepoScanCallback;
 
 import java.io.File;
 import java.util.ArrayList;
