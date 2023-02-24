@@ -3,7 +3,6 @@ package at.aau.ainf.gitrepomonitor.gui.repolist;
 import at.aau.ainf.gitrepomonitor.core.files.FileManager;
 import at.aau.ainf.gitrepomonitor.core.files.RepositoryInformation;
 import at.aau.ainf.gitrepomonitor.gui.ResourceStore;
-import javafx.collections.ObservableList;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.control.Label;
@@ -11,20 +10,14 @@ import javafx.scene.control.ListCell;
 import javafx.scene.control.OverrunStyle;
 import javafx.scene.control.Tooltip;
 import javafx.scene.image.ImageView;
-import javafx.scene.input.ClipboardContent;
-import javafx.scene.input.DragEvent;
-import javafx.scene.input.Dragboard;
-import javafx.scene.input.TransferMode;
 import javafx.scene.layout.HBox;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
 
 /**
  * Custom list cell for repositories
  */
-public class RepositoryInformationListViewCell extends ListCell<RepositoryInformation> {
+public class RepoListViewCell extends ListCell<RepositoryInformation> {
     @FXML
     private Label lblName;
     @FXML
@@ -42,7 +35,7 @@ public class RepositoryInformationListViewCell extends ListCell<RepositoryInform
     /**
      * Create list cell.
      */
-    public RepositoryInformationListViewCell() {
+    public RepoListViewCell() {
         this.fileManager = FileManager.getInstance();
     }
 

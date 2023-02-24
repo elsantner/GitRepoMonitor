@@ -5,8 +5,8 @@ import at.aau.ainf.gitrepomonitor.core.files.RepositoryInformation;
 import at.aau.ainf.gitrepomonitor.core.files.Utils;
 import at.aau.ainf.gitrepomonitor.gui.ResourceStore;
 import at.aau.ainf.gitrepomonitor.gui.StatusBarController;
-import at.aau.ainf.gitrepomonitor.gui.repolist.RepositoryInformationListCellFactory;
-import at.aau.ainf.gitrepomonitor.gui.repolist.RepositoryInformationKeyPressHandler;
+import at.aau.ainf.gitrepomonitor.gui.repolist.RepoListCellFactory;
+import at.aau.ainf.gitrepomonitor.gui.repolist.RepoKeyPressHandler;
 import javafx.application.Platform;
 import javafx.beans.property.ReadOnlyBooleanProperty;
 import javafx.beans.property.SimpleBooleanProperty;
@@ -107,14 +107,14 @@ public class ControllerScan extends StatusBarController implements Initializable
         btnAddToWatchlist.disableProperty().bind(listFoundRepos.getSelectionModel().selectedItemProperty().isNull());
         btnRemoveFromWatchlist.disableProperty().bind(listWatchlist.getSelectionModel().selectedItemProperty().isNull());
 
-        listFoundRepos.setCellFactory(new RepositoryInformationListCellFactory(this, progessMonitor));
+        listFoundRepos.setCellFactory(new RepoListCellFactory(this, progessMonitor));
         listFoundRepos.setPlaceholder(new Label(ResourceStore.getString("repo_list.no_entries")));
         listFoundRepos.getSelectionModel().setSelectionMode(SelectionMode.MULTIPLE);
-        listFoundRepos.setOnKeyPressed(new RepositoryInformationKeyPressHandler(listFoundRepos));
-        listWatchlist.setCellFactory(new RepositoryInformationListCellFactory(this, progessMonitor));
+        listFoundRepos.setOnKeyPressed(new RepoKeyPressHandler(listFoundRepos));
+        listWatchlist.setCellFactory(new RepoListCellFactory(this, progessMonitor));
         listWatchlist.setPlaceholder(new Label(ResourceStore.getString("repo_list.no_entries")));
         listWatchlist.getSelectionModel().setSelectionMode(SelectionMode.MULTIPLE);
-        listWatchlist.setOnKeyPressed(new RepositoryInformationKeyPressHandler(listWatchlist));
+        listWatchlist.setOnKeyPressed(new RepoKeyPressHandler(listWatchlist));
         setWatchlistDisplay(fileManager.getWatchlist());
         setFoundReposDisplay(fileManager.getFoundRepos());
 

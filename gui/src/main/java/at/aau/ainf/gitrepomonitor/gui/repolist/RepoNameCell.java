@@ -17,7 +17,7 @@ import java.io.IOException;
 /**
  * Custom cell used to display repo info in table.
  */
-public class RepositoryInformationNameCell extends TableCell<RepositoryInformation, RepositoryInformation> {
+public class RepoNameCell extends TableCell<RepositoryInformation, RepositoryInformation> {
 
     @FXML
     private Label lblName;
@@ -36,7 +36,7 @@ public class RepositoryInformationNameCell extends TableCell<RepositoryInformati
     /**
      * Create table cell.
      */
-    public RepositoryInformationNameCell() {
+    public RepoNameCell() {
         this.fileManager = FileManager.getInstance();
     }
 

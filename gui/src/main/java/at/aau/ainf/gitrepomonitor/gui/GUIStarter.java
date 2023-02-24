@@ -1,4 +1,4 @@
-package at.aau.ainf.gitrepomonitor;
+package at.aau.ainf.gitrepomonitor.gui;
 
 import at.aau.ainf.gitrepomonitor.core.authentication.SecureStorage;
 import at.aau.ainf.gitrepomonitor.gui.ResourceStore;

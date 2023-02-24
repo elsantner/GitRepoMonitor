@@ -5,9 +5,9 @@ import at.aau.ainf.gitrepomonitor.core.authentication.SecureStorage;
 import at.aau.ainf.gitrepomonitor.core.git.*;
 import at.aau.ainf.gitrepomonitor.gui.*;
 import at.aau.ainf.gitrepomonitor.gui.auth.ControllerAuthList;
-import at.aau.ainf.gitrepomonitor.gui.repolist.RepositoryInformationKeyPressHandler;
-import at.aau.ainf.gitrepomonitor.gui.repolist.RepositoryInformationNameCell;
-import at.aau.ainf.gitrepomonitor.gui.repolist.RepositoryInformationTableRowFactory;
+import at.aau.ainf.gitrepomonitor.gui.repolist.RepoKeyPressHandler;
+import at.aau.ainf.gitrepomonitor.gui.repolist.RepoNameCell;
+import at.aau.ainf.gitrepomonitor.gui.repolist.RepoTableRowFactory;
 import at.aau.ainf.gitrepomonitor.gui.reposcan.ControllerScan;
 import at.aau.ainf.gitrepomonitor.gui.settings.ControllerSettings;
 import com.sun.javafx.collections.ImmutableObservableList;
@@ -198,10 +198,10 @@ public class ControllerMain extends StatusBarController implements Initializable
     }
 
     private void setupTable() {
-        tblWatchlist.setRowFactory(new RepositoryInformationTableRowFactory(this, progessMonitor));
+        tblWatchlist.setRowFactory(new RepoTableRowFactory(this, progessMonitor));
         tblWatchlist.setPlaceholder(new Label(ResourceStore.getString("repo_list.no_entries")));
         tblWatchlist.getSelectionModel().setSelectionMode(SelectionMode.MULTIPLE);
-        tblWatchlist.setOnKeyPressed(new RepositoryInformationKeyPressHandler(tblWatchlist));
+        tblWatchlist.setOnKeyPressed(new RepoKeyPressHandler(tblWatchlist));
 
         tblWatchlist.setColumnResizePolicy( TableView.CONSTRAINED_RESIZE_POLICY );
         // set column sizes in percentage
@@ -211,7 +211,7 @@ public class ControllerMain extends StatusBarController implements Initializable
         wlColPerson.setMaxWidth( 1f * Integer.MAX_VALUE * 25 );
 
         wlColName.setCellValueFactory(new PropertyValueFactory<>("reflect"));
-        wlColName.setCellFactory(param -> new RepositoryInformationNameCell());
+        wlColName.setCellFactory(param -> new RepoNameCell());
 
         wlColLastChange.setCellValueFactory(new PropertyValueFactory<>("lastCommitDate"));
         wlColLastChange.setCellFactory(param -> new TableCell<>() {

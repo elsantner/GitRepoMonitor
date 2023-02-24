@@ -13,13 +13,13 @@ import java.io.IOException;
 /**
  * Custom table row factory for repositories
  */
-public class RepositoryInformationTableRowFactory
+public class RepoTableRowFactory
         implements Callback<TableView<RepositoryInformation>, TableRow<RepositoryInformation>> {
 
     private StatusDisplay statusDisplay;
     private ProgressMonitor progressMonitor;
 
-    public RepositoryInformationTableRowFactory() {
+    public RepoTableRowFactory() {
         super();
     }
 
@@ -28,7 +28,7 @@ public class RepositoryInformationTableRowFactory
      * @param statusDisplay displayStatus() is called when a status update occurs due to context menu operation
      * @param progressMonitor used for Git operations
      */
-    public RepositoryInformationTableRowFactory(StatusDisplay statusDisplay, ProgressMonitor progressMonitor) {
+    public RepoTableRowFactory(StatusDisplay statusDisplay, ProgressMonitor progressMonitor) {
         this();
         this.statusDisplay = statusDisplay;
         this.progressMonitor = progressMonitor;
@@ -48,7 +48,7 @@ public class RepositoryInformationTableRowFactory
      * @return setup ContextMenu
      */
     private ContextMenu getContextMenu(TableRow<RepositoryInformation> row) {
-        return new RepositoryInformationContextMenu(row, statusDisplay, progressMonitor);
+        return new RepoContextMenu(row, statusDisplay, progressMonitor);
     }
 
     @Override

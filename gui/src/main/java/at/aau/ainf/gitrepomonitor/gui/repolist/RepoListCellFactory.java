@@ -15,13 +15,13 @@ import java.io.IOException;
 /**
  * Custom list cell factory for repositories
  */
-public class RepositoryInformationListCellFactory
+public class RepoListCellFactory
         implements Callback<ListView<RepositoryInformation>, ListCell<RepositoryInformation>> {
 
     private StatusDisplay statusDisplay;
     private ProgressMonitor progressMonitor;
 
-    public RepositoryInformationListCellFactory() {
+    public RepoListCellFactory() {
         super();
     }
 
@@ -30,7 +30,7 @@ public class RepositoryInformationListCellFactory
      * @param statusDisplay displayStatus() is called when a status update occurs due to context menu operation
      * @param progressMonitor used for Git operations
      */
-    public RepositoryInformationListCellFactory(StatusDisplay statusDisplay, ProgressMonitor progressMonitor) {
+    public RepoListCellFactory(StatusDisplay statusDisplay, ProgressMonitor progressMonitor) {
         this();
         this.statusDisplay = statusDisplay;
         this.progressMonitor = progressMonitor;
@@ -38,7 +38,7 @@ public class RepositoryInformationListCellFactory
 
     @Override
     public ListCell<RepositoryInformation> call(ListView<RepositoryInformation> listView) {
-        ListCell<RepositoryInformation> cell = new RepositoryInformationListViewCell();
+        ListCell<RepositoryInformation> cell = new RepoListViewCell();
 
         // ctx menu only on non-empty list entries
         cell.emptyProperty().addListener((obs, wasEmpty, isNowEmpty) -> {
@@ -73,6 +73,6 @@ public class RepositoryInformationListCellFactory
      * @return setup ContextMenu
      */
     private ContextMenu getContextMenu(ListCell<RepositoryInformation> cell) {
-        return new RepositoryInformationContextMenu(cell, statusDisplay, progressMonitor);
+        return new RepoContextMenu(cell, statusDisplay, progressMonitor);
     }
 }

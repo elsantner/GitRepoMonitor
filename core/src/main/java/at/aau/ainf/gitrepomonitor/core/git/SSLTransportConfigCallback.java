@@ -5,15 +5,8 @@ import org.eclipse.jgit.api.TransportConfigCallback;
 import org.eclipse.jgit.transport.SshSessionFactory;
 import org.eclipse.jgit.transport.SshTransport;
 import org.eclipse.jgit.transport.Transport;
-import org.eclipse.jgit.transport.sshd.SshdSessionFactory;
-import org.eclipse.jgit.transport.sshd.SshdSessionFactoryBuilder;
-import org.eclipse.jgit.util.FS;
-import org.eclipse.jgit.diff.DiffEntry;
 
-import java.io.File;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Path;
-import java.util.Collections;
 
 /**
  * Implements functionality to configure JSch SSL connection used by JGit.

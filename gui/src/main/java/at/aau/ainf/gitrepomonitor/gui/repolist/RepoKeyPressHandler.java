@@ -20,16 +20,16 @@ import java.util.List;
  * ENTER opens edit repo window.
  * DEL triggers deletion dialog.
  */
-public class RepositoryInformationKeyPressHandler implements EventHandler<KeyEvent>, AlertDisplay {
+public class RepoKeyPressHandler implements EventHandler<KeyEvent>, AlertDisplay {
 
     private ListView<RepositoryInformation> listView;
     private TableView<RepositoryInformation> tableView;
 
-    public RepositoryInformationKeyPressHandler(ListView<RepositoryInformation> listView) {
+    public RepoKeyPressHandler(ListView<RepositoryInformation> listView) {
         this.listView = listView;
     }
 
-    public RepositoryInformationKeyPressHandler(TableView<RepositoryInformation> tableView) {
+    public RepoKeyPressHandler(TableView<RepositoryInformation> tableView) {
         this.tableView = tableView;
     }
 

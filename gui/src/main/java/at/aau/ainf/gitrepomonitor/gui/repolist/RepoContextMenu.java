@@ -26,7 +26,7 @@ import java.io.IOException;
 /**
  * Custom context menu for repository list entries
  */
-public class RepositoryInformationContextMenu extends ContextMenu implements AlertDisplay, MasterPasswordQuery {
+public class RepoContextMenu extends ContextMenu implements AlertDisplay, MasterPasswordQuery {
 
     private final GitManager gitManager;
     private final IndexedCell<RepositoryInformation> cell;
@@ -40,7 +40,7 @@ public class RepositoryInformationContextMenu extends ContextMenu implements Ale
      * @param statusDisplay Status display
      * @param progressMonitor Monitor for progress updates
      */
-    public RepositoryInformationContextMenu(IndexedCell<RepositoryInformation> cell, StatusDisplay statusDisplay, ProgressMonitor progressMonitor) {
+    public RepoContextMenu(IndexedCell<RepositoryInformation> cell, StatusDisplay statusDisplay, ProgressMonitor progressMonitor) {
         this.secureStorage = SecureStorage.getImplementation();
         this.gitManager = GitManager.getInstance();
         this.cell = cell;
