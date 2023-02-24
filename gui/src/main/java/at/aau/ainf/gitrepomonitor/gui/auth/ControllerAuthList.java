@@ -2,8 +2,8 @@ package at.aau.ainf.gitrepomonitor.gui.auth;
 
 import at.aau.ainf.gitrepomonitor.core.files.FileManager;
 import at.aau.ainf.gitrepomonitor.core.files.RepositoryInformation;
-import at.aau.ainf.gitrepomonitor.core.files.authentication.AuthenticationCredentials;
-import at.aau.ainf.gitrepomonitor.core.files.authentication.SecureStorage;
+import at.aau.ainf.gitrepomonitor.core.authentication.AuthenticationCredentials;
+import at.aau.ainf.gitrepomonitor.core.authentication.SecureStorage;
 import at.aau.ainf.gitrepomonitor.gui.AlertDisplay;
 import at.aau.ainf.gitrepomonitor.gui.ResourceStore;
 import javafx.event.ActionEvent;

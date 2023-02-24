@@ -3,7 +3,7 @@ package at.aau.ainf.gitrepomonitor.core.git;
 import at.aau.ainf.gitrepomonitor.core.files.FileManager;
 import at.aau.ainf.gitrepomonitor.core.files.RepositoryInformation;
 import at.aau.ainf.gitrepomonitor.core.files.Utils;
-import at.aau.ainf.gitrepomonitor.core.files.authentication.Authenticator;
+import at.aau.ainf.gitrepomonitor.core.authentication.Authenticator;
 import org.eclipse.jgit.api.*;
 import org.eclipse.jgit.api.errors.*;
 import org.eclipse.jgit.diff.DiffEntry;
@@ -640,9 +640,11 @@ public class GitManager {
             status = NO_REMOTE_BRANCH;
         }
         catch (NoRemoteRepositoryException | InvalidRemoteException ex) {
+            ex.printStackTrace();
             status = NO_REMOTE;
         }
         catch (TransportException ex) {
+            ex.printStackTrace();
             if (ex.getCause() != null && ex.getCause() instanceof NoRemoteRepositoryException) {
                 status = NO_REMOTE;
             } else {

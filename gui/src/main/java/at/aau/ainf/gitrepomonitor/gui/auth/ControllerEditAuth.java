@@ -2,10 +2,10 @@ package at.aau.ainf.gitrepomonitor.gui.auth;
 
 import at.aau.ainf.gitrepomonitor.core.files.RepositoryInformation;
 import at.aau.ainf.gitrepomonitor.core.files.Utils;
-import at.aau.ainf.gitrepomonitor.core.files.authentication.AuthenticationCredentials;
-import at.aau.ainf.gitrepomonitor.core.files.authentication.HttpsCredentials;
-import at.aau.ainf.gitrepomonitor.core.files.authentication.SslCredentials;
-import at.aau.ainf.gitrepomonitor.core.files.authentication.SecureStorage;
+import at.aau.ainf.gitrepomonitor.core.authentication.AuthenticationCredentials;
+import at.aau.ainf.gitrepomonitor.core.authentication.HttpsCredentials;
+import at.aau.ainf.gitrepomonitor.core.authentication.SslCredentials;
+import at.aau.ainf.gitrepomonitor.core.authentication.SecureStorage;
 import at.aau.ainf.gitrepomonitor.gui.AlertDisplay;
 import at.aau.ainf.gitrepomonitor.gui.MasterPasswordQuery;
 import at.aau.ainf.gitrepomonitor.gui.ResourceStore;

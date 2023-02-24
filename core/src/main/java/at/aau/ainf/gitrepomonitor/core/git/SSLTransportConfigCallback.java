@@ -1,22 +1,27 @@
 package at.aau.ainf.gitrepomonitor.core.git;
 
 import at.aau.ainf.gitrepomonitor.core.files.Utils;
-import com.jcraft.jsch.JSch;
-import com.jcraft.jsch.JSchException;
 import org.eclipse.jgit.api.TransportConfigCallback;
-import org.eclipse.jgit.transport.JschConfigSessionFactory;
+import org.eclipse.jgit.transport.SshSessionFactory;
 import org.eclipse.jgit.transport.SshTransport;
 import org.eclipse.jgit.transport.Transport;
+import org.eclipse.jgit.transport.sshd.SshdSessionFactory;
+import org.eclipse.jgit.transport.sshd.SshdSessionFactoryBuilder;
 import org.eclipse.jgit.util.FS;
+import org.eclipse.jgit.diff.DiffEntry;
+
+import java.io.File;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Path;
+import java.util.Collections;
 
 /**
  * Implements functionality to configure JSch SSL connection used by JGit.
  */
 public class SSLTransportConfigCallback implements TransportConfigCallback {
 
-    private String sslKeyPath;
+    private final String sslKeyPath;
     private byte[] sslKeyPassphrase;
-    private JSch defaultJSch;
 
     public SSLTransportConfigCallback(String sslKeyPath, byte[] sslKeyPassphrase) {
         this.sslKeyPath = sslKeyPath;
@@ -25,17 +30,13 @@ public class SSLTransportConfigCallback implements TransportConfigCallback {
 
     @Override
     public void configure(Transport transport) {
-        SshTransport sshTransport = ( SshTransport )transport;
-        sshTransport.setSshSessionFactory( new JschConfigSessionFactory() {
-            @Override
-            protected JSch createDefaultJSch(FS fs) throws JSchException {
-                defaultJSch = super.createDefaultJSch(fs);
-                if (sslKeyPath != null) {
-                    defaultJSch.addIdentity(sslKeyPath, sslKeyPassphrase);
-                }
-                return defaultJSch;
-            }
-        });
+        SshTransport sshTransport = (SshTransport)transport;
+        // Setup custom credential provider for private key passphrase
+        String encodedPassphrase = new String(sslKeyPassphrase, StandardCharsets.UTF_8);
+        sshTransport.setCredentialsProvider(new CustomCredentialProvider(encodedPassphrase));
+        // Setup custom ssh factory for private key path
+        SshSessionFactory sshFactory = new CustomSshSessionFactory(sslKeyPath);
+        sshTransport.setSshSessionFactory(sshFactory);
     }
 
     /**
@@ -44,11 +45,5 @@ public class SSLTransportConfigCallback implements TransportConfigCallback {
     public void clear() {
         Utils.clearArray(sslKeyPassphrase);
         sslKeyPassphrase = null;
-        try {
-            // removing a identity clears the ssl passphrase buffer.
-            defaultJSch.removeAllIdentity();
-        } catch (JSchException e) {
-            // should not happen
-        }
     }
 }

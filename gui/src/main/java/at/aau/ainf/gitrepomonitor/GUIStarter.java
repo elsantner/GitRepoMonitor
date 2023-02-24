@@ -1,6 +1,6 @@
 package at.aau.ainf.gitrepomonitor;
 
-import at.aau.ainf.gitrepomonitor.core.files.authentication.SecureStorage;
+import at.aau.ainf.gitrepomonitor.core.authentication.SecureStorage;
 import at.aau.ainf.gitrepomonitor.gui.ResourceStore;
 import at.aau.ainf.gitrepomonitor.gui.main.ControllerMain;
 import at.aau.ainf.gitrepomonitor.gui.reposcan.ControllerScan;

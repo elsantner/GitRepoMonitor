@@ -1,11 +1,10 @@
 package at.aau.ainf.gitrepomonitor.core.files;
 
-import at.aau.ainf.gitrepomonitor.core.files.authentication.AuthenticationCredentials;
-import at.aau.ainf.gitrepomonitor.core.files.authentication.HttpsCredentials;
-import at.aau.ainf.gitrepomonitor.core.files.authentication.SecureStorage;
-import at.aau.ainf.gitrepomonitor.core.files.authentication.SslCredentials;
+import at.aau.ainf.gitrepomonitor.core.authentication.AuthenticationCredentials;
+import at.aau.ainf.gitrepomonitor.core.authentication.HttpsCredentials;
+import at.aau.ainf.gitrepomonitor.core.authentication.SecureStorage;
+import at.aau.ainf.gitrepomonitor.core.authentication.SslCredentials;
 import at.aau.ainf.gitrepomonitor.core.git.GitManager;
-import org.eclipse.jgit.api.errors.GitAPIException;
 
 import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
