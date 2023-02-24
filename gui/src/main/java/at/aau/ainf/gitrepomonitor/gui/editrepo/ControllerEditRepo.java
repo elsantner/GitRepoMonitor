@@ -1,9 +1,12 @@
 package at.aau.ainf.gitrepomonitor.gui.editrepo;
 
+import at.aau.ainf.gitrepomonitor.core.authentication.AuthenticationCredentials;
+import at.aau.ainf.gitrepomonitor.core.authentication.Authenticator;
+import at.aau.ainf.gitrepomonitor.core.authentication.HttpsCredentials;
+import at.aau.ainf.gitrepomonitor.core.authentication.SecureStorage;
 import at.aau.ainf.gitrepomonitor.core.files.FileManager;
 import at.aau.ainf.gitrepomonitor.core.files.RepositoryInformation;
 import at.aau.ainf.gitrepomonitor.core.files.Utils;
-import at.aau.ainf.gitrepomonitor.core.files.authentication.*;
 import at.aau.ainf.gitrepomonitor.core.git.GitManager;
 import at.aau.ainf.gitrepomonitor.gui.AlertDisplay;
 import at.aau.ainf.gitrepomonitor.gui.MasterPasswordQuery;
@@ -18,7 +21,10 @@ import javafx.fxml.Initializable;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
-import javafx.stage.*;
+import javafx.stage.DirectoryChooser;
+import javafx.stage.Modality;
+import javafx.stage.Stage;
+import javafx.stage.StageStyle;
 import javafx.util.Callback;
 
 import javax.naming.AuthenticationException;

@@ -1,7 +1,7 @@
 package at.aau.ainf.gitrepomonitor.gui.editrepo;
 
 import at.aau.ainf.gitrepomonitor.core.files.RepositoryInformation;
-import at.aau.ainf.gitrepomonitor.core.files.authentication.AuthenticationCredentials;
+import at.aau.ainf.gitrepomonitor.core.authentication.AuthenticationCredentials;
 
 import java.util.UUID;
 

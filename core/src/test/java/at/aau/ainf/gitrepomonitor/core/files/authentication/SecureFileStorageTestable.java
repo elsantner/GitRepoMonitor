@@ -1,12 +1,11 @@
 package at.aau.ainf.gitrepomonitor.core.files.authentication;
 
+import at.aau.ainf.gitrepomonitor.core.authentication.SecureFileStorage;
 import at.aau.ainf.gitrepomonitor.core.files.StoragePath;
-import at.aau.ainf.gitrepomonitor.core.files.Utils;
 
 import javax.crypto.BadPaddingException;
 import javax.crypto.IllegalBlockSizeException;
 import java.io.File;
-import java.io.IOException;
 
 public class SecureFileStorageTestable extends SecureFileStorage {
 

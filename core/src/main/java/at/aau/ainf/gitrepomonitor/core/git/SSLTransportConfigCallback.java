@@ -31,7 +31,7 @@ public class SSLTransportConfigCallback implements TransportConfigCallback {
     @Override
     public void configure(Transport transport) {
         SshTransport sshTransport = (SshTransport)transport;
-        // Setup custom credentials provider for private key passphrase
+        // Setup custom credential provider for private key passphrase
         String encodedPassphrase = new String(sslKeyPassphrase, StandardCharsets.UTF_8);
         sshTransport.setCredentialsProvider(new CustomCredentialProvider(encodedPassphrase));
         // Setup custom ssh factory for private key path

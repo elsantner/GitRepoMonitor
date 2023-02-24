@@ -1,4 +1,4 @@
-package at.aau.ainf.gitrepomonitor.core.files.authentication;
+package at.aau.ainf.gitrepomonitor.core.authentication;
 
 import at.aau.ainf.gitrepomonitor.core.files.FileManager;
 import at.aau.ainf.gitrepomonitor.core.files.Utils;
