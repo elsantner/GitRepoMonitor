@@ -26,6 +26,10 @@ import java.util.logging.Logger;
  */
 public abstract class SecureStorage {
 
+    private static final int LENGTH_IV = 16;
+    private static final int LENGTH_SALT = 16;
+    private static final int LENGTH_TOTAL = LENGTH_IV + LENGTH_SALT;
+
     protected static Settings settings;
     protected static XmlMapper mapper;
     // master password HASH cache
@@ -266,20 +270,22 @@ public abstract class SecureStorage {
      * The randomly generated IV (16 bytes) is prepended to the resulting byte array.
      * @param plaintext Plaintext to encrypt
      * @param key Key used for encryption
-     * @param salt Salt used for PBEKeySpec (has to be provided again for decryption)
      * @return Ciphertext as byte array (prepended by 16 byte random IV)
      */
-    protected byte[] encryptToBytes(String plaintext, char[] key, String salt) {
+    protected byte[] encryptToBytes(String plaintext, char[] key) {
         try {
             SecureRandom randomSecureRandom = new SecureRandom();
-            byte[] iv = new byte[16];
+            byte[] iv = new byte[LENGTH_IV];
             randomSecureRandom.nextBytes(iv);
+            byte[] salt = new byte[LENGTH_SALT];
+            randomSecureRandom.nextBytes(salt);
             Cipher cipher = getCipherInstantiation(Cipher.ENCRYPT_MODE, key, salt, new IvParameterSpec(iv));
 
             byte[] cipherBytes = cipher.doFinal(plaintext.getBytes(StandardCharsets.UTF_8));
-            byte[] completeCipher = new byte[iv.length+cipherBytes.length];
-            System.arraycopy(iv, 0, completeCipher, 0, iv.length);
-            System.arraycopy(cipherBytes, 0, completeCipher, iv.length, cipherBytes.length);
+            byte[] completeCipher = new byte[LENGTH_TOTAL+cipherBytes.length];
+            System.arraycopy(iv, 0, completeCipher, 0, LENGTH_IV);
+            System.arraycopy(salt, 0, completeCipher, LENGTH_IV, LENGTH_SALT);
+            System.arraycopy(cipherBytes, 0, completeCipher, LENGTH_TOTAL, cipherBytes.length);
 
             return completeCipher;
         } catch (Exception e) {
@@ -293,14 +299,16 @@ public abstract class SecureStorage {
      * The IV (16 bytes) has to prepended to the ciphertext (i.e. the first 16 bytes of cipherBytes have to be the IV).
      * @param cipherBytes Ciphertext to decrypt
      * @param key Key used for decryption
-     * @param salt Salt used for PBEKeySpec (has to be the same as used for encryption)
      * @return Plaintext
      */
-    protected String decryptFromBytes(byte[] cipherBytes, char[] key, String salt) throws BadPaddingException, IllegalBlockSizeException {
-        byte[] iv = new byte[16];
-        System.arraycopy(cipherBytes, 0, iv, 0, 16);
+    protected String decryptFromBytes(byte[] cipherBytes, char[] key) throws BadPaddingException, IllegalBlockSizeException {
+        byte[] iv = new byte[LENGTH_IV];
+        System.arraycopy(cipherBytes, 0, iv, 0, LENGTH_IV);
+        byte[] salt = new byte[LENGTH_SALT];
+        System.arraycopy(cipherBytes, LENGTH_IV, salt, 0, LENGTH_SALT);
+
         Cipher cipher = getCipherInstantiation(Cipher.DECRYPT_MODE, key, salt, new IvParameterSpec(iv));
-        return new String(cipher.doFinal(cipherBytes, 16, cipherBytes.length-16));
+        return new String(cipher.doFinal(cipherBytes, LENGTH_TOTAL, cipherBytes.length-LENGTH_TOTAL));
     }
 
     /**
@@ -308,12 +316,11 @@ public abstract class SecureStorage {
      * The randomly generated IV (16 bytes) is prepended to the resulting ciphertext (in Base64 format).
      * @param plaintext Plaintext to encrypt
      * @param key Key used for encryption
-     * @param salt Salt used for PBEKeySpec (has to be provided again for decryption)
      * @return Ciphertext as Base64 String (prepended by 16 byte random IV)
      */
-    protected String encrypt(String plaintext, char[] key, String salt) {
+    protected String encrypt(String plaintext, char[] key) {
         try {
-            return Base64.getEncoder().encodeToString(encryptToBytes(plaintext, key, salt));
+            return Base64.getEncoder().encodeToString(encryptToBytes(plaintext, key));
         } catch (Exception e) {
             // exceptions should not happen (block size & padding are highly dynamic here)
             throw new RuntimeException(e);
@@ -325,11 +332,10 @@ public abstract class SecureStorage {
      * The IV (16 bytes) has to prepended to the ciphertext (i.e. the first 16 bytes of ciphertext have to be the IV).
      * @param ciphertext Ciphertext to decrypt in Base64 format
      * @param key Key used for decryption
-     * @param salt Salt used for PBEKeySpec (has to be the same as used for encryption)
      * @return Plaintext
      */
-    protected String decrypt(String ciphertext, char[] key, String salt) throws BadPaddingException, IllegalBlockSizeException {
-        return decryptFromBytes(Base64.getDecoder().decode(ciphertext), key, salt);
+    protected String decrypt(String ciphertext, char[] key) throws BadPaddingException, IllegalBlockSizeException {
+        return decryptFromBytes(Base64.getDecoder().decode(ciphertext), key);
     }
 
     /**
@@ -340,10 +346,10 @@ public abstract class SecureStorage {
      * @param ivParams IV
      * @return AES Cipher instance in CBC mode with PKCS5 padding.
      */
-    private Cipher getCipherInstantiation(int cipherMode, char[] key, String salt, IvParameterSpec ivParams) {
+    private Cipher getCipherInstantiation(int cipherMode, char[] key, byte[] salt, IvParameterSpec ivParams) {
         try {
             SecretKeyFactory factory = SecretKeyFactory.getInstance("PBKDF2WithHmacSHA256");
-            KeySpec keySpec = new PBEKeySpec(key, salt.getBytes(), 65536, 256);
+            KeySpec keySpec = new PBEKeySpec(key, salt, 65536, 256);
             SecretKeySpec secretKeySpec = new SecretKeySpec(factory.generateSecret(keySpec).getEncoded(), "AES");
 
             Cipher cipher = Cipher.getInstance("AES/CBC/PKCS5Padding");

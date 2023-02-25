@@ -16,19 +16,19 @@ public class SecureFileStorageTestable extends SecureFileStorage {
     }
 
     public String encrypt(String plaintext, char[] key, String salt) {
-        return super.encrypt(plaintext, key, salt);
+        return super.encrypt(plaintext, key);
     }
 
     public String decrypt(String ciphertext, char[] key, String salt) throws BadPaddingException, IllegalBlockSizeException {
-        return super.decrypt(ciphertext, key, salt);
+        return super.decrypt(ciphertext, key);
     }
 
     public String decryptFromBytes(byte[] ciphertext, char[] key, String salt) throws BadPaddingException, IllegalBlockSizeException {
-        return super.decryptFromBytes(ciphertext, key, salt);
+        return super.decryptFromBytes(ciphertext, key);
     }
 
     public byte[] encryptToBytes(String plaintext, char[] key, String salt) {
-        return super.encryptToBytes(plaintext, key, salt);
+        return super.encryptToBytes(plaintext, key);
     }
 
     public void removeCredentialTestFile() {
