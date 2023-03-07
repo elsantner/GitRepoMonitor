@@ -1,13 +1,9 @@
 package at.aau.ainf.gitrepomonitor.core.files;
 
-import org.junit.Test;
 
-import java.io.File;
-import java.sql.Connection;
-import java.sql.DriverManager;
-import java.sql.Statement;
+import org.junit.jupiter.api.Test;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class FileManagerTest {
 

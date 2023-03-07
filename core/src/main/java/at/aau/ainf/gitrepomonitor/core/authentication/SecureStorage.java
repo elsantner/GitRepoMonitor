@@ -296,7 +296,7 @@ public abstract class SecureStorage {
 
     /**
      * Decrypt ciphertext using AES-256 with added salt.
-     * The IV (16 bytes) has to prepended to the ciphertext (i.e. the first 16 bytes of cipherBytes have to be the IV).
+     * The IV (16 bytes) has to prepended to the ciphertext (i.e. the first 2x16 bytes of cipherBytes have to be IV and salt).
      * @param cipherBytes Ciphertext to decrypt
      * @param key Key used for decryption
      * @return Plaintext

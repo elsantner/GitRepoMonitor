@@ -24,7 +24,7 @@ public class SecureFileStorage extends SecureStorage {
         return instance;
     }
 
-    private FileManager fileManager;
+    protected FileManager fileManager;
 
     protected SecureFileStorage() {
         super();
@@ -226,7 +226,7 @@ public class SecureFileStorage extends SecureStorage {
      * @param hashedCurrentPW Hash of master password.
      * @return True, iff master password is correct.
      */
-    private boolean isMasterPasswordCorrect(char[] hashedCurrentPW) {
+    protected boolean isMasterPasswordCorrect(char[] hashedCurrentPW) {
         String encHashedPW = fileManager.readAuthenticationString(MasterPasswordAuthInfo.ID);
         try {
             // check if decrypted password hash is equal to provided hash
