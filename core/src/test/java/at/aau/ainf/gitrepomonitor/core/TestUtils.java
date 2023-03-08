@@ -7,4 +7,11 @@ public class TestUtils {
     }
     return true;
   }
+
+  public static boolean isCleared(byte[] array) {
+    for (byte b : array) {
+      if (b != 0) return false;
+    }
+    return true;
+  }
 }
