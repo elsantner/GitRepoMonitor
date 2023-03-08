@@ -14,8 +14,6 @@ import java.util.*;
  * Can be used to configure JGit commands with the stored authentication credentials.
  */
 public class Authenticator {
-    private static final SecureStorage secureStorage = SecureStorage.getImplementation();
-
     private UsernamePasswordCredentialsProvider cp;
     private SSLTransportConfigCallback ssl;
 
@@ -39,7 +37,8 @@ public class Authenticator {
      * @return Map of UUID of repo --> corresponding authenticator (or null if {@code repo.authID} == null)
      * @throws AuthenticationException If authentication fails
      */
-    public static Map<UUID, Authenticator> getFor(List<RepositoryInformation> repos, char[] masterPW) throws AuthenticationException {
+    public static Map<UUID, Authenticator> getFor(List<RepositoryInformation> repos, char[] masterPW,
+                                                  SecureStorage secureStorage) throws AuthenticationException {
         Map<UUID, Authenticator> authenticators = new HashMap<>();
         Set<UUID> authIDs = new HashSet<>();
         // get all required AuthIDs (repos can share AuthIDs)
@@ -56,6 +55,10 @@ public class Authenticator {
         return authenticators;
     }
 
+    public static Map<UUID, Authenticator> getFor(List<RepositoryInformation> repos, char[] masterPW) throws AuthenticationException {
+        return getFor(repos, masterPW, SecureStorage.getImplementation());
+    }
+
     /**
      * Get Authenticator for provided repo.
      * @param repo Repo to get authenticator for.
@@ -63,12 +66,17 @@ public class Authenticator {
      * @return Authenticator for {@code repo}, or null if {@code repo.authID} == null.
      * @throws AuthenticationException If authentication fails
      */
-    public static Authenticator getFor(RepositoryInformation repo, char[] masterPW) throws AuthenticationException {
+    public static Authenticator getFor(RepositoryInformation repo, char[] masterPW,
+                                       SecureStorage secureStorage) throws AuthenticationException {
         if (repo.getAuthID() != null) {
-            return getFor(Collections.singletonList(repo), masterPW).get(repo.getID());
+            return getFor(Collections.singletonList(repo), masterPW, secureStorage).get(repo.getID());
         } else {
             return new Authenticator();
         }
+    }
+
+    public static Authenticator getFor(RepositoryInformation repo, char[] masterPW) throws AuthenticationException {
+        return getFor(repo, masterPW, SecureStorage.getImplementation());
     }
 
     /**
@@ -95,7 +103,8 @@ public class Authenticator {
      * @return Authenticator with given ID. (or a blank Authenticator if {@code authId} == null)
      * @throws AuthenticationException If authentication fails
      */
-    public static Authenticator get(UUID authId, char[] masterPW) throws AuthenticationException {
+    public static Authenticator get(UUID authId, char[] masterPW, SecureStorage secureStorage)
+        throws AuthenticationException {
         if (authId != null) {
             AuthenticationCredentials ai = secureStorage.get(masterPW, authId);
             if (ai instanceof HttpsCredentials) {
@@ -110,6 +119,10 @@ public class Authenticator {
         } else {
             return new Authenticator();
         }
+    }
+
+    public static Authenticator get(UUID authId, char[] masterPW) throws AuthenticationException {
+        return get(authId, masterPW, SecureStorage.getImplementation());
     }
 
     /**
