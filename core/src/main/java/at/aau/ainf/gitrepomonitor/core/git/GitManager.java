@@ -70,14 +70,22 @@ public class GitManager {
     private final ThreadPoolExecutor executor;
     private PullListener pullListener;
 
-    private GitManager() {
-        this.repoCache = new HashMap<>();
-        this.fileManager = FileManager.getInstance();
+    protected GitManager() {
+        this.repoCache = createRepoCache();
+        this.fileManager = createFileManager();
         this.executor = (ThreadPoolExecutor) Executors.newFixedThreadPool(10, r -> {
             Thread t = Executors.defaultThreadFactory().newThread(r);
             t.setDaemon(true);
             return t;
         });
+    }
+
+    protected HashMap<String, Git> createRepoCache() {
+        return new HashMap<>();
+    }
+
+    protected FileManager createFileManager() {
+        return FileManager.getInstance();
     }
 
     public void setPullListener(PullListener pullListener) {
@@ -537,7 +545,7 @@ public class GitManager {
      * @param authenticator Auth credentials
      * @throws GitAPIException
      */
-    private void fetchRepo(Git repoGit, Authenticator authenticator) throws GitAPIException {
+    protected void fetchRepo(Git repoGit, Authenticator authenticator) throws GitAPIException {
         FetchCommand cmd = repoGit.fetch();
         authenticator.configure(cmd);
         cmd.call();
@@ -612,7 +620,7 @@ public class GitManager {
      * @param repoGit Repository to check
      * @return Status of the repository
      */
-    private RepositoryInformation.RepoStatus getRepoStatus(Git repoGit, Authenticator authenticator) throws IOException {
+    protected RepositoryInformation.RepoStatus getRepoStatus(Git repoGit, Authenticator authenticator) throws IOException {
         RepositoryInformation.RepoStatus status;
 
         try {
@@ -664,7 +672,7 @@ public class GitManager {
      * @throws IOException
      * @throws GitAPIException
      */
-    private boolean localChangesAvailable(Git git) throws IOException, GitAPIException {
+    protected boolean localChangesAvailable(Git git) throws IOException, GitAPIException {
         Repository repository = git.getRepository();
         String branch = repository.getBranch();
         ObjectId fetchHead = repository.resolve("refs/remotes/origin/"+branch);
@@ -681,7 +689,7 @@ public class GitManager {
      * @throws GitAPIException
      * @throws IllegalStateException If the current branch is local-only, i.e. has no remote branch associated
      */
-    private boolean remoteChangesAvailable(Git git) throws IOException, GitAPIException, IllegalStateException {
+    protected boolean remoteChangesAvailable(Git git) throws IOException, GitAPIException, IllegalStateException {
         Repository repository = git.getRepository();
         String branch = repository.getBranch();
         ObjectId fetchHead = repository.resolve("refs/remotes/origin/"+branch);

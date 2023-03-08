@@ -1,12 +1,6 @@
-package at.aau.ainf.gitrepomonitor.core.files.authentication;
+package at.aau.ainf.gitrepomonitor.core.authentication;
 
 import at.aau.ainf.gitrepomonitor.core.TestUtils;
-import at.aau.ainf.gitrepomonitor.core.authentication.AuthenticationCredentials;
-import at.aau.ainf.gitrepomonitor.core.authentication.HttpsCredentials;
-import at.aau.ainf.gitrepomonitor.core.authentication.SslCredentials;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.dataformat.xml.XmlMapper;
 import org.junit.jupiter.api.Test;
 
 import java.nio.charset.StandardCharsets;

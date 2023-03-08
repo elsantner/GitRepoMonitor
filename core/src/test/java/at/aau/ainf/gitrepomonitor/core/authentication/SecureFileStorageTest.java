@@ -1,8 +1,6 @@
-package at.aau.ainf.gitrepomonitor.core.files.authentication;
+package at.aau.ainf.gitrepomonitor.core.authentication;
 
 import at.aau.ainf.gitrepomonitor.core.TestUtils;
-import at.aau.ainf.gitrepomonitor.core.authentication.AuthenticationCredentials;
-import at.aau.ainf.gitrepomonitor.core.authentication.HttpsCredentials;
 import at.aau.ainf.gitrepomonitor.core.files.FileManager;
 import at.aau.ainf.gitrepomonitor.core.files.Utils;
 import org.junit.jupiter.api.AfterEach;
