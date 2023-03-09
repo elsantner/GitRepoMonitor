@@ -304,7 +304,6 @@ public class ControllerSettings implements Initializable, AlertDisplay, MasterPa
                 setMPButtonDisplay();
             }
         } catch (Exception ex) {
-            ex.printStackTrace();
             showError(ex.getMessage());
         }
     }
